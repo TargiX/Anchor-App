@@ -50,7 +50,6 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
   const [expanded, setExpanded] = useState(false)
   const date = new Date(entry.date + "T12:00:00")
   const weekday = date.toLocaleDateString("en-US", { weekday: "short" })
-  const monthDay = date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
 
   return (
     <div

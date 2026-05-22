@@ -31,12 +31,14 @@ function getTimeLabel(h: number) {
 
 function useTimeInfo() {
   const [mounted, setMounted] = useState(false)
-  const [hour, setHour] = useState(12) // Default to midday for SSR
+  const [hour, setHour] = useState(12) // SSR default to midday
 
+  /* eslint-disable react-hooks/set-state-in-effect -- legitimate hydration guard: only runs once on mount */
   useEffect(() => {
     setHour(new Date().getHours())
     setMounted(true)
   }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const dateStr = mounted
     ? new Date().toLocaleDateString("en-US", {
