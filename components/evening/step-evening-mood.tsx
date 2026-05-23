@@ -1,6 +1,5 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
 import { StepMood } from "@/components/morning/step-mood"
 import { useAppState } from "@/hooks/use-store"
 import { getTodayKey, type MoodPoint } from "@/lib/store"
