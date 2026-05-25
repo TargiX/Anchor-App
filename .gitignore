@@ -34,3 +34,16 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# capacitor / native builds
+/ios
+/android
+/electron/app
+/electron/build
+/electron/node_modules
+/electron/dist
+/electron/electron-plugins.js
+.gstack/
+
+# local-only Claude settings
+.claude/settings.local.json
