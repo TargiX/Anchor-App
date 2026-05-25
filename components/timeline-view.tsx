@@ -3,7 +3,8 @@
 import { useState } from "react"
 import { useAppState } from "@/hooks/use-store"
 import { cn } from "@/lib/utils"
-import { type DayEntry, type MoodPoint } from "@/lib/store"
+import { type DayEntry, type MoodPoint } from "@/lib/domain/entry"
+import { getTodayKey, parseEntryDate } from "@/lib/time/today"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -48,9 +49,8 @@ function MoodMiniChart({ morning, evening }: { morning?: MoodPoint; evening?: Mo
 
 function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
   const [expanded, setExpanded] = useState(false)
-  const date = new Date(entry.date + "T12:00:00")
+  const date = parseEntryDate(entry.date)
   const weekday = date.toLocaleDateString("en-US", { weekday: "short" })
-  const monthDay = date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
 
   return (
     <div
@@ -148,7 +148,7 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
 
 export function TimelineView() {
   const state = useAppState()
-  const todayKey = new Date().toISOString().split("T")[0]
+  const todayKey = getTodayKey()
 
   // Group entries by week
   const entries = Object.values(state.entries).sort(
@@ -174,7 +174,7 @@ export function TimelineView() {
 
   displayEntries.forEach((entry, i) => {
     currentWeek.push(entry)
-    const d = new Date(entry.date + "T12:00:00")
+    const d = parseEntryDate(entry.date)
     if (d.getDay() === 0 || i === displayEntries.length - 1) {
       weeks.push(currentWeek)
       currentWeek = []

@@ -2,8 +2,8 @@
 
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
-import { updateTodayEntry, type MoodPoint } from "@/lib/store"
+import { updateTodayEntry } from "@/lib/store"
+import { type MoodPoint } from "@/lib/domain/entry"
 
 interface StepMoodProps {
   onNext: () => void

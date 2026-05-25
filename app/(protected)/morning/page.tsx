@@ -17,12 +17,12 @@ export default function MorningRitual() {
 
   function next() {
     if (step < TOTAL_STEPS - 1) setStep((s) => s + 1)
-    else router.push("/")
+    else router.push("/app")
   }
 
   function back() {
     if (step > 0) setStep((s) => s - 1)
-    else router.push("/")
+    else router.push("/app")
   }
 
   return (

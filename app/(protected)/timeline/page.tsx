@@ -10,7 +10,7 @@ export default function TimelinePage() {
   return (
     <div className="flex flex-col min-h-dvh max-w-md mx-auto px-6">
       <div className="flex items-center gap-3 pt-8 pb-6">
-        <Button variant="ghost" size="icon" onClick={() => router.push("/")} className="rounded-xl -ml-2">
+        <Button variant="ghost" size="icon" onClick={() => router.push("/app")} className="rounded-xl -ml-2">
           <ArrowLeft className="size-5" />
           <span className="sr-only">Back</span>
         </Button>

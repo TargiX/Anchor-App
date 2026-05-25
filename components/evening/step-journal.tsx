@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { updateTodayEntry } from "@/lib/store"
 import { useAppState } from "@/hooks/use-store"
-import { getTodayKey } from "@/lib/store"
+import { getTodayKey } from "@/lib/time/today"
+import { LIMITS, countWords } from "@/lib/domain/validation"
 
 const FALLBACK_PROMPTS = [
   "How did today actually feel, beneath all the doing?",
@@ -24,9 +25,11 @@ export function StepJournal({ onNext, onBack }: StepJournalProps) {
   const today = state.entries[getTodayKey()]
   const intention = today?.intention
 
-  const prompt = intention
-    ? `You started the day wanting to ${intention.toLowerCase()}. How did that land?`
-    : FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)]
+  const [prompt] = useState(() =>
+    intention
+      ? `You started the day wanting to ${intention.toLowerCase()}. How did that land?`
+      : FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)]
+  )
 
   const [text, setText] = useState(today?.journal ?? "")
 
@@ -58,11 +61,11 @@ export function StepJournal({ onNext, onBack }: StepJournalProps) {
             "focus:outline-none focus:ring-2 focus:ring-ring transition-shadow",
             "font-[family-name:var(--font-display)] leading-relaxed"
           )}
-          maxLength={2000}
+          maxLength={LIMITS.journalMax}
         />
-        {text.length > 0 && (
+        {text.trim().length > 0 && (
           <span className="absolute bottom-3 right-4 text-xs text-muted-foreground">
-            {text.length} words
+            {countWords(text)} {countWords(text) === 1 ? "word" : "words"}
           </span>
         )}
       </div>
