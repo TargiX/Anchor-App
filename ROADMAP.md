@@ -79,6 +79,9 @@ check:desktop`. Verify user-facing changes in the browser.
 - **Accessibility pass**: keyboard/focus/ARIA polish across core ritual flows,
   reduced-motion handling for Framer Motion, browser zoom enabled, and
   render-time random prompt selection removed to prevent hydration drift.
+- **PWA installability**: manifest route, app icons, Apple touch icon, screenshot
+  asset, production service worker registration, and app shell cache. Verified
+  in Brave by the `Install Anchor` browser affordance.
 
 ## Blocked / needs the human
 
@@ -112,11 +115,12 @@ must not run concurrently with each other.
     the two error files (1 line each).
 - Done when: build green with and without DSN; a thrown error reports when DSN set.
 
-### WS-3 · PWA / installability — isolated, parallel-safe
+### WS-3 · PWA / installability — DONE
 
-- `app/manifest.ts`, icons in `public/`, theme-color (already in layout), optional
-  service worker for offline shell. Makes "install to home screen / desktop" real.
-- Done when: Lighthouse PWA installable; icon + manifest valid.
+- Completed through Linear `PHS-100`: `app/manifest.ts`, generated icons in
+  `public/icons`, screenshot in `public/screenshots`, Apple web app metadata,
+  and `public/sw.js` with app shell caching. Production browser check showed the
+  `Install Anchor` button in Brave.
 
 ### WS-4 · Timeline charts (Recharts) — isolated, parallel-safe
 
