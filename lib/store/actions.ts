@@ -2,9 +2,12 @@
 
 import { getSnapshot, setState } from "./store"
 import { getTodayKey } from "@/lib/time/today"
-import { emptyEntry, type DayEntry } from "@/lib/domain/entry"
+import { emptyEntry, TimeOfDaySchema, type DayEntry } from "@/lib/domain/entry"
 import type { Habit } from "@/lib/domain/habit"
-import { validateHabitName, type ValidationResult } from "@/lib/domain/validation"
+import {
+  validateHabitName,
+  type ValidationResult,
+} from "@/lib/domain/validation"
 
 /**
  * The only sanctioned way to mutate state. Components call these, never
@@ -39,10 +42,19 @@ export function addHabit(name: string): ValidationResult {
 }
 
 export function removeHabit(id: string): void {
-  setState((prev) => ({ ...prev, habits: prev.habits.filter((h) => h.id !== id) }))
+  setState((prev) => ({
+    ...prev,
+    habits: prev.habits.filter((h) => h.id !== id),
+  }))
 }
 
-export function setNotificationTime(which: "morning" | "evening", time: string): void {
-  const field = which === "morning" ? "notificationMorning" : "notificationEvening"
-  setState((prev) => ({ ...prev, [field]: time }))
+export function setNotificationTime(
+  which: "morning" | "evening",
+  time: string
+): void {
+  const parsed = TimeOfDaySchema.safeParse(time)
+  if (!parsed.success) return
+  const field =
+    which === "morning" ? "notificationMorning" : "notificationEvening"
+  setState((prev) => ({ ...prev, [field]: parsed.data }))
 }

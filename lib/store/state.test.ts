@@ -60,4 +60,48 @@ describe("migrate", () => {
     expect(result.habits).toEqual([])
     expect(result.entries).toEqual({})
   })
+
+  it("drops entries whose date does not match their storage key", () => {
+    const result = migrate({
+      entries: { "2026-05-20": { date: "2026-05-21", intention: "Mismatch" } },
+      habits: [],
+      notificationMorning: "08:00",
+      notificationEvening: "20:00",
+    })
+
+    expect(result.entries).toEqual({})
+  })
+
+  it("recovers invalid notification times from defaults", () => {
+    const result = migrate({
+      entries: {},
+      habits: [],
+      notificationMorning: "25:00",
+      notificationEvening: "nope",
+    })
+
+    expect(result.notificationMorning).toBe(INITIAL_STATE.notificationMorning)
+    expect(result.notificationEvening).toBe(INITIAL_STATE.notificationEvening)
+  })
+
+  it("drops entries with invalid numeric ranges and malformed time fields", () => {
+    const result = migrate({
+      entries: {
+        "2026-05-20": { date: "2026-05-20", sleepHours: 25 },
+        "2026-05-21": { date: "2026-05-21", meditationMinutes: -1 },
+        "2026-05-22": { date: "2026-05-22", tomorrowBedtime: "99:99" },
+        "2026-05-23": {
+          date: "2026-05-23",
+          sleepHours: 7.5,
+          meditationMinutes: 10,
+          tomorrowBedtime: "22:30",
+        },
+      },
+      habits: [],
+      notificationMorning: "08:00",
+      notificationEvening: "20:00",
+    })
+
+    expect(Object.keys(result.entries)).toEqual(["2026-05-23"])
+  })
 })

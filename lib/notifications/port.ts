@@ -6,12 +6,23 @@
 
 export type PermissionState = "unsupported" | "default" | "granted" | "denied"
 
+export type NotificationMode = "web" | "native"
+
+export interface DailyReminderConfig {
+  morning: string
+  evening: string
+}
+
 export interface NotificationPort {
+  mode: NotificationMode
   isSupported(): boolean
   getPermission(): PermissionState
+  refreshPermission?(): Promise<PermissionState>
   requestPermission(): Promise<PermissionState>
   /** Fire a notification immediately (used for the in-session scheduler + test). */
   notify(title: string, options?: { body?: string }): void
+  scheduleDailyReminders?(reminders: DailyReminderConfig): Promise<void>
+  cancelDailyReminders?(): Promise<void>
 }
 
 /**
@@ -23,6 +34,7 @@ export interface NotificationPort {
  * native, the Capacitor adapter schedules real OS-level local notifications.
  */
 export const webNotificationAdapter: NotificationPort = {
+  mode: "web",
   isSupported() {
     return typeof window !== "undefined" && "Notification" in window
   },

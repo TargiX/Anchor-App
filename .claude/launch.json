@@ -7,6 +7,13 @@
       "runtimeArgs": ["run", "start"],
       "port": 3007,
       "autoPort": true
+    },
+    {
+      "name": "portfolio-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "3011"],
+      "port": 3011,
+      "cwd": "/Users/ilyamoskovkin/repos/targix-portfolio"
     }
   ]
 }

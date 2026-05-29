@@ -2,7 +2,12 @@
 
 import { useEffect } from "react"
 import { useAppState } from "@/hooks/use-store"
-import { useNotificationPermission, notify } from "@/lib/notifications"
+import {
+  isNativeNotificationScheduler,
+  notify,
+  scheduleDailyReminders,
+  useNotificationPermission,
+} from "@/lib/notifications"
 import { msUntilNext } from "@/lib/notifications/schedule"
 
 /**
@@ -17,9 +22,25 @@ export function ReminderScheduler() {
   useEffect(() => {
     if (permission !== "granted") return
 
+    if (isNativeNotificationScheduler()) {
+      void scheduleDailyReminders({
+        morning: notificationMorning,
+        evening: notificationEvening,
+      })
+      return
+    }
+
     const reminders = [
-      { time: notificationMorning, title: "Morning ritual", body: "A quiet few minutes to anchor your day." },
-      { time: notificationEvening, title: "Evening ritual", body: "Wind down and close the loop before bed." },
+      {
+        time: notificationMorning,
+        title: "Morning ritual",
+        body: "A quiet few minutes to anchor your day.",
+      },
+      {
+        time: notificationEvening,
+        title: "Evening ritual",
+        body: "Wind down and close the loop before bed.",
+      },
     ]
 
     const timers: ReturnType<typeof setTimeout>[] = []

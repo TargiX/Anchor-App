@@ -27,9 +27,26 @@ Live: deployed on Vercel · Mobile: iOS/Android via Capacitor · Desktop: macOS/
 
 ## Develop
 
+Use Node 24.x (`.node-version` is checked in for version managers such as fnm).
+
 ```bash
 npm install
 npm run dev          # http://localhost:3000
+```
+
+## Quality gate
+
+Run this before calling a change done:
+
+```bash
+npm run check
+```
+
+Native-facing changes should also run:
+
+```bash
+npm run check:native   # web quality gate + static export
+npm run check:desktop  # static export + Electron TypeScript/rebuild under Node 24
 ```
 
 ## Build for Vercel

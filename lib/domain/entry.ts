@@ -8,7 +8,13 @@ import { z } from "zod"
  * compile-time types in lockstep — they can never drift apart.
  */
 
-export const SleepQualitySchema = z.enum(["terrible", "poor", "okay", "good", "great"])
+export const SleepQualitySchema = z.enum([
+  "terrible",
+  "poor",
+  "okay",
+  "good",
+  "great",
+])
 export type SleepQuality = z.infer<typeof SleepQualitySchema>
 
 /** A point on the 2D mood grid. Both axes are normalised 0–1. */
@@ -18,20 +24,23 @@ export const MoodPointSchema = z.object({
 })
 export type MoodPoint = z.infer<typeof MoodPointSchema>
 
+export const DateKeySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+export const TimeOfDaySchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+
 export const DayEntrySchema = z.object({
   /** Local calendar day, `YYYY-MM-DD`. */
-  date: z.string(),
+  date: DateKeySchema,
   morningMood: MoodPointSchema.optional(),
   eveningMood: MoodPointSchema.optional(),
   sleepQuality: SleepQualitySchema.optional(),
-  sleepHours: z.number().optional(),
+  sleepHours: z.number().min(0).max(24).optional(),
   intention: z.string().optional(),
   journal: z.string().optional(),
   affirmation: z.string().optional(),
   habitsCompleted: z.array(z.string()).optional(),
-  meditationMinutes: z.number().optional(),
-  tomorrowBedtime: z.string().optional(),
-  tomorrowSleepHours: z.number().optional(),
+  meditationMinutes: z.number().min(0).max(240).optional(),
+  tomorrowBedtime: TimeOfDaySchema.optional(),
+  tomorrowSleepHours: z.number().min(0).max(24).optional(),
 })
 export type DayEntry = z.infer<typeof DayEntrySchema>
 

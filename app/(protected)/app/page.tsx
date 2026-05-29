@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Settings, Clock, BookOpen, Flame, ChevronRight } from "lucide-react"
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { getTimeContext, getGreeting, getTimeLabel } from "@/lib/time/context"
 import { isMorningComplete, isEveningComplete } from "@/lib/domain/selectors"
@@ -47,6 +47,7 @@ function useTimeInfo() {
 
 export default function Home() {
   const router = useRouter()
+  const shouldReduceMotion = useReducedMotion()
   const today = useTodayEntry()
   const streak = useStreak()
   const { mounted, timeContext, greeting, timeLabel, dateStr } = useTimeInfo()
@@ -60,44 +61,47 @@ export default function Home() {
         ? "Review this morning"
         : "Start morning ritual"
       : timeContext === "evening"
-      ? eveningDone
-        ? "Review this evening"
-        : "Begin evening ritual"
-      : null
+        ? eveningDone
+          ? "Review this evening"
+          : "Begin evening ritual"
+        : null
 
   const ctaRoute =
-    timeContext === "morning" || timeContext === "midday" ? "/morning" : "/evening"
+    timeContext === "morning" || timeContext === "midday"
+      ? "/morning"
+      : "/evening"
 
   // Avoid hydration mismatch by not rendering time-dependent content until mounted
   if (!mounted) {
     return (
-      <div className="flex flex-col min-h-dvh max-w-md mx-auto px-6">
+      <div className="mx-auto flex min-h-dvh max-w-md flex-col px-6 pt-safe pb-safe">
         <div className="pt-10 pb-2">
-          <div className="h-4 w-32 bg-muted/50 rounded animate-pulse" />
-          <div className="h-7 w-40 bg-muted/50 rounded mt-2 animate-pulse" />
+          <div className="h-4 w-32 animate-pulse rounded bg-muted/50" />
+          <div className="mt-2 h-7 w-40 animate-pulse rounded bg-muted/50" />
         </div>
-        <div className="flex flex-col items-center py-8 gap-3">
-          <div className="size-[120px] bg-muted/30 rounded-full animate-pulse" />
+        <div className="flex flex-col items-center gap-3 py-8">
+          <div className="size-[120px] animate-pulse rounded-full bg-muted/30" />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col min-h-dvh max-w-md mx-auto px-6">
+    <div className="mx-auto flex min-h-dvh max-w-md flex-col px-6 pt-safe pb-safe">
       {/* Header */}
       <header className="flex items-center justify-between pt-10 pb-2">
         <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
+          <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
             {dateStr}
           </p>
-          <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-foreground mt-0.5">
+          <h1 className="mt-0.5 font-[family-name:var(--font-display)] text-2xl font-semibold text-foreground">
             {greeting}.
           </h1>
         </div>
         <button
+          type="button"
           onClick={() => router.push("/settings")}
-          className="size-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          className="flex size-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
           aria-label="Settings"
         >
           <Settings className="size-4" />
@@ -106,16 +110,17 @@ export default function Home() {
 
       {/* Brand motif + streak */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.96 }}
+        initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="flex flex-col items-center py-8 gap-3"
+        transition={{ duration: shouldReduceMotion ? 0 : 0.6, ease: "easeOut" }}
+        className="flex flex-col items-center gap-3 py-8"
       >
         <AnchorMotif size={120} className="text-primary" />
         <div className="flex items-center gap-1.5">
           <Flame className="size-3.5 text-accent" />
           <span className="text-xs text-muted-foreground">
-            <span className="text-foreground font-medium">{streak}</span> day streak
+            <span className="font-medium text-foreground">{streak}</span> day
+            streak
           </span>
         </div>
       </motion.div>
@@ -123,79 +128,99 @@ export default function Home() {
       {/* Ritual status — entire card is the entry point */}
       <div className="flex flex-col gap-2.5">
         <motion.div
-          initial={{ opacity: 0, x: -8 }}
+          initial={shouldReduceMotion ? false : { opacity: 0, x: -8 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.15 }}
+          transition={{
+            delay: shouldReduceMotion ? 0 : 0.15,
+            duration: shouldReduceMotion ? 0 : undefined,
+          }}
         >
-        <button
-          onClick={() => router.push("/morning")}
-          aria-label="Open morning ritual"
-          className={cn(
-            "group w-full flex items-center justify-between px-5 py-4 rounded-2xl border text-left transition-all hover:translate-x-0.5 active:scale-[0.99]",
-            morningDone
-              ? "border-accent/30 bg-accent/5 hover:border-accent/50"
-              : "border-border bg-card hover:border-primary/40"
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className={cn(
-                "size-2 rounded-full",
-                morningDone ? "bg-accent" : "bg-border"
-              )}
-            />
-            <span className="text-sm font-medium text-foreground">Morning ritual</span>
-          </div>
-          <div className="flex items-center gap-2">
-            {morningDone ? (
-              <Badge variant="secondary" className="text-xs font-normal rounded-full">
-                Complete
-              </Badge>
-            ) : (
-              <span className="text-xs text-muted-foreground">Not started</span>
+          <button
+            type="button"
+            onClick={() => router.push("/morning")}
+            aria-label="Open morning ritual"
+            className={cn(
+              "group flex w-full items-center justify-between rounded-2xl border px-5 py-4 text-left transition-all hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none active:scale-[0.99]",
+              morningDone
+                ? "border-accent/30 bg-accent/5 hover:border-accent/50"
+                : "border-border bg-card hover:border-primary/40"
             )}
-            <ChevronRight className="size-4 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-          </div>
-        </button>
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className={cn(
+                  "size-2 rounded-full",
+                  morningDone ? "bg-accent" : "bg-border"
+                )}
+              />
+              <span className="text-sm font-medium text-foreground">
+                Morning ritual
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {morningDone ? (
+                <Badge
+                  variant="secondary"
+                  className="rounded-full text-xs font-normal"
+                >
+                  Complete
+                </Badge>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  Not started
+                </span>
+              )}
+              <ChevronRight className="size-4 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+            </div>
+          </button>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, x: -8 }}
+          initial={shouldReduceMotion ? false : { opacity: 0, x: -8 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.22 }}
+          transition={{
+            delay: shouldReduceMotion ? 0 : 0.22,
+            duration: shouldReduceMotion ? 0 : undefined,
+          }}
         >
-        <button
-          onClick={() => router.push("/evening")}
-          aria-label="Open evening ritual"
-          className={cn(
-            "group w-full flex items-center justify-between px-5 py-4 rounded-2xl border text-left transition-all hover:translate-x-0.5 active:scale-[0.99]",
-            eveningDone
-              ? "border-accent/30 bg-accent/5 hover:border-accent/50"
-              : "border-border bg-card hover:border-primary/40"
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className={cn(
-                "size-2 rounded-full",
-                eveningDone ? "bg-accent" : "bg-border"
-              )}
-            />
-            <span className="text-sm font-medium text-foreground">Evening ritual</span>
-          </div>
-          <div className="flex items-center gap-2">
-            {eveningDone ? (
-              <Badge variant="secondary" className="text-xs font-normal rounded-full">
-                Complete
-              </Badge>
-            ) : (
-              <span className="text-xs text-muted-foreground">
-                {timeContext === "morning" ? "Tonight" : "Not started"}
-              </span>
+          <button
+            type="button"
+            onClick={() => router.push("/evening")}
+            aria-label="Open evening ritual"
+            className={cn(
+              "group flex w-full items-center justify-between rounded-2xl border px-5 py-4 text-left transition-all hover:translate-x-0.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none active:scale-[0.99]",
+              eveningDone
+                ? "border-accent/30 bg-accent/5 hover:border-accent/50"
+                : "border-border bg-card hover:border-primary/40"
             )}
-            <ChevronRight className="size-4 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-          </div>
-        </button>
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className={cn(
+                  "size-2 rounded-full",
+                  eveningDone ? "bg-accent" : "bg-border"
+                )}
+              />
+              <span className="text-sm font-medium text-foreground">
+                Evening ritual
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {eveningDone ? (
+                <Badge
+                  variant="secondary"
+                  className="rounded-full text-xs font-normal"
+                >
+                  Complete
+                </Badge>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  {timeContext === "morning" ? "Tonight" : "Not started"}
+                </span>
+              )}
+              <ChevronRight className="size-4 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+            </div>
+          </button>
         </motion.div>
       </div>
 
@@ -206,12 +231,15 @@ export default function Home() {
       {/* Main CTA — only in morning/evening contexts; midday relies on the clickable cards */}
       {timeContext !== "midday" && (
         <motion.div
-          initial={{ opacity: 0, y: 8 }}
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{
+            delay: shouldReduceMotion ? 0 : 0.3,
+            duration: shouldReduceMotion ? 0 : undefined,
+          }}
         >
           <Button
-            className="w-full rounded-2xl h-14 text-base font-medium"
+            className="h-14 w-full rounded-2xl text-base font-medium"
             onClick={() => router.push(ctaRoute)}
           >
             <Clock className="size-4" data-icon="inline-start" />
@@ -222,20 +250,23 @@ export default function Home() {
 
       {timeContext === "midday" && (
         <motion.p
-          initial={{ opacity: 0 }}
+          initial={shouldReduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="text-center text-sm text-muted-foreground font-[family-name:var(--font-display)] italic leading-relaxed px-2"
+          transition={{
+            delay: shouldReduceMotion ? 0 : 0.3,
+            duration: shouldReduceMotion ? 0 : undefined,
+          }}
+          className="px-2 text-center font-[family-name:var(--font-display)] text-sm leading-relaxed text-muted-foreground italic"
         >
           The day is yours. Check in when you&apos;re ready.
         </motion.p>
       )}
 
       {/* Secondary links */}
-      <div className="flex gap-3 mt-3">
+      <div className="mt-3 flex gap-3">
         <Button
           variant="outline"
-          className="flex-1 rounded-xl h-12 text-sm"
+          className="h-12 flex-1 rounded-xl text-sm"
           onClick={() => router.push("/timeline")}
         >
           <BookOpen className="size-4" data-icon="inline-start" />
@@ -243,7 +274,7 @@ export default function Home() {
         </Button>
         <Button
           variant="outline"
-          className="flex-1 rounded-xl h-12 text-sm"
+          className="h-12 flex-1 rounded-xl text-sm"
           onClick={() => router.push("/settings")}
         >
           <Settings className="size-4" data-icon="inline-start" />
@@ -254,15 +285,18 @@ export default function Home() {
       {/* Today's intention */}
       {today.intention && (
         <motion.div
-          initial={{ opacity: 0 }}
+          initial={shouldReduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
+          transition={{
+            delay: shouldReduceMotion ? 0 : 0.4,
+            duration: shouldReduceMotion ? 0 : undefined,
+          }}
           className="mt-4 rounded-2xl border border-border bg-card/50 px-5 py-4"
         >
-          <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-2">
+          <p className="mb-2 text-xs font-medium tracking-widest text-muted-foreground uppercase">
             Today&apos;s intention
           </p>
-          <p className="text-sm text-foreground font-[family-name:var(--font-display)] italic leading-relaxed">
+          <p className="font-[family-name:var(--font-display)] text-sm leading-relaxed text-foreground italic">
             &ldquo;{today.intention}&rdquo;
           </p>
         </motion.div>

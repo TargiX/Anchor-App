@@ -1,8 +1,17 @@
 "use client"
 
 import Link from "next/link"
-import { motion } from "framer-motion"
-import { ArrowRight, Sunrise, Moon, LineChart, Sparkles, Smartphone, Monitor, Globe } from "lucide-react"
+import { motion, useReducedMotion } from "framer-motion"
+import {
+  ArrowRight,
+  Sunrise,
+  Moon,
+  LineChart,
+  Sparkles,
+  Smartphone,
+  Monitor,
+  Globe,
+} from "lucide-react"
 import { AnchorMotif } from "@/components/anchor-motif"
 import { Button } from "@/components/ui/button"
 
@@ -42,8 +51,10 @@ const stack = [
 ]
 
 export default function Landing() {
+  const shouldReduceMotion = useReducedMotion()
+
   return (
-    <div className="relative min-h-dvh overflow-hidden bg-background text-foreground">
+    <div className="relative min-h-dvh overflow-hidden bg-background pt-safe pb-safe text-foreground">
       {/* Ambient backdrop */}
       <div
         aria-hidden
@@ -59,9 +70,21 @@ export default function Landing() {
           </span>
         </Link>
         <nav className="hidden gap-7 text-sm text-muted-foreground sm:flex">
-          <a href="#features" className="transition-colors hover:text-foreground">Features</a>
-          <a href="#platforms" className="transition-colors hover:text-foreground">Platforms</a>
-          <a href="#stack" className="transition-colors hover:text-foreground">Stack</a>
+          <a
+            href="#features"
+            className="transition-colors hover:text-foreground"
+          >
+            Features
+          </a>
+          <a
+            href="#platforms"
+            className="transition-colors hover:text-foreground"
+          >
+            Platforms
+          </a>
+          <a href="#stack" className="transition-colors hover:text-foreground">
+            Stack
+          </a>
         </nav>
         <Link href="/app">
           <Button size="sm" className="rounded-xl">
@@ -74,29 +97,37 @@ export default function Landing() {
       {/* Hero */}
       <section className="mx-auto flex max-w-6xl flex-col items-center px-6 pt-12 pb-20 text-center sm:pt-20 sm:pb-28">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
+          initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
+          transition={{
+            duration: shouldReduceMotion ? 0 : 0.7,
+            ease: "easeOut",
+          }}
           className="mb-8"
         >
           <AnchorMotif size={140} className="text-primary" />
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs uppercase tracking-widest text-muted-foreground backdrop-blur"
+          transition={{
+            delay: shouldReduceMotion ? 0 : 0.15,
+            duration: shouldReduceMotion ? 0 : undefined,
+          }}
+          className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs tracking-widest text-muted-foreground uppercase backdrop-blur"
         >
-          <Sparkles className="size-3 text-accent" />
-          A quiet daily ritual
+          <Sparkles className="size-3 text-accent" />A quiet daily ritual
         </motion.div>
 
         <motion.h1
-          initial={{ opacity: 0, y: 14 }}
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="font-[family-name:var(--font-display)] text-balance text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl"
+          transition={{
+            delay: shouldReduceMotion ? 0 : 0.25,
+            duration: shouldReduceMotion ? 0 : undefined,
+          }}
+          className="font-[family-name:var(--font-display)] text-4xl leading-[1.05] font-semibold tracking-tight text-balance sm:text-6xl"
         >
           Begin and close the day,
           <br />
@@ -104,23 +135,32 @@ export default function Landing() {
         </motion.h1>
 
         <motion.p
-          initial={{ opacity: 0, y: 14 }}
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className="mx-auto mt-6 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg"
+          transition={{
+            delay: shouldReduceMotion ? 0 : 0.35,
+            duration: shouldReduceMotion ? 0 : undefined,
+          }}
+          className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-pretty text-muted-foreground sm:text-lg"
         >
           Anchor is a small, quiet space for morning and evening rituals — mood,
           sleep, intention, journal. Web, mobile, and desktop. One unified flow.
         </motion.p>
 
         <motion.div
-          initial={{ opacity: 0, y: 14 }}
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45 }}
+          transition={{
+            delay: shouldReduceMotion ? 0 : 0.45,
+            duration: shouldReduceMotion ? 0 : undefined,
+          }}
           className="mt-8 flex flex-col items-center gap-3 sm:flex-row"
         >
           <Link href="/app">
-            <Button size="lg" className="h-12 rounded-2xl px-7 text-base font-medium">
+            <Button
+              size="lg"
+              className="h-12 rounded-2xl px-7 text-base font-medium"
+            >
               Try it now
               <ArrowRight className="size-4" data-icon="inline-end" />
             </Button>
@@ -137,9 +177,12 @@ export default function Landing() {
         </motion.div>
 
         <motion.p
-          initial={{ opacity: 0 }}
+          initial={shouldReduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
+          transition={{
+            delay: shouldReduceMotion ? 0 : 0.6,
+            duration: shouldReduceMotion ? 0 : undefined,
+          }}
           className="mt-5 text-xs text-muted-foreground"
         >
           No account required · works offline · privacy first
@@ -149,10 +192,10 @@ export default function Landing() {
       {/* Features */}
       <section id="features" className="mx-auto max-w-6xl px-6 pb-20 sm:pb-28">
         <div className="mb-10 max-w-xl">
-          <p className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">
+          <p className="mb-2 text-xs tracking-widest text-muted-foreground uppercase">
             What&apos;s inside
           </p>
-          <h2 className="font-[family-name:var(--font-display)] text-balance text-3xl font-semibold leading-tight sm:text-4xl">
+          <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight font-semibold text-balance sm:text-4xl">
             Two short rituals.
             <br />
             One long trend line.
@@ -163,10 +206,13 @@ export default function Landing() {
           {features.map((f, i) => (
             <motion.div
               key={f.title}
-              initial={{ opacity: 0, y: 12 }}
+              initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-80px" }}
-              transition={{ delay: i * 0.08 }}
+              transition={{
+                delay: shouldReduceMotion ? 0 : i * 0.08,
+                duration: shouldReduceMotion ? 0 : undefined,
+              }}
               className="group rounded-3xl border border-border bg-card/60 p-6 backdrop-blur transition-all hover:border-accent/40 hover:shadow-sm"
             >
               <div className="mb-5 inline-flex size-11 items-center justify-center rounded-2xl bg-accent/10 text-accent transition-transform group-hover:scale-105">
@@ -188,18 +234,18 @@ export default function Landing() {
         <div className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
           <div className="grid items-center gap-10 sm:grid-cols-2">
             <div>
-              <p className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">
+              <p className="mb-2 text-xs tracking-widest text-muted-foreground uppercase">
                 Anywhere
               </p>
-              <h2 className="font-[family-name:var(--font-display)] text-balance text-3xl font-semibold leading-tight sm:text-4xl">
+              <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight font-semibold text-balance sm:text-4xl">
                 One codebase.
                 <br />
                 Web, mobile, desktop.
               </h2>
-              <p className="mt-4 max-w-md text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
-                Built once with Next.js, then wrapped natively with Capacitor for iOS &
-                Android and Electron for macOS &amp; Windows. Same UI, same flow,
-                everywhere you check in.
+              <p className="mt-4 max-w-md text-sm leading-relaxed text-pretty text-muted-foreground sm:text-base">
+                Built once with Next.js, then wrapped natively with Capacitor
+                for iOS & Android and Electron for macOS &amp; Windows. Same UI,
+                same flow, everywhere you check in.
               </p>
             </div>
 
@@ -207,17 +253,20 @@ export default function Landing() {
               {platforms.map((p, i) => (
                 <motion.div
                   key={p.label}
-                  initial={{ opacity: 0, x: 12 }}
+                  initial={shouldReduceMotion ? false : { opacity: 0, x: 12 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: i * 0.08 }}
+                  transition={{
+                    delay: shouldReduceMotion ? 0 : i * 0.08,
+                    duration: shouldReduceMotion ? 0 : undefined,
+                  }}
                   className="flex items-center gap-4 rounded-2xl border border-border bg-background/60 px-5 py-4"
                 >
                   <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <p.icon className="size-5" />
                   </div>
                   <span className="font-medium">{p.label}</span>
-                  <span className="ml-auto text-xs uppercase tracking-widest text-muted-foreground">
+                  <span className="ml-auto text-xs tracking-widest text-muted-foreground uppercase">
                     Available
                   </span>
                 </motion.div>
@@ -230,10 +279,10 @@ export default function Landing() {
       {/* Stack */}
       <section id="stack" className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
         <div className="text-center">
-          <p className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">
+          <p className="mb-2 text-xs tracking-widest text-muted-foreground uppercase">
             Built with
           </p>
-          <h2 className="font-[family-name:var(--font-display)] text-balance text-2xl font-semibold sm:text-3xl">
+          <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-balance sm:text-3xl">
             A modern, production-grade stack
           </h2>
         </div>
@@ -257,7 +306,7 @@ export default function Landing() {
             className="pointer-events-none absolute inset-0 [background:radial-gradient(50%_60%_at_50%_0%,oklch(0.65_0.085_47/0.22),transparent_70%)]"
           />
           <div className="relative">
-            <h2 className="font-[family-name:var(--font-display)] text-balance text-3xl font-semibold leading-tight sm:text-4xl">
+            <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight font-semibold text-balance sm:text-4xl">
               Five quiet minutes.
               <br />
               Twice a day.
@@ -266,7 +315,10 @@ export default function Landing() {
               That&apos;s it. Start tonight.
             </p>
             <Link href="/app">
-              <Button size="lg" className="mt-8 h-12 rounded-2xl px-8 text-base font-medium">
+              <Button
+                size="lg"
+                className="mt-8 h-12 rounded-2xl px-8 text-base font-medium"
+              >
                 Open Anchor
                 <ArrowRight className="size-4" data-icon="inline-end" />
               </Button>
@@ -283,7 +335,10 @@ export default function Landing() {
             <span>Anchor · A daily ritual app</span>
           </div>
           <div className="flex items-center gap-5">
-            <Link href="/app" className="transition-colors hover:text-foreground">
+            <Link
+              href="/app"
+              className="transition-colors hover:text-foreground"
+            >
               Open app
             </Link>
             <span>© {new Date().getFullYear()}</span>

@@ -8,9 +8,14 @@ import { Button } from "@/components/ui/button"
 export default function TimelinePage() {
   const router = useRouter()
   return (
-    <div className="flex flex-col min-h-dvh max-w-md mx-auto px-6">
+    <div className="mx-auto flex min-h-dvh max-w-md flex-col px-6 pt-safe pb-safe">
       <div className="flex items-center gap-3 pt-8 pb-6">
-        <Button variant="ghost" size="icon" onClick={() => router.push("/app")} className="rounded-xl -ml-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => router.push("/app")}
+          className="-ml-2 rounded-xl"
+        >
           <ArrowLeft className="size-5" />
           <span className="sr-only">Back</span>
         </Button>

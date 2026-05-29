@@ -31,8 +31,6 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
 }
 
 export default function RootLayout({
@@ -44,7 +42,11 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("bg-background antialiased", display.variable, body.variable)}
+      className={cn(
+        "bg-background antialiased",
+        display.variable,
+        body.variable
+      )}
     >
       <body className="font-sans">
         <ThemeProvider>

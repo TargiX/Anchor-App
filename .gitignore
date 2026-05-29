@@ -36,7 +36,6 @@ pnpm-debug.log*
 next-env.d.ts
 
 # capacitor / native builds
-/ios
 /android
 /electron/app
 /electron/build
@@ -47,3 +46,4 @@ next-env.d.ts
 
 # local-only Claude settings
 .claude/settings.local.json
+.vercel

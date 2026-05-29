@@ -29,7 +29,8 @@ export default function GlobalError({
           alignItems: "center",
           justifyContent: "center",
           gap: "1rem",
-          padding: "1.5rem",
+          padding:
+            "calc(env(safe-area-inset-top) + 1.5rem) 1.5rem calc(env(safe-area-inset-bottom) + 1.5rem)",
           textAlign: "center",
           fontFamily: "system-ui, sans-serif",
           background: "#f8f3ec",
@@ -43,6 +44,7 @@ export default function GlobalError({
           The app hit an unexpected error. Your saved data is safe.
         </p>
         <button
+          type="button"
           onClick={reset}
           style={{
             marginTop: "0.5rem",

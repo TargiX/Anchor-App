@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 import { AnchorMotif } from "@/components/anchor-motif"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/auth-provider"
@@ -13,12 +13,17 @@ type Mode = "signin" | "signup"
 
 export default function LoginPage() {
   const router = useRouter()
+  const shouldReduceMotion = useReducedMotion()
   const { status, signIn, signUp } = useAuth()
 
   const [mode, setMode] = useState<Mode>("signin")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [errors, setErrors] = useState<{ email?: string; password?: string; form?: string }>({})
+  const [errors, setErrors] = useState<{
+    email?: string
+    password?: string
+    form?: string
+  }>({})
   const [notice, setNotice] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -33,7 +38,10 @@ export default function LoginPage() {
     const emailError = validateEmail(email)
     const passwordError = validatePassword(password)
     if (emailError || passwordError) {
-      setErrors({ email: emailError ?? undefined, password: passwordError ?? undefined })
+      setErrors({
+        email: emailError ?? undefined,
+        password: passwordError ?? undefined,
+      })
       return
     }
     setErrors({})
@@ -47,7 +55,8 @@ export default function LoginPage() {
     } else {
       const { error, needsConfirmation } = await signUp(email.trim(), password)
       if (error) setErrors({ form: error })
-      else if (needsConfirmation) setNotice("Check your email to confirm your account.")
+      else if (needsConfirmation)
+        setNotice("Check your email to confirm your account.")
       else router.replace("/app")
     }
     setSubmitting(false)
@@ -57,10 +66,11 @@ export default function LoginPage() {
   if (status === "authed" || status === "unconfigured") return null
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center px-6">
+    <div className="flex min-h-dvh flex-col items-center justify-center px-6 pt-safe pb-safe">
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: shouldReduceMotion ? 0 : 0.3 }}
         className="w-full max-w-sm"
       >
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
@@ -75,7 +85,11 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-4"
+          noValidate
+        >
           <Field label="Email" error={errors.email}>
             <input
               type="email"
@@ -91,7 +105,9 @@ export default function LoginPage() {
           <Field label="Password" error={errors.password}>
             <input
               type="password"
-              autoComplete={mode === "signin" ? "current-password" : "new-password"}
+              autoComplete={
+                mode === "signin" ? "current-password" : "new-password"
+              }
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
@@ -129,7 +145,7 @@ export default function LoginPage() {
               setErrors({})
               setNotice(null)
             }}
-            className="font-medium text-foreground underline"
+            className="rounded-sm font-medium text-foreground underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
           >
             {mode === "signin" ? "Create one" : "Sign in"}
           </button>
@@ -160,7 +176,7 @@ function Field({
 function inputClass(invalid: boolean): string {
   return cn(
     "w-full rounded-xl border bg-card px-4 py-3 text-sm text-foreground",
-    "placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring",
+    "placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:outline-none",
     invalid ? "border-destructive" : "border-border"
   )
 }

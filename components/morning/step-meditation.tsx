@@ -4,8 +4,9 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { updateTodayEntry } from "@/lib/store"
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 import { Pause, Play } from "lucide-react"
+import { useTodayEntry } from "@/hooks/use-store"
 
 const DURATIONS = [2, 5, 10]
 
@@ -15,9 +16,17 @@ interface StepMeditationProps {
 }
 
 export function StepMeditation({ onNext, onBack }: StepMeditationProps) {
-  const [selected, setSelected] = useState<number | null>(null)
+  const shouldReduceMotion = useReducedMotion()
+  const today = useTodayEntry()
+  const initialMinutes =
+    today.meditationMinutes && today.meditationMinutes > 0
+      ? today.meditationMinutes
+      : null
+  const [selected, setSelected] = useState<number | null>(initialMinutes)
   const [running, setRunning] = useState(false)
-  const [elapsed, setElapsed] = useState(0)
+  const [elapsed, setElapsed] = useState(
+    initialMinutes ? initialMinutes * 60 : 0
+  )
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const totalSeconds = selected ? selected * 60 : 0
@@ -50,7 +59,10 @@ export function StepMeditation({ onNext, onBack }: StepMeditationProps) {
   }
 
   function handleDone() {
-    if (selected) updateTodayEntry({ meditationMinutes: elapsed > 0 ? Math.ceil(elapsed / 60) : selected })
+    if (selected)
+      updateTodayEntry({
+        meditationMinutes: elapsed > 0 ? Math.ceil(elapsed / 60) : selected,
+      })
     onNext()
   }
 
@@ -63,12 +75,12 @@ export function StepMeditation({ onNext, onBack }: StepMeditationProps) {
   const circumference = 2 * Math.PI * 52
 
   return (
-    <div className="flex flex-col flex-1 gap-8">
+    <div className="flex flex-1 flex-col gap-8">
       <div className="flex flex-col gap-2 pt-4">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
+        <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
           Stillness
         </p>
-        <h2 className="font-[family-name:var(--font-display)] text-2xl font-medium text-foreground text-balance leading-snug">
+        <h2 className="font-[family-name:var(--font-display)] text-2xl leading-snug font-medium text-balance text-foreground">
           Want to start with a moment of stillness?
         </h2>
       </div>
@@ -79,10 +91,14 @@ export function StepMeditation({ onNext, onBack }: StepMeditationProps) {
           {DURATIONS.map((d) => (
             <button
               key={d}
+              type="button"
               onClick={() => startTimer(d)}
-              className="flex-1 flex flex-col items-center gap-1 py-5 rounded-2xl border border-border bg-card hover:border-accent hover:bg-accent/5 transition-all"
+              aria-label={`Select ${d} minute meditation`}
+              className="flex flex-1 flex-col items-center gap-1 rounded-2xl border border-border bg-card py-5 transition-all hover:border-accent hover:bg-accent/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none"
             >
-              <span className="font-[family-name:var(--font-display)] text-2xl font-medium text-foreground">{d}</span>
+              <span className="font-[family-name:var(--font-display)] text-2xl font-medium text-foreground">
+                {d}
+              </span>
               <span className="text-xs text-muted-foreground">min</span>
             </button>
           ))}
@@ -94,8 +110,21 @@ export function StepMeditation({ onNext, onBack }: StepMeditationProps) {
         <div className="flex flex-col items-center gap-6">
           {/* Circular progress */}
           <div className="relative flex items-center justify-center">
-            <svg width="128" height="128" viewBox="0 0 128 128" className="-rotate-90">
-              <circle cx="64" cy="64" r="52" fill="none" stroke="currentColor" strokeWidth="2" className="text-border" />
+            <svg
+              width="128"
+              height="128"
+              viewBox="0 0 128 128"
+              className="-rotate-90"
+            >
+              <circle
+                cx="64"
+                cy="64"
+                r="52"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="text-border"
+              />
               <motion.circle
                 cx="64"
                 cy="64"
@@ -107,7 +136,7 @@ export function StepMeditation({ onNext, onBack }: StepMeditationProps) {
                 className="text-accent"
                 strokeDasharray={circumference}
                 strokeDashoffset={circumference * (1 - progress)}
-                transition={{ duration: 0.5 }}
+                transition={{ duration: shouldReduceMotion ? 0 : 0.5 }}
               />
             </svg>
             <div className="absolute flex flex-col items-center">
@@ -121,27 +150,42 @@ export function StepMeditation({ onNext, onBack }: StepMeditationProps) {
           {/* Breathing guide */}
           {running && (
             <motion.div
-              animate={{ scale: [1, 1.15, 1] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              animate={
+                shouldReduceMotion ? { opacity: 1 } : { scale: [1, 1.15, 1] }
+              }
+              transition={
+                shouldReduceMotion
+                  ? { duration: 0 }
+                  : { duration: 4, repeat: Infinity, ease: "easeInOut" }
+              }
               className="text-sm text-muted-foreground"
             >
               Breathe gently
             </motion.div>
           )}
 
-          <div className="flex gap-3 w-full">
+          <div className="flex w-full gap-3">
             <Button
               variant="outline"
               onClick={() => setRunning((r) => !r)}
-              className="flex-1 rounded-2xl h-12"
+              aria-pressed={running}
+              className="h-12 flex-1 rounded-2xl"
             >
-              {running ? <Pause className="size-4" /> : <Play className="size-4" />}
+              {running ? (
+                <Pause className="size-4" />
+              ) : (
+                <Play className="size-4" />
+              )}
               {running ? "Pause" : "Start"}
             </Button>
             <Button
               variant="outline"
-              onClick={() => { setSelected(null); setElapsed(0); setRunning(false) }}
-              className="rounded-2xl h-12 px-5"
+              onClick={() => {
+                setSelected(null)
+                setElapsed(0)
+                setRunning(false)
+              }}
+              className="h-12 rounded-2xl px-5"
             >
               Reset
             </Button>
@@ -150,20 +194,27 @@ export function StepMeditation({ onNext, onBack }: StepMeditationProps) {
       )}
 
       {/* Nav */}
-      <div className="mt-auto pb-10 flex gap-3">
-        <Button variant="outline" onClick={onBack} className="flex-none rounded-2xl h-14 px-6">
+      <div className="mt-auto flex gap-3 pb-10">
+        <Button
+          variant="outline"
+          onClick={onBack}
+          className="h-14 flex-none rounded-2xl px-6"
+        >
           Back
         </Button>
         <Button
           variant="outline"
           onClick={handleSkip}
-          className="flex-none rounded-2xl h-14 px-5"
+          className="h-14 flex-none rounded-2xl px-5"
         >
           Skip
         </Button>
         <Button
           onClick={handleDone}
-          className={cn("flex-1 rounded-2xl h-14 text-base font-medium", !selected && "opacity-50")}
+          className={cn(
+            "h-14 flex-1 rounded-2xl text-base font-medium",
+            !selected && "opacity-50"
+          )}
           disabled={!selected}
         >
           Complete ritual

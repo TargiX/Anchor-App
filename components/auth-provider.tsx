@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import type { User } from "@supabase/supabase-js"
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client"
+import { setStorageScope } from "@/lib/store/store"
 
 /**
  * Auth state machine:
@@ -16,7 +17,10 @@ interface AuthValue {
   status: AuthStatus
   user: User | null
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
-  signUp: (email: string, password: string) => Promise<{ error: string | null; needsConfirmation: boolean }>
+  signUp: (
+    email: string,
+    password: string
+  ) => Promise<{ error: string | null; needsConfirmation: boolean }>
   signOut: () => Promise<void>
 }
 
@@ -29,16 +33,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
-    if (!supabase) return
+    if (!supabase) {
+      setStorageScope(null)
+      return
+    }
 
     supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null)
-      setStatus(data.session ? "authed" : "anon")
+      const nextUser = data.session?.user ?? null
+      setUser(nextUser)
+      setStatus(nextUser ? "authed" : "anon")
+      setStorageScope(nextUser ? `user:${nextUser.id}` : "anon")
     })
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      setStatus(session ? "authed" : "anon")
+      const nextUser = session?.user ?? null
+      setUser(nextUser)
+      setStatus(nextUser ? "authed" : "anon")
+      setStorageScope(nextUser ? `user:${nextUser.id}` : "anon")
     })
 
     return () => sub.subscription.unsubscribe()
@@ -49,11 +60,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     async signIn(email, password) {
       if (!supabase) return { error: "Accounts are not configured." }
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
       return { error: error?.message ?? null }
     },
     async signUp(email, password) {
-      if (!supabase) return { error: "Accounts are not configured.", needsConfirmation: false }
+      if (!supabase)
+        return {
+          error: "Accounts are not configured.",
+          needsConfirmation: false,
+        }
       const { data, error } = await supabase.auth.signUp({ email, password })
       // If email confirmation is on, there's no active session yet.
       return {

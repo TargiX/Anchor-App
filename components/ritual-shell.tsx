@@ -1,6 +1,6 @@
 "use client"
 
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { cn } from "@/lib/utils"
 
 interface RitualShellProps {
@@ -28,9 +28,21 @@ const variants = {
   },
 }
 
-export function RitualShell({ children, step, totalSteps, className }: RitualShellProps) {
+export function RitualShell({
+  children,
+  step,
+  totalSteps,
+  className,
+}: RitualShellProps) {
+  const shouldReduceMotion = useReducedMotion()
+
   return (
-    <div className={cn("flex flex-col min-h-dvh max-w-md mx-auto px-6", className)}>
+    <div
+      className={cn(
+        "mx-auto flex min-h-dvh max-w-md flex-col px-6 pt-safe pb-safe",
+        className
+      )}
+    >
       {/* Progress dots */}
       <div className="flex items-center justify-center gap-2 pt-8 pb-6">
         {Array.from({ length: totalSteps }).map((_, i) => (
@@ -39,10 +51,10 @@ export function RitualShell({ children, step, totalSteps, className }: RitualShe
             className={cn(
               "h-1.5 rounded-full transition-all duration-500",
               i < step
-                ? "bg-primary w-5"
+                ? "w-5 bg-primary"
                 : i === step
-                ? "bg-accent w-7"
-                : "bg-border w-3"
+                  ? "w-7 bg-accent"
+                  : "w-3 bg-border"
             )}
           />
         ))}
@@ -52,15 +64,15 @@ export function RitualShell({ children, step, totalSteps, className }: RitualShe
       <AnimatePresence mode="wait">
         <motion.div
           key={step}
-          variants={variants}
-          initial="enter"
-          animate="center"
-          exit="exit"
+          variants={shouldReduceMotion ? undefined : variants}
+          initial={shouldReduceMotion ? false : "enter"}
+          animate={shouldReduceMotion ? { opacity: 1 } : "center"}
+          exit={shouldReduceMotion ? { opacity: 1 } : "exit"}
           transition={{
-            duration: 0.4,
+            duration: shouldReduceMotion ? 0 : 0.4,
             ease: [0.25, 0.46, 0.45, 0.94],
           }}
-          className="flex flex-col flex-1"
+          className="flex flex-1 flex-col"
         >
           {children}
         </motion.div>

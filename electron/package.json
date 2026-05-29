@@ -1,7 +1,10 @@
 {
   "name": "Anchor",
   "version": "1.0.0",
-  "description": "An Amazing Capacitor App",
+  "description": "Anchor desktop shell",
+  "engines": {
+    "node": "24.x"
+  },
   "author": {
     "name": "",
     "email": ""
@@ -13,6 +16,7 @@
   "license": "MIT",
   "main": "build/src/index.js",
   "scripts": {
+    "check:node": "node ../scripts/check-node-version.mjs",
     "build": "tsc && electron-rebuild",
     "electron:start-live": "node ./live-runner.js",
     "electron:start": "npm run build && electron --inspect=5858 ./",

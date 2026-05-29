@@ -19,12 +19,16 @@ import { localStorageAdapter, type StoragePort } from "./persistence"
 
 const storage: StoragePort = localStorageAdapter
 
+let storageKey = STORAGE_KEY
 let state: AppState = INITIAL_STATE
 const listeners = new Set<() => void>()
 
 function hydrate(): void {
-  const raw = storage.read(STORAGE_KEY)
-  if (!raw) return
+  const raw = storage.read(storageKey)
+  if (!raw) {
+    state = INITIAL_STATE
+    return
+  }
   try {
     state = migrate(JSON.parse(raw))
   } catch {
@@ -33,7 +37,33 @@ function hydrate(): void {
 }
 
 function persist(): void {
-  storage.write(STORAGE_KEY, JSON.stringify({ version: STATE_VERSION, data: state }))
+  storage.write(
+    storageKey,
+    JSON.stringify({ version: STATE_VERSION, data: state })
+  )
+}
+
+function emit(): void {
+  listeners.forEach((listener) => listener())
+}
+
+function scopedStorageKey(scope: string | null): string {
+  return scope ? `${STORAGE_KEY}:${scope}` : STORAGE_KEY
+}
+
+/**
+ * Switch the persisted state namespace.
+ *
+ * `null` keeps the legacy/local-only bucket. Authenticated sessions use a
+ * user-specific scope so accounts sharing one device never see each other's
+ * local cache.
+ */
+export function setStorageScope(scope: string | null): void {
+  const nextKey = scopedStorageKey(scope)
+  if (nextKey === storageKey) return
+  storageKey = nextKey
+  hydrate()
+  emit()
 }
 
 export function subscribe(listener: () => void): () => void {
@@ -52,7 +82,7 @@ export function getServerSnapshot(): AppState {
 export function setState(updater: (prev: AppState) => AppState): void {
   state = updater(state)
   persist()
-  listeners.forEach((listener) => listener())
+  emit()
 }
 
 // Hydrate once on the client at module load.

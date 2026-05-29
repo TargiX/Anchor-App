@@ -1,6 +1,25 @@
 import { z } from "zod"
-import { DayEntrySchema, type DayEntry } from "@/lib/domain/entry"
+import {
+  DateKeySchema,
+  DayEntrySchema,
+  TimeOfDaySchema,
+  type DayEntry,
+} from "@/lib/domain/entry"
 import { HabitSchema, DEFAULT_HABITS } from "@/lib/domain/habit"
+
+const EntriesSchema = z
+  .record(DateKeySchema, DayEntrySchema)
+  .superRefine((entries, ctx) => {
+    for (const [key, entry] of Object.entries(entries)) {
+      if (entry.date !== key) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Entry date must match its storage key.",
+          path: [key, "date"],
+        })
+      }
+    }
+  })
 
 /**
  * Persisted application state.
@@ -10,10 +29,10 @@ import { HabitSchema, DEFAULT_HABITS } from "@/lib/domain/habit"
  *  - theme is owned by `next-themes`, not duplicated here.
  */
 export const AppStateSchema = z.object({
-  entries: z.record(z.string(), DayEntrySchema),
+  entries: EntriesSchema,
   habits: z.array(HabitSchema),
-  notificationMorning: z.string(),
-  notificationEvening: z.string(),
+  notificationMorning: TimeOfDaySchema,
+  notificationEvening: TimeOfDaySchema,
 })
 export type AppState = z.infer<typeof AppStateSchema>
 
@@ -62,20 +81,26 @@ function recover(candidate: unknown): AppState {
 
   const entries: Record<string, DayEntry> = {}
   if (obj.entries && typeof obj.entries === "object") {
-    for (const [key, value] of Object.entries(obj.entries as Record<string, unknown>)) {
+    for (const [key, value] of Object.entries(
+      obj.entries as Record<string, unknown>
+    )) {
       const parsed = DayEntrySchema.safeParse(value)
-      if (parsed.success) entries[key] = parsed.data
+      if (parsed.success && parsed.data.date === key) entries[key] = parsed.data
     }
   }
 
   const habits = z.array(HabitSchema).safeParse(obj.habits)
-  const morning = z.string().safeParse(obj.notificationMorning)
-  const evening = z.string().safeParse(obj.notificationEvening)
+  const morning = TimeOfDaySchema.safeParse(obj.notificationMorning)
+  const evening = TimeOfDaySchema.safeParse(obj.notificationEvening)
 
   return {
     entries,
     habits: habits.success ? habits.data : INITIAL_STATE.habits,
-    notificationMorning: morning.success ? morning.data : INITIAL_STATE.notificationMorning,
-    notificationEvening: evening.success ? evening.data : INITIAL_STATE.notificationEvening,
+    notificationMorning: morning.success
+      ? morning.data
+      : INITIAL_STATE.notificationMorning,
+    notificationEvening: evening.success
+      ? evening.data
+      : INITIAL_STATE.notificationEvening,
   }
 }
