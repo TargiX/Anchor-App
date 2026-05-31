@@ -2,7 +2,7 @@
 
 import { getSnapshot, setState } from "./store"
 import { getTodayKey } from "@/lib/time/today"
-import { emptyEntry, type DayEntry } from "@/lib/domain/entry"
+import { emptyEntry, TimeOfDaySchema, type DayEntry } from "@/lib/domain/entry"
 import type { Habit } from "@/lib/domain/habit"
 import { validateHabitName, type ValidationResult } from "@/lib/domain/validation"
 
@@ -43,6 +43,8 @@ export function removeHabit(id: string): void {
 }
 
 export function setNotificationTime(which: "morning" | "evening", time: string): void {
+  const parsed = TimeOfDaySchema.safeParse(time)
+  if (!parsed.success) return
   const field = which === "morning" ? "notificationMorning" : "notificationEvening"
-  setState((prev) => ({ ...prev, [field]: time }))
+  setState((prev) => ({ ...prev, [field]: parsed.data }))
 }

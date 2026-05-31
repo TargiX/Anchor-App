@@ -18,6 +18,8 @@ export const MoodPointSchema = z.object({
 })
 export type MoodPoint = z.infer<typeof MoodPointSchema>
 
+export const TimeOfDaySchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+
 export const DayEntrySchema = z.object({
   /** Local calendar day, `YYYY-MM-DD`. */
   date: z.string(),
