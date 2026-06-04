@@ -12,7 +12,12 @@ import { useAuth } from "@/components/auth-provider"
 import { useAppState } from "@/hooks/use-store"
 import { addHabit, removeHabit, setNotificationTime } from "@/lib/store"
 import { LIMITS } from "@/lib/domain/validation"
-import { useNotificationPermission, requestPermission, notify } from "@/lib/notifications"
+import {
+  useNotificationPermission,
+  requestPermission,
+  notify,
+  usesNativeScheduler,
+} from "@/lib/notifications"
 import { cn } from "@/lib/utils"
 import { useTheme } from "next-themes"
 
@@ -26,6 +31,7 @@ export default function SettingsPage() {
   const [newHabit, setNewHabit] = useState("")
   const [habitError, setHabitError] = useState<string | null>(null)
   const permission = useNotificationPermission()
+  const nativeReminders = usesNativeScheduler()
 
   function handleAddHabit() {
     const result = addHabit(newHabit)
@@ -136,7 +142,9 @@ export default function SettingsPage() {
                       ? "Re-enable notifications in your browser settings."
                       : permission === "unsupported"
                         ? "This browser can't show notifications."
-                        : "Fire while Anchor is open."}
+                        : nativeReminders
+                          ? "Scheduled by iOS."
+                          : "Fire while Anchor is open."}
                   </span>
                 </div>
                 {permission === "granted" ? (
@@ -160,8 +168,9 @@ export default function SettingsPage() {
               </div>
 
               <p className="rounded-lg bg-muted/50 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-                On the web, reminders only fire while Anchor is open. Install the
-                app (iOS, Android, or desktop) for reliable background reminders.
+                {nativeReminders
+                  ? "On iOS, Anchor schedules OS-level daily reminders so they keep working when the app is closed."
+                  : "On the web, reminders only fire while Anchor is open. Install the iOS app for reliable background reminders."}
               </p>
 
               <Separator />

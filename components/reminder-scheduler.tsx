@@ -2,8 +2,16 @@
 
 import { useEffect } from "react"
 import { useAppState } from "@/hooks/use-store"
-import { useNotificationPermission, notify } from "@/lib/notifications"
+import {
+  useNotificationPermission,
+  notify,
+  scheduleDailyReminders,
+  usesNativeScheduler,
+} from "@/lib/notifications"
 import { msUntilNext } from "@/lib/notifications/schedule"
+
+const MORNING_REMINDER_ID = 1_001
+const EVENING_REMINDER_ID = 1_002
 
 /**
  * Fires the morning/evening reminders at their configured times while the app
@@ -18,9 +26,24 @@ export function ReminderScheduler() {
     if (permission !== "granted") return
 
     const reminders = [
-      { time: notificationMorning, title: "Morning ritual", body: "A quiet few minutes to anchor your day." },
-      { time: notificationEvening, title: "Evening ritual", body: "Wind down and close the loop before bed." },
+      {
+        id: MORNING_REMINDER_ID,
+        time: notificationMorning,
+        title: "Morning ritual",
+        body: "A quiet few minutes to anchor your day.",
+      },
+      {
+        id: EVENING_REMINDER_ID,
+        time: notificationEvening,
+        title: "Evening ritual",
+        body: "Wind down and close the loop before bed.",
+      },
     ]
+
+    if (usesNativeScheduler()) {
+      void scheduleDailyReminders(reminders)
+      return
+    }
 
     const timers: ReturnType<typeof setTimeout>[] = []
 

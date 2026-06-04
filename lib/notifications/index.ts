@@ -2,9 +2,11 @@
 
 import { useSyncExternalStore } from "react"
 import {
+  nativeNotificationAdapter,
   webNotificationAdapter,
   type NotificationPort,
   type PermissionState,
+  type ReminderNotification,
 } from "./port"
 
 /**
@@ -12,7 +14,9 @@ import {
  * UI (status in Settings) and the scheduler stay in sync after the user
  * grants/denies. Same `useSyncExternalStore` pattern as the data store.
  */
-const port: NotificationPort = webNotificationAdapter
+const port: NotificationPort = nativeNotificationAdapter.isSupported()
+  ? nativeNotificationAdapter
+  : webNotificationAdapter
 
 let permission: PermissionState = port.getPermission()
 const listeners = new Set<() => void>()
@@ -34,6 +38,16 @@ export async function requestPermission(): Promise<PermissionState> {
 
 export function notify(title: string, options?: { body?: string }): void {
   port.notify(title, options)
+}
+
+export function usesNativeScheduler(): boolean {
+  return port.usesNativeScheduler()
+}
+
+export async function scheduleDailyReminders(
+  reminders: ReminderNotification[]
+): Promise<void> {
+  await port.scheduleDailyReminders(reminders)
 }
 
 export function useNotificationPermission(): PermissionState {
