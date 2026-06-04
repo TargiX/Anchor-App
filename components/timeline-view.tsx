@@ -152,7 +152,7 @@ export function TimelineView() {
 
   // Group entries by week
   const entries = Object.values(state.entries).sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    (a, b) => b.date.localeCompare(a.date)
   )
 
   // Generate last 14 days as skeleton if empty

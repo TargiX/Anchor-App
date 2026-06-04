@@ -15,12 +15,15 @@ const reloadWatcher = {
 
 ///*
 function runBuild() {
-  return new Promise((resolve, _reject) => {
-    let tempChild = cp.spawn(npmCmd, ['run', 'build']);
-    tempChild.once('exit', () => {
-      resolve();
+  return new Promise((resolve, reject) => {
+    const tempChild = cp.spawn(npmCmd, ['run', 'build']);
+    tempChild.once('error', reject);
+    tempChild.once('exit', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`Build failed with exit code ${code}`));
     });
     tempChild.stdout.pipe(process.stdout);
+    tempChild.stderr.pipe(process.stderr);
   });
 }
 //*/
@@ -61,6 +64,9 @@ function setupReloadWatcher() {
           reloadWatcher.ready = false;
           clearTimeout(reloadWatcher.debouncer);
           reloadWatcher.debouncer = null;
+          if (reloadWatcher.watcher) {
+            await reloadWatcher.watcher.close();
+          }
           reloadWatcher.watcher = null;
           setupReloadWatcher();
         }, 500);

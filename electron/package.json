@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/TargiX/Next.js-Tether.git"
   },
   "license": "MIT",
   "main": "build/src/index.js",
