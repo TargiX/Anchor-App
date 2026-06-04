@@ -25,12 +25,13 @@ export function StepJournal({ onNext, onBack }: StepJournalProps) {
   const today = state.entries[getTodayKey()]
   const intention = today?.intention
 
-  const [prompt] = useState(() =>
-    intention
-      ? `You started the day wanting to ${intention.toLowerCase()}. How did that land?`
-      : FALLBACK_PROMPTS[Math.floor(Math.random() * FALLBACK_PROMPTS.length)]
+  const [promptIndex] = useState(() =>
+    Math.floor(Math.random() * FALLBACK_PROMPTS.length)
   )
 
+  const prompt = intention
+    ? `You started the day wanting to ${intention.toLowerCase()}. How did that land?`
+    : FALLBACK_PROMPTS[promptIndex]
   const [text, setText] = useState(today?.journal ?? "")
 
   function handleNext() {
