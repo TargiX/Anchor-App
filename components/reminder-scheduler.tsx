@@ -41,7 +41,7 @@ export function ReminderScheduler() {
     ]
 
     if (usesNativeScheduler()) {
-      void scheduleDailyReminders(reminders)
+      void scheduleDailyReminders(reminders).catch(() => undefined)
       return
     }
 

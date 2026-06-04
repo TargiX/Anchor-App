@@ -33,6 +33,14 @@ function mapNativePermission(permission: string): PermissionState {
 
 let nativePermission: PermissionState = "default"
 
+// Bootstrap native permission on cold start so getPermission() returns
+// the correct value before requestPermission() is called.
+if (typeof window !== "undefined" && Capacitor.isNativePlatform()) {
+  void LocalNotifications.checkPermissions().then((result) => {
+    nativePermission = mapNativePermission(result.display)
+  }).catch(() => undefined)
+}
+
 function rememberNativePermission(permission: string): PermissionState {
   nativePermission = mapNativePermission(permission)
   return nativePermission
