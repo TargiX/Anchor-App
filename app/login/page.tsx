@@ -40,17 +40,22 @@ export default function LoginPage() {
     setNotice(null)
     setSubmitting(true)
 
-    if (mode === "signin") {
-      const { error } = await signIn(email.trim(), password)
-      if (error) setErrors({ form: error })
-      else router.replace("/app")
-    } else {
-      const { error, needsConfirmation } = await signUp(email.trim(), password)
-      if (error) setErrors({ form: error })
-      else if (needsConfirmation) setNotice("Check your email to confirm your account.")
-      else router.replace("/app")
+    try {
+      if (mode === "signin") {
+        const { error } = await signIn(email.trim(), password)
+        if (error) setErrors({ form: error })
+        else router.replace("/app")
+      } else {
+        const { error, needsConfirmation } = await signUp(email.trim(), password)
+        if (error) setErrors({ form: error })
+        else if (needsConfirmation) setNotice("Check your email to confirm your account.")
+        else router.replace("/app")
+      }
+    } catch {
+      setErrors({ form: "Something went wrong. Please try again." })
+    } finally {
+      setSubmitting(false)
     }
-    setSubmitting(false)
   }
 
   // While redirecting (authed / local-only), render nothing to avoid a flash.

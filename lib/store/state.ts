@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { DayEntrySchema, type DayEntry } from "@/lib/domain/entry"
+import { DayEntrySchema, TimeOfDaySchema, type DayEntry } from "@/lib/domain/entry"
 import { HabitSchema, DEFAULT_HABITS } from "@/lib/domain/habit"
 
 /**
@@ -12,8 +12,8 @@ import { HabitSchema, DEFAULT_HABITS } from "@/lib/domain/habit"
 export const AppStateSchema = z.object({
   entries: z.record(z.string(), DayEntrySchema),
   habits: z.array(HabitSchema),
-  notificationMorning: z.string(),
-  notificationEvening: z.string(),
+  notificationMorning: TimeOfDaySchema,
+  notificationEvening: TimeOfDaySchema,
 })
 export type AppState = z.infer<typeof AppStateSchema>
 
@@ -69,8 +69,8 @@ function recover(candidate: unknown): AppState {
   }
 
   const habits = z.array(HabitSchema).safeParse(obj.habits)
-  const morning = z.string().safeParse(obj.notificationMorning)
-  const evening = z.string().safeParse(obj.notificationEvening)
+  const morning = TimeOfDaySchema.safeParse(obj.notificationMorning)
+  const evening = TimeOfDaySchema.safeParse(obj.notificationEvening)
 
   return {
     entries,

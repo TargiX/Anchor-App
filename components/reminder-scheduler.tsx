@@ -45,22 +45,23 @@ export function ReminderScheduler() {
       return
     }
 
-    const timers: ReturnType<typeof setTimeout>[] = []
+    const timers = new Set<ReturnType<typeof setTimeout>>()
 
     for (const reminder of reminders) {
       const schedule = () => {
         const delay = msUntilNext(reminder.time)
         if (delay == null) return
         const timer = setTimeout(() => {
+          timers.delete(timer)
           notify(reminder.title, { body: reminder.body })
           schedule() // re-arm for the next day
         }, delay)
-        timers.push(timer)
+        timers.add(timer)
       }
       schedule()
     }
 
-    return () => timers.forEach(clearTimeout)
+    return () => timers.forEach((timer) => clearTimeout(timer))
   }, [notificationMorning, notificationEvening, permission])
 
   return null

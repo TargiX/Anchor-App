@@ -40,11 +40,9 @@ export default function Error({
         <Button onClick={reset} className="rounded-2xl">
           Try again
         </Button>
-        <Link href="/app">
-          <Button variant="outline" className="rounded-2xl">
-            Back to app
-          </Button>
-        </Link>
+        <Button asChild variant="outline" className="rounded-2xl">
+          <Link href="/app">Back to app</Link>
+        </Button>
       </div>
     </div>
   )

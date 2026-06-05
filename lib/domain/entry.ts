@@ -20,9 +20,11 @@ export type MoodPoint = z.infer<typeof MoodPointSchema>
 
 export const TimeOfDaySchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)
 
+export const DayKeySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+
 export const DayEntrySchema = z.object({
   /** Local calendar day, `YYYY-MM-DD`. */
-  date: z.string(),
+  date: DayKeySchema,
   morningMood: MoodPointSchema.optional(),
   eveningMood: MoodPointSchema.optional(),
   sleepQuality: SleepQualitySchema.optional(),
@@ -32,7 +34,7 @@ export const DayEntrySchema = z.object({
   affirmation: z.string().optional(),
   habitsCompleted: z.array(z.string()).optional(),
   meditationMinutes: z.number().optional(),
-  tomorrowBedtime: z.string().optional(),
+  tomorrowBedtime: TimeOfDaySchema.optional(),
   tomorrowSleepHours: z.number().optional(),
 })
 export type DayEntry = z.infer<typeof DayEntrySchema>
