@@ -69,7 +69,7 @@ After native code changes, re-sync: `npm run cap:sync`.
 
 ## Project shape
 
-```
+```text
 app/                   # Next.js App Router routes
   page.tsx             # landing
   app/page.tsx         # dashboard

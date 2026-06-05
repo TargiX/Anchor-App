@@ -58,6 +58,15 @@ export default function LoginPage() {
     }
   }
 
+  // While auth is resolving, keep the page non-interactive to avoid early submits.
+  if (status === "loading") {
+    return (
+      <div className="flex min-h-dvh items-center justify-center px-6" aria-live="polite">
+        <div className="text-sm text-muted-foreground">Checking your session…</div>
+      </div>
+    )
+  }
+
   // While redirecting (authed / local-only), render nothing to avoid a flash.
   if (status === "authed" || status === "unconfigured") return null
 

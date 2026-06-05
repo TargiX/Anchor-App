@@ -25,7 +25,7 @@ one Next.js codebase.
 
 Layered, typed, testable. Do not put domain logic in components.
 
-```
+```text
 lib/
   time/        local-date keys (NOT UTC), time-of-day context. Pure + tested.
   domain/      zod schemas + inferred types (entry, habit), selectors

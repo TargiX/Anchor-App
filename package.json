@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "type": "module",
   "private": true,
+  "engines": {
+    "node": "24.15.0"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
@@ -23,12 +26,12 @@
     "mobile:open:android": "cap open android"
   },
   "dependencies": {
-    "@capacitor/app": "^8.1.0",
-    "@capacitor/core": "^8.3.4",
-    "@capacitor/haptics": "^8.0.2",
-    "@capacitor/ios": "^8.4.0",
-    "@capacitor/local-notifications": "^8.2.0",
-    "@capacitor/status-bar": "^8.0.2",
+    "@capacitor/app": "8.1.0",
+    "@capacitor/core": "8.4.0",
+    "@capacitor/haptics": "8.0.2",
+    "@capacitor/ios": "8.4.0",
+    "@capacitor/local-notifications": "8.2.0",
+    "@capacitor/status-bar": "8.0.2",
     "@supabase/supabase-js": "^2.106.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

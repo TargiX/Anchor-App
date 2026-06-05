@@ -18,9 +18,9 @@ Everything you need to present Anchor without an App Store link.
 >
 > The interesting part wasn't the UI, it was making it *real*:
 > • Next.js 16 + React 19 + TypeScript, with a typed domain layer (zod schemas
->   as the source of truth) and unit tests on the logic.
+> as the source of truth) and unit tests on the logic.
 > • Offline-first local store with versioned, validated persistence (and a
->   storage seam so the same code runs native).
+> storage seam so the same code runs native).
 > • Supabase auth + cross-device sync, graceful when offline.
 > • Same UI on a phone and on the desktop — shipped from one repo.
 >

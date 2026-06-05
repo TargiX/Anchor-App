@@ -4,7 +4,7 @@
     {
       "name": "anchor-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "start"],
+      "runtimeArgs": ["run", "dev"],
       "port": 3007,
       "autoPort": true
     }

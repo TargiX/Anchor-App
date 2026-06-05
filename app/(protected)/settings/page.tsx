@@ -68,21 +68,27 @@ export default function SettingsPage() {
               <CardTitle className="text-base font-medium">Your habits</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
-              {state.habits.map((habit) => (
-                <div key={habit.id} className="flex items-center justify-between px-4 py-3 rounded-xl border border-border">
-                  <span className="flex items-center gap-3 text-sm text-foreground">
-                    <HabitIcon icon={habit.icon} className="size-4 text-muted-foreground" />
-                    {habit.name}
-                  </span>
-                  <button
-                    onClick={() => removeHabit(habit.id)}
-                    className="text-muted-foreground hover:text-destructive transition-colors"
-                    aria-label={`Remove ${habit.name}`}
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
+              {state.habits.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
+                  No habits yet. Add your first one below.
                 </div>
-              ))}
+              ) : (
+                state.habits.map((habit) => (
+                  <div key={habit.id} className="flex items-center justify-between px-4 py-3 rounded-xl border border-border">
+                    <span className="flex items-center gap-3 text-sm text-foreground">
+                      <HabitIcon icon={habit.icon} className="size-4 text-muted-foreground" />
+                      {habit.name}
+                    </span>
+                    <button
+                      onClick={() => removeHabit(habit.id)}
+                      className="text-muted-foreground hover:text-destructive transition-colors"
+                      aria-label={`Remove ${habit.name}`}
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
 

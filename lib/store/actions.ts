@@ -14,7 +14,8 @@ import { validateHabitName, type ValidationResult } from "@/lib/domain/validatio
 /** Merge a patch into today's entry, creating it if needed. */
 export function updateTodayEntry(patch: Partial<DayEntry>): void {
   const key = getTodayKey()
-  const { date: _ignoredDate, ...safePatch } = patch
+  const safePatch = { ...patch }
+  delete safePatch.date
   setState((prev) => ({
     ...prev,
     entries: {
