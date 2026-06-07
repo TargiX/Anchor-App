@@ -28,8 +28,10 @@ export function StepMood({ onNext, onBack, isMorning = true }: StepMoodProps) {
     let clientX: number, clientY: number
 
     if ("touches" in e) {
-      clientX = e.touches[0]?.clientX ?? 0
-      clientY = e.touches[0]?.clientY ?? 0
+      const touch = e.touches[0]
+      if (!touch) return
+      clientX = touch.clientX
+      clientY = touch.clientY
     } else {
       clientX = e.clientX
       clientY = e.clientY

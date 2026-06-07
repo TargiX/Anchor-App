@@ -1,5 +1,7 @@
 "use client"
 
+import { getLocalTodayKey } from "@/lib/time/today"
+
 // Local in-memory store using a simple reactive pattern.
 // In a production app this would be backed by Supabase or similar.
 
@@ -97,7 +99,7 @@ if (typeof window !== "undefined") {
 }
 
 export function getTodayKey() {
-  return new Date().toISOString().slice(0, 10)
+  return getLocalTodayKey()
 }
 
 export function getTodayEntry(): DayEntry {

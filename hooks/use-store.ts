@@ -10,6 +10,7 @@ import {
   type AppState,
   type DayEntry,
 } from "@/lib/store"
+import { getLocalTodayKey } from "@/lib/time/today"
 
 export function useAppState(): AppState {
   return useSyncExternalStore(subscribe, getState, getState)
@@ -17,7 +18,7 @@ export function useAppState(): AppState {
 
 export function useTodayEntry(): DayEntry {
   const state = useAppState()
-  const key = new Date().toISOString().slice(0, 10)
+  const key = getLocalTodayKey()
   return state.entries[key] ?? { date: key }
 }
 
