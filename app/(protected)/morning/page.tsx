@@ -26,7 +26,12 @@ export default function MorningRitual() {
   }
 
   return (
-    <RitualShell step={step} totalSteps={TOTAL_STEPS}>
+    <RitualShell
+      step={step}
+      totalSteps={TOTAL_STEPS}
+      title="Morning ritual"
+      description="Start with sleep, mood, intention, and a short stillness practice before the day gets loud."
+    >
       {step === 0 && <StepAffirmation onNext={next} />}
       {step === 1 && <StepSleep onNext={next} onBack={back} />}
       {step === 2 && <StepMood onNext={next} onBack={back} isMorning />}
