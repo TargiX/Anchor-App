@@ -25,7 +25,12 @@ export default function EveningRitual() {
   }
 
   return (
-    <RitualShell step={step} totalSteps={TOTAL_STEPS}>
+    <RitualShell
+      step={step}
+      totalSteps={TOTAL_STEPS}
+      title="Evening ritual"
+      description="Close the loop with mood, reflection, habits, and tomorrow's sleep target."
+    >
       {step === 0 && <StepEveningMood onNext={next} onBack={back} />}
       {step === 1 && <StepJournal onNext={next} onBack={back} />}
       {step === 2 && <StepHabits onNext={next} onBack={back} />}

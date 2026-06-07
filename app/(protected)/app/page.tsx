@@ -60,215 +60,257 @@ export default function Home() {
         ? "Review this morning"
         : "Start morning ritual"
       : timeContext === "evening"
-      ? eveningDone
-        ? "Review this evening"
-        : "Begin evening ritual"
-      : null
+        ? eveningDone
+          ? "Review this evening"
+          : "Begin evening ritual"
+        : null
 
   const ctaRoute =
-    timeContext === "morning" || timeContext === "midday" ? "/morning" : "/evening"
+    timeContext === "morning" || timeContext === "midday"
+      ? "/morning"
+      : "/evening"
 
   // Avoid hydration mismatch by not rendering time-dependent content until mounted
   if (!mounted) {
     return (
-      <div className="flex flex-col min-h-dvh max-w-md mx-auto px-6">
-        <div className="pt-10 pb-2">
-          <div className="h-4 w-32 bg-muted/50 rounded animate-pulse" />
-          <div className="h-7 w-40 bg-muted/50 rounded mt-2 animate-pulse" />
+      <main className="min-h-dvh px-6 py-8 lg:px-10 lg:py-10">
+        <div className="mx-auto flex max-w-md flex-col lg:grid lg:min-h-[calc(100dvh-5rem)] lg:max-w-6xl lg:grid-cols-[minmax(0,1fr)_440px] lg:items-center lg:gap-12">
+          <div className="pt-2 lg:pt-0">
+            <div className="h-4 w-32 animate-pulse rounded bg-muted/50" />
+            <div className="mt-2 h-9 w-48 animate-pulse rounded bg-muted/50 lg:h-14 lg:w-72" />
+            <div className="mt-8 size-[120px] animate-pulse rounded-full bg-muted/30 lg:size-[220px]" />
+          </div>
+          <div className="mt-8 h-80 animate-pulse rounded-[2rem] border border-border bg-card/60 lg:mt-0" />
         </div>
-        <div className="flex flex-col items-center py-8 gap-3">
-          <div className="size-[120px] bg-muted/30 rounded-full animate-pulse" />
-        </div>
-      </div>
+      </main>
     )
   }
 
   return (
-    <div className="flex flex-col min-h-dvh max-w-md mx-auto px-6">
-      {/* Header */}
-      <header className="flex items-center justify-between pt-10 pb-2">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
-            {dateStr}
-          </p>
-          <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-foreground mt-0.5">
-            {greeting}.
-          </h1>
-        </div>
-        <button
-          onClick={() => router.push("/settings")}
-          className="size-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          aria-label="Settings"
-        >
-          <Settings className="size-4" />
-        </button>
-      </header>
+    <main className="min-h-dvh px-6 py-8 lg:px-10 lg:py-10">
+      <div className="mx-auto flex max-w-md flex-col lg:grid lg:min-h-[calc(100dvh-5rem)] lg:max-w-6xl lg:grid-cols-[minmax(0,1fr)_440px] lg:items-center lg:gap-12 xl:grid-cols-[minmax(0,1fr)_480px]">
+        <section className="flex flex-col">
+          <header className="flex items-center justify-between pb-2 lg:pb-0">
+            <div>
+              <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+                {dateStr}
+              </p>
+              <h1 className="mt-0.5 font-[family-name:var(--font-display)] text-2xl font-semibold text-foreground lg:mt-3 lg:max-w-xl lg:text-6xl lg:leading-[1.05]">
+                {greeting}.
+              </h1>
+            </div>
+            <button
+              onClick={() => router.push("/settings")}
+              className="flex size-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
+              aria-label="Settings"
+            >
+              <Settings className="size-4" />
+            </button>
+          </header>
 
-      {/* Brand motif + streak */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="flex flex-col items-center py-8 gap-3"
-      >
-        <AnchorMotif size={120} className="text-primary" />
-        <div className="flex items-center gap-1.5">
-          <Flame className="size-3.5 text-accent" />
-          <span className="text-xs text-muted-foreground">
-            <span className="text-foreground font-medium">{streak}</span> day streak
-          </span>
-        </div>
-      </motion.div>
-
-      {/* Ritual status — entire card is the entry point */}
-      <div className="flex flex-col gap-2.5">
-        <motion.div
-          initial={{ opacity: 0, x: -8 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.15 }}
-        >
-        <button
-          onClick={() => router.push("/morning")}
-          aria-label="Open morning ritual"
-          className={cn(
-            "group w-full flex items-center justify-between px-5 py-4 rounded-2xl border text-left transition-all hover:translate-x-0.5 active:scale-[0.99]",
-            morningDone
-              ? "border-accent/30 bg-accent/5 hover:border-accent/50"
-              : "border-border bg-card hover:border-primary/40"
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className={cn(
-                "size-2 rounded-full",
-                morningDone ? "bg-accent" : "bg-border"
-              )}
-            />
-            <span className="text-sm font-medium text-foreground">Morning ritual</span>
-          </div>
-          <div className="flex items-center gap-2">
-            {morningDone ? (
-              <Badge variant="secondary" className="text-xs font-normal rounded-full">
-                Complete
-              </Badge>
-            ) : (
-              <span className="text-xs text-muted-foreground">Not started</span>
-            )}
-            <ChevronRight className="size-4 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-          </div>
-        </button>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, x: -8 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.22 }}
-        >
-        <button
-          onClick={() => router.push("/evening")}
-          aria-label="Open evening ritual"
-          className={cn(
-            "group w-full flex items-center justify-between px-5 py-4 rounded-2xl border text-left transition-all hover:translate-x-0.5 active:scale-[0.99]",
-            eveningDone
-              ? "border-accent/30 bg-accent/5 hover:border-accent/50"
-              : "border-border bg-card hover:border-primary/40"
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className={cn(
-                "size-2 rounded-full",
-                eveningDone ? "bg-accent" : "bg-border"
-              )}
-            />
-            <span className="text-sm font-medium text-foreground">Evening ritual</span>
-          </div>
-          <div className="flex items-center gap-2">
-            {eveningDone ? (
-              <Badge variant="secondary" className="text-xs font-normal rounded-full">
-                Complete
-              </Badge>
-            ) : (
-              <span className="text-xs text-muted-foreground">
-                {timeContext === "morning" ? "Tonight" : "Not started"}
-              </span>
-            )}
-            <ChevronRight className="size-4 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-          </div>
-        </button>
-        </motion.div>
-      </div>
-
-      <div className="my-5">
-        <Separator />
-      </div>
-
-      {/* Main CTA — only in morning/evening contexts; midday relies on the clickable cards */}
-      {timeContext !== "midday" && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Button
-            className="w-full rounded-2xl h-14 text-base font-medium"
-            onClick={() => router.push(ctaRoute)}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="flex flex-col items-center gap-3 py-8 lg:items-start lg:gap-5 lg:py-12"
           >
-            <Clock className="size-4" data-icon="inline-start" />
-            {ctaLabel ?? timeLabel}
-          </Button>
-        </motion.div>
-      )}
+            <AnchorMotif size={120} className="text-primary lg:hidden" />
+            <AnchorMotif
+              size={240}
+              className="hidden text-primary opacity-80 lg:block"
+            />
+            <div className="flex items-center gap-1.5 rounded-full border border-border/70 bg-card/60 px-3 py-1.5 lg:px-4 lg:py-2">
+              <Flame className="size-3.5 text-accent lg:size-4" />
+              <span className="text-xs text-muted-foreground lg:text-sm">
+                <span className="font-medium text-foreground">{streak}</span>{" "}
+                day streak
+              </span>
+            </div>
+          </motion.div>
 
-      {timeContext === "midday" && (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="text-center text-sm text-muted-foreground font-[family-name:var(--font-display)] italic leading-relaxed px-2"
-        >
-          The day is yours. Check in when you&apos;re ready.
-        </motion.p>
-      )}
+          <p className="hidden max-w-md font-[family-name:var(--font-display)] text-lg leading-8 text-muted-foreground italic lg:block">
+            A quiet place to begin, close, and notice the shape of the day.
+          </p>
+        </section>
 
-      {/* Secondary links */}
-      <div className="flex gap-3 mt-3">
-        <Button
-          variant="outline"
-          className="flex-1 rounded-xl h-12 text-sm"
-          onClick={() => router.push("/timeline")}
-        >
-          <BookOpen className="size-4" data-icon="inline-start" />
-          Timeline
-        </Button>
-        <Button
-          variant="outline"
-          className="flex-1 rounded-xl h-12 text-sm"
-          onClick={() => router.push("/settings")}
-        >
-          <Settings className="size-4" data-icon="inline-start" />
-          Settings
-        </Button>
+        <section className="rounded-none lg:rounded-[2rem] lg:border lg:border-border/80 lg:bg-card/55 lg:p-7 lg:shadow-sm">
+          <div className="hidden items-center justify-between pb-6 lg:flex">
+            <div>
+              <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+                Today
+              </p>
+              <h2 className="mt-1 font-[family-name:var(--font-display)] text-3xl font-semibold text-foreground">
+                {timeLabel}
+              </h2>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon-lg"
+              className="rounded-xl"
+              onClick={() => router.push("/settings")}
+              aria-label="Settings"
+            >
+              <Settings className="size-4" />
+            </Button>
+          </div>
+
+          <div className="flex flex-col gap-2.5 lg:gap-3">
+            <motion.div
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <button
+                onClick={() => router.push("/morning")}
+                aria-label="Open morning ritual"
+                className={cn(
+                  "group flex w-full items-center justify-between rounded-2xl border px-5 py-4 text-left transition-all hover:translate-x-0.5 active:scale-[0.99] lg:px-6 lg:py-5",
+                  morningDone
+                    ? "border-accent/30 bg-accent/5 hover:border-accent/50"
+                    : "border-border bg-card hover:border-primary/40"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={cn(
+                      "size-2 rounded-full lg:size-2.5",
+                      morningDone ? "bg-accent" : "bg-border"
+                    )}
+                  />
+                  <span className="text-sm font-medium text-foreground lg:text-base">
+                    Morning ritual
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {morningDone ? (
+                    <Badge
+                      variant="secondary"
+                      className="rounded-full text-xs font-normal"
+                    >
+                      Complete
+                    </Badge>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      Not started
+                    </span>
+                  )}
+                  <ChevronRight className="size-4 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+                </div>
+              </button>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.22 }}
+            >
+              <button
+                onClick={() => router.push("/evening")}
+                aria-label="Open evening ritual"
+                className={cn(
+                  "group flex w-full items-center justify-between rounded-2xl border px-5 py-4 text-left transition-all hover:translate-x-0.5 active:scale-[0.99] lg:px-6 lg:py-5",
+                  eveningDone
+                    ? "border-accent/30 bg-accent/5 hover:border-accent/50"
+                    : "border-border bg-card hover:border-primary/40"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={cn(
+                      "size-2 rounded-full lg:size-2.5",
+                      eveningDone ? "bg-accent" : "bg-border"
+                    )}
+                  />
+                  <span className="text-sm font-medium text-foreground lg:text-base">
+                    Evening ritual
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {eveningDone ? (
+                    <Badge
+                      variant="secondary"
+                      className="rounded-full text-xs font-normal"
+                    >
+                      Complete
+                    </Badge>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      {timeContext === "morning" ? "Tonight" : "Not started"}
+                    </span>
+                  )}
+                  <ChevronRight className="size-4 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+                </div>
+              </button>
+            </motion.div>
+          </div>
+
+          <div className="my-5 lg:my-6">
+            <Separator />
+          </div>
+
+          {timeContext !== "midday" && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <Button
+                className="h-14 w-full rounded-2xl text-base font-medium lg:h-16"
+                onClick={() => router.push(ctaRoute)}
+              >
+                <Clock className="size-4" data-icon="inline-start" />
+                {ctaLabel ?? timeLabel}
+              </Button>
+            </motion.div>
+          )}
+
+          {timeContext === "midday" && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="px-2 text-center font-[family-name:var(--font-display)] text-sm leading-relaxed text-muted-foreground italic"
+            >
+              The day is yours. Check in when you&apos;re ready.
+            </motion.p>
+          )}
+
+          <div className="mt-3 flex gap-3 lg:mt-4">
+            <Button
+              variant="outline"
+              className="h-12 flex-1 rounded-xl text-sm"
+              onClick={() => router.push("/timeline")}
+            >
+              <BookOpen className="size-4" data-icon="inline-start" />
+              Timeline
+            </Button>
+            <Button
+              variant="outline"
+              className="h-12 flex-1 rounded-xl text-sm"
+              onClick={() => router.push("/settings")}
+            >
+              <Settings className="size-4" data-icon="inline-start" />
+              Settings
+            </Button>
+          </div>
+
+          {today.intention && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="mt-4 rounded-2xl border border-border bg-card/50 px-5 py-4 lg:mt-5"
+            >
+              <p className="mb-2 text-xs font-medium tracking-widest text-muted-foreground uppercase">
+                Today&apos;s intention
+              </p>
+              <p className="font-[family-name:var(--font-display)] text-sm leading-relaxed text-foreground italic lg:text-base">
+                &ldquo;{today.intention}&rdquo;
+              </p>
+            </motion.div>
+          )}
+        </section>
       </div>
-
-      {/* Today's intention */}
-      {today.intention && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="mt-4 rounded-2xl border border-border bg-card/50 px-5 py-4"
-        >
-          <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-2">
-            Today&apos;s intention
-          </p>
-          <p className="text-sm text-foreground font-[family-name:var(--font-display)] italic leading-relaxed">
-            &ldquo;{today.intention}&rdquo;
-          </p>
-        </motion.div>
-      )}
-
-      <div className="pb-10" />
-    </div>
+    </main>
   )
 }

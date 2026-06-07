@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { ArrowLeft, Trash2, Plus, LogOut } from "lucide-react"
+import { Trash2, Plus, LogOut, SlidersHorizontal } from "lucide-react"
+import { AppScreenShell } from "@/components/app-screen-shell"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -24,7 +24,6 @@ import { useTheme } from "next-themes"
 const THEMES = ["light", "dark", "sepia"] as const
 
 export default function SettingsPage() {
-  const router = useRouter()
   const state = useAppState()
   const { status, user, signOut } = useAuth()
   const { theme, setTheme } = useTheme()
@@ -44,28 +43,37 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-dvh max-w-md mx-auto px-6 pb-8">
-      <div className="flex items-center gap-3 pt-8 pb-6">
-        <Button variant="ghost" size="icon" onClick={() => router.push("/app")} className="rounded-xl -ml-2">
-          <ArrowLeft className="size-5" />
-          <span className="sr-only">Back</span>
-        </Button>
-        <h1 className="font-[family-name:var(--font-display)] text-xl font-medium text-foreground">
-          Settings
-        </h1>
-      </div>
-
+    <AppScreenShell
+      title="Settings"
+      eyebrow="Preferences"
+      description="Tune habits, reminders, and appearance without leaving the local-first rhythm."
+      backHref="/app"
+      railTitle="Make Anchor fit the way you check in."
+      railBody="Keep the ritual light: only the habits, notification times, and visual tone that help you return."
+      railMeta={
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <SlidersHorizontal className="size-4 text-accent" />
+          Local preferences
+        </div>
+      }
+      contentClassName="lg:max-w-4xl"
+    >
       <Tabs defaultValue="habits" className="flex-1">
-        <TabsList className="w-full justify-start">
+        <TabsList className="w-full justify-start lg:w-fit lg:min-w-[520px]">
           <TabsTrigger value="habits">Habits</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="theme">Theme</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="habits" className="flex flex-col gap-4 mt-6">
-          <Card>
+        <TabsContent
+          value="habits"
+          className="mt-6 flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start"
+        >
+          <Card className="lg:min-h-[360px]">
             <CardHeader>
-              <CardTitle className="text-base font-medium">Your habits</CardTitle>
+              <CardTitle className="text-base font-medium">
+                Your habits
+              </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
               {state.habits.length === 0 ? (
@@ -74,14 +82,20 @@ export default function SettingsPage() {
                 </div>
               ) : (
                 state.habits.map((habit) => (
-                  <div key={habit.id} className="flex items-center justify-between px-4 py-3 rounded-xl border border-border">
+                  <div
+                    key={habit.id}
+                    className="flex items-center justify-between rounded-xl border border-border px-4 py-3"
+                  >
                     <span className="flex items-center gap-3 text-sm text-foreground">
-                      <HabitIcon icon={habit.icon} className="size-4 text-muted-foreground" />
+                      <HabitIcon
+                        icon={habit.icon}
+                        className="size-4 text-muted-foreground"
+                      />
                       {habit.name}
                     </span>
                     <button
                       onClick={() => removeHabit(habit.id)}
-                      className="text-muted-foreground hover:text-destructive transition-colors"
+                      className="text-muted-foreground transition-colors hover:text-destructive"
                       aria-label={`Remove ${habit.name}`}
                     >
                       <Trash2 className="size-4" />
@@ -92,7 +106,8 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 rounded-2xl border border-border bg-card/60 p-4 lg:sticky lg:top-8">
+            <p className="text-sm font-medium text-foreground">Add a habit</p>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -107,32 +122,42 @@ export default function SettingsPage() {
                 aria-invalid={habitError ? true : undefined}
                 aria-describedby={habitError ? "habit-error" : undefined}
                 className={cn(
-                  "flex-1 px-4 py-3 rounded-xl border bg-card",
+                  "flex-1 rounded-xl border bg-card px-4 py-3",
                   "text-sm text-foreground placeholder:text-muted-foreground",
-                  "focus:outline-none focus:ring-2 focus:ring-ring",
+                  "focus:ring-2 focus:ring-ring focus:outline-none",
                   habitError ? "border-destructive" : "border-border"
                 )}
               />
-              <Button onClick={handleAddHabit} className="rounded-xl px-4" disabled={!newHabit.trim()}>
+              <Button
+                onClick={handleAddHabit}
+                className="rounded-xl px-4"
+                disabled={!newHabit.trim()}
+              >
                 <Plus className="size-4" />
               </Button>
             </div>
             {habitError && (
-              <p id="habit-error" role="alert" className="px-1 text-xs text-destructive">
+              <p
+                id="habit-error"
+                role="alert"
+                className="px-1 text-xs text-destructive"
+              >
                 {habitError}
               </p>
             )}
           </div>
         </TabsContent>
 
-        <TabsContent value="notifications" className="flex flex-col gap-4 mt-6">
+        <TabsContent value="notifications" className="mt-6 flex flex-col gap-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base font-medium">Ritual reminders</CardTitle>
+              <CardTitle className="text-base font-medium">
+                Ritual reminders
+              </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-4">
+            <CardContent className="grid gap-4 lg:grid-cols-2">
               {/* Permission + honest platform note */}
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-3 lg:col-span-2">
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-foreground">
                     {permission === "granted"
@@ -158,7 +183,11 @@ export default function SettingsPage() {
                     variant="outline"
                     size="sm"
                     className="rounded-xl"
-                    onClick={() => notify("Test reminder", { body: "Reminders are working." })}
+                    onClick={() =>
+                      notify("Test reminder", {
+                        body: "Reminders are working.",
+                      })
+                    }
                   >
                     Send test
                   </Button>
@@ -173,40 +202,48 @@ export default function SettingsPage() {
                 ) : null}
               </div>
 
-              <p className="rounded-lg bg-muted/50 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+              <p className="rounded-lg bg-muted/50 px-3 py-2 text-xs leading-relaxed text-muted-foreground lg:col-span-2">
                 {nativeReminders
                   ? "On iOS, Anchor schedules OS-level daily reminders so they keep working when the app is closed."
                   : "On the web, reminders only fire while Anchor is open. Install the iOS app for reliable background reminders."}
               </p>
 
-              <Separator />
+              <Separator className="lg:col-span-2" />
 
               <div className="flex flex-col gap-2">
-                <label className="text-sm text-muted-foreground font-medium">Morning ritual</label>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Morning ritual
+                </label>
                 <input
                   type="time"
                   value={state.notificationMorning}
-                  onChange={(e) => setNotificationTime("morning", e.target.value)}
+                  onChange={(e) =>
+                    setNotificationTime("morning", e.target.value)
+                  }
                   className={cn(
-                    "px-4 py-3 rounded-xl border border-border bg-card",
+                    "rounded-xl border border-border bg-card px-4 py-3",
                     "text-sm text-foreground",
-                    "focus:outline-none focus:ring-2 focus:ring-ring"
+                    "focus:ring-2 focus:ring-ring focus:outline-none"
                   )}
                 />
               </div>
 
-              <Separator />
+              <Separator className="lg:hidden" />
 
               <div className="flex flex-col gap-2">
-                <label className="text-sm text-muted-foreground font-medium">Evening ritual</label>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Evening ritual
+                </label>
                 <input
                   type="time"
                   value={state.notificationEvening}
-                  onChange={(e) => setNotificationTime("evening", e.target.value)}
+                  onChange={(e) =>
+                    setNotificationTime("evening", e.target.value)
+                  }
                   className={cn(
-                    "px-4 py-3 rounded-xl border border-border bg-card",
+                    "rounded-xl border border-border bg-card px-4 py-3",
                     "text-sm text-foreground",
-                    "focus:outline-none focus:ring-2 focus:ring-ring"
+                    "focus:ring-2 focus:ring-ring focus:outline-none"
                   )}
                 />
               </div>
@@ -214,20 +251,22 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="theme" className="flex flex-col gap-4 mt-6">
+        <TabsContent value="theme" className="mt-6 flex flex-col gap-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base font-medium">Appearance</CardTitle>
+              <CardTitle className="text-base font-medium">
+                Appearance
+              </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-2">
+            <CardContent className="grid gap-2 lg:grid-cols-3">
               {THEMES.map((t) => (
                 <button
                   key={t}
                   onClick={() => setTheme(t)}
                   className={cn(
-                    "px-4 py-3 rounded-xl border text-sm text-left capitalize transition-all",
+                    "rounded-xl border px-4 py-3 text-left text-sm capitalize transition-all",
                     theme === t
-                      ? "border-accent bg-accent/10 text-foreground font-medium"
+                      ? "border-accent bg-accent/10 font-medium text-foreground"
                       : "border-border bg-card text-muted-foreground hover:border-primary/30"
                   )}
                 >
@@ -242,8 +281,12 @@ export default function SettingsPage() {
       {status === "authed" && (
         <div className="mt-6 flex items-center justify-between rounded-2xl border border-border bg-card px-5 py-4">
           <div className="flex flex-col">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">Signed in as</span>
-            <span className="truncate text-sm font-medium text-foreground">{user?.email}</span>
+            <span className="text-xs tracking-widest text-muted-foreground uppercase">
+              Signed in as
+            </span>
+            <span className="truncate text-sm font-medium text-foreground">
+              {user?.email}
+            </span>
           </div>
           <Button
             variant="outline"
@@ -256,6 +299,6 @@ export default function SettingsPage() {
           </Button>
         </div>
       )}
-    </div>
+    </AppScreenShell>
   )
 }

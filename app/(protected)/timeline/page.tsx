@@ -1,24 +1,27 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-import { ArrowLeft } from "lucide-react"
+import { CalendarDays } from "lucide-react"
+import { AppScreenShell } from "@/components/app-screen-shell"
 import { TimelineView } from "@/components/timeline-view"
-import { Button } from "@/components/ui/button"
 
 export default function TimelinePage() {
-  const router = useRouter()
   return (
-    <div className="flex flex-col min-h-dvh max-w-md mx-auto px-6">
-      <div className="flex items-center gap-3 pt-8 pb-6">
-        <Button variant="ghost" size="icon" onClick={() => router.push("/app")} className="rounded-xl -ml-2">
-          <ArrowLeft className="size-5" />
-          <span className="sr-only">Back</span>
-        </Button>
-        <h1 className="font-[family-name:var(--font-display)] text-xl font-medium text-foreground">
-          Timeline
-        </h1>
-      </div>
+    <AppScreenShell
+      title="Timeline"
+      eyebrow="Ritual history"
+      description="A wider look at mood, sleep, habits, intention, and reflection over time."
+      backHref="/app"
+      railTitle="Your days, gathered."
+      railBody="The timeline is meant for scanning patterns, not judging streaks. Open a day when you want the detail."
+      railMeta={
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <CalendarDays className="size-4 text-accent" />
+          Local history
+        </div>
+      }
+      contentClassName="lg:max-w-4xl"
+    >
       <TimelineView />
-    </div>
+    </AppScreenShell>
   )
 }
