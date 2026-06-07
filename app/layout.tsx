@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next"
 import { Lora, DM_Sans } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { AuthProvider } from "@/components/auth-provider"
+import { ReminderScheduler } from "@/components/reminder-scheduler"
 import { cn } from "@/lib/utils"
 
 const display = Lora({
@@ -46,7 +48,10 @@ export default function RootLayout({
     >
       <body className="font-sans">
         <ThemeProvider>
-          {children}
+          <AuthProvider>
+            {children}
+            <ReminderScheduler />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

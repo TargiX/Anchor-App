@@ -1,292 +1,295 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useAppState, useTodayEntry } from "@/hooks/use-store"
+import Link from "next/link"
+import { motion } from "framer-motion"
+import { ArrowRight, Sunrise, Moon, LineChart, Sparkles, Smartphone, Monitor, Globe } from "lucide-react"
 import { AnchorMotif } from "@/components/anchor-motif"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Settings, Clock, BookOpen, Flame } from "lucide-react"
-import { motion } from "framer-motion"
-import { cn } from "@/lib/utils"
 
-function getTimeContext(h: number) {
-  if (h < 12) return "morning"
-  if (h < 18) return "midday"
-  return "evening"
-}
+const features = [
+  {
+    icon: Sunrise,
+    title: "Morning ritual",
+    body: "Set an intention, log mood and sleep, breathe. A quiet five minutes that anchors the day.",
+  },
+  {
+    icon: Moon,
+    title: "Evening ritual",
+    body: "Reflect, journal, prepare tomorrow's sleep window. Close the loop before bed.",
+  },
+  {
+    icon: LineChart,
+    title: "Timeline",
+    body: "Mood, sleep and habit streaks visualised over time. Trends, not just snapshots.",
+  },
+]
 
-function getGreeting(h: number) {
-  if (h < 12) return "Good morning"
-  if (h < 18) return "Good afternoon"
-  return "Good evening"
-}
+const platforms = [
+  { icon: Globe, label: "Web" },
+  { icon: Smartphone, label: "iOS / Android" },
+  { icon: Monitor, label: "macOS / Windows" },
+]
 
-function getTimeLabel(h: number) {
-  if (h < 12) return "Morning ritual"
-  if (h < 18) return "Quick check-in"
-  return "Evening ritual"
-}
+const stack = [
+  "Next.js 16",
+  "React 19",
+  "TypeScript",
+  "Tailwind v4",
+  "Radix UI",
+  "Framer Motion",
+  "Capacitor",
+  "Electron",
+]
 
-function useTimeInfo() {
-  const [mounted, setMounted] = useState(false)
-  const [hour, setHour] = useState(12) // SSR default to midday
-
-  /* eslint-disable react-hooks/set-state-in-effect -- legitimate hydration guard: only runs once on mount */
-  useEffect(() => {
-    setHour(new Date().getHours())
-    setMounted(true)
-  }, [])
-  /* eslint-enable react-hooks/set-state-in-effect */
-
-  const dateStr = mounted
-    ? new Date().toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-      })
-    : ""
-
-  return {
-    mounted,
-    timeContext: getTimeContext(hour),
-    greeting: getGreeting(hour),
-    timeLabel: getTimeLabel(hour),
-    dateStr,
-  }
-}
-
-function QuickMoodEntry() {
-  const router = useRouter()
+export default function Landing() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3 }}
-      className="rounded-2xl border border-border bg-card/60 px-5 py-5"
-    >
-      <p className="text-sm text-muted-foreground font-[family-name:var(--font-display)] italic mb-4 leading-relaxed">
-        The day is yours. Check in when you&apos;re ready.
-      </p>
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="rounded-xl flex-1"
-          onClick={() => router.push("/morning")}
-        >
-          Morning ritual
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="rounded-xl flex-1"
-          onClick={() => router.push("/evening")}
-        >
-          Evening ritual
-        </Button>
-      </div>
-    </motion.div>
-  )
-}
+    <div className="relative min-h-dvh overflow-hidden bg-background text-foreground">
+      {/* Ambient backdrop */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 [background:radial-gradient(60%_50%_at_50%_0%,oklch(0.65_0.085_47/0.18),transparent_70%),radial-gradient(45%_40%_at_85%_30%,oklch(0.38_0.065_52/0.12),transparent_75%)]"
+      />
 
-export default function Home() {
-  const router = useRouter()
-  const state = useAppState()
-  const today = useTodayEntry()
-  const { mounted, timeContext, greeting, timeLabel, dateStr } = useTimeInfo()
-
-  const morningDone = !!(today.morningMood && today.intention)
-  const eveningDone = !!(today.eveningMood && today.journal)
-
-  const ctaLabel =
-    timeContext === "morning"
-      ? morningDone
-        ? "Review this morning"
-        : "Start morning ritual"
-      : timeContext === "evening"
-      ? eveningDone
-        ? "Review this evening"
-        : "Begin evening ritual"
-      : null
-
-  const ctaRoute =
-    timeContext === "morning" || timeContext === "midday" ? "/morning" : "/evening"
-
-  // Avoid hydration mismatch by not rendering time-dependent content until mounted
-  if (!mounted) {
-    return (
-      <div className="flex flex-col min-h-dvh max-w-md mx-auto px-6">
-        <div className="pt-10 pb-2">
-          <div className="h-4 w-32 bg-muted/50 rounded animate-pulse" />
-          <div className="h-7 w-40 bg-muted/50 rounded mt-2 animate-pulse" />
-        </div>
-        <div className="flex flex-col items-center py-8 gap-3">
-          <div className="size-[120px] bg-muted/30 rounded-full animate-pulse" />
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex flex-col min-h-dvh max-w-md mx-auto px-6">
-      {/* Header */}
-      <header className="flex items-center justify-between pt-10 pb-2">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
-            {dateStr}
-          </p>
-          <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-foreground mt-0.5">
-            {greeting}.
-          </h1>
-        </div>
-        <button
-          onClick={() => router.push("/settings")}
-          className="size-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          aria-label="Settings"
-        >
-          <Settings className="size-4" />
-        </button>
+      {/* Nav */}
+      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+        <Link href="/" className="flex items-center gap-2.5">
+          <AnchorMotif size={32} className="text-primary" />
+          <span className="font-[family-name:var(--font-display)] text-lg font-semibold tracking-tight">
+            Anchor
+          </span>
+        </Link>
+        <nav className="hidden gap-7 text-sm text-muted-foreground sm:flex">
+          <a href="#features" className="transition-colors hover:text-foreground">Features</a>
+          <a href="#platforms" className="transition-colors hover:text-foreground">Platforms</a>
+          <a href="#stack" className="transition-colors hover:text-foreground">Stack</a>
+        </nav>
+        <Link href="/app">
+          <Button size="sm" className="rounded-xl">
+            Open app
+            <ArrowRight className="size-4" data-icon="inline-end" />
+          </Button>
+        </Link>
       </header>
 
-      {/* Brand motif + streak */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="flex flex-col items-center py-8 gap-3"
-      >
-        <AnchorMotif size={120} className="text-primary" />
-        <div className="flex items-center gap-1.5">
-          <Flame className="size-3.5 text-accent" />
-          <span className="text-xs text-muted-foreground">
-            <span className="text-foreground font-medium">{state.streak}</span> day streak
-          </span>
-        </div>
-      </motion.div>
-
-      {/* Ritual status */}
-      <div className="flex flex-col gap-2.5">
+      {/* Hero */}
+      <section className="mx-auto flex max-w-6xl flex-col items-center px-6 pt-12 pb-20 text-center sm:pt-20 sm:pb-28">
         <motion.div
-          initial={{ opacity: 0, x: -8 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.15 }}
-          className={cn(
-            "flex items-center justify-between px-5 py-4 rounded-2xl border transition-all",
-            morningDone ? "border-accent/30 bg-accent/5" : "border-border bg-card"
-          )}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="mb-8"
         >
-          <div className="flex items-center gap-3">
-            <div
-              className={cn(
-                "size-2 rounded-full",
-                morningDone ? "bg-accent" : "bg-border"
-              )}
-            />
-            <span className="text-sm font-medium text-foreground">Morning ritual</span>
-          </div>
-          {morningDone ? (
-            <Badge variant="secondary" className="text-xs font-normal rounded-full">
-              Complete
-            </Badge>
-          ) : (
-            <span className="text-xs text-muted-foreground">Not started</span>
-          )}
+          <AnchorMotif size={140} className="text-primary" />
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, x: -8 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.22 }}
-          className={cn(
-            "flex items-center justify-between px-5 py-4 rounded-2xl border transition-all",
-            eveningDone ? "border-accent/30 bg-accent/5" : "border-border bg-card"
-          )}
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className={cn(
-                "size-2 rounded-full",
-                eveningDone ? "bg-accent" : "bg-border"
-              )}
-            />
-            <span className="text-sm font-medium text-foreground">Evening ritual</span>
-          </div>
-          {eveningDone ? (
-            <Badge variant="secondary" className="text-xs font-normal rounded-full">
-              Complete
-            </Badge>
-          ) : (
-            <span className="text-xs text-muted-foreground">
-              {timeContext === "morning" ? "Tonight" : "Not started"}
-            </span>
-          )}
-        </motion.div>
-      </div>
-
-      <div className="my-5">
-        <Separator />
-      </div>
-
-      {/* Midday quiet state */}
-      {timeContext === "midday" && <QuickMoodEntry />}
-
-      {/* Main CTA */}
-      {timeContext !== "midday" && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.15 }}
+          className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs uppercase tracking-widest text-muted-foreground backdrop-blur"
         >
-          <Button
-            className="w-full rounded-2xl h-14 text-base font-medium"
-            onClick={() => router.push(ctaRoute)}
-          >
-            <Clock className="size-4" data-icon="inline-start" />
-            {ctaLabel ?? timeLabel}
-          </Button>
+          <Sparkles className="size-3 text-accent" />
+          A quiet daily ritual
         </motion.div>
-      )}
 
-      {/* Secondary links */}
-      <div className="flex gap-3 mt-3">
-        <Button
-          variant="outline"
-          className="flex-1 rounded-xl h-12 text-sm"
-          onClick={() => router.push("/timeline")}
+        <motion.h1
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="font-[family-name:var(--font-display)] text-balance text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl"
         >
-          <BookOpen className="size-4" data-icon="inline-start" />
-          Timeline
-        </Button>
-        <Button
-          variant="outline"
-          className="flex-1 rounded-xl h-12 text-sm"
-          onClick={() => router.push("/settings")}
-        >
-          <Settings className="size-4" data-icon="inline-start" />
-          Settings
-        </Button>
-      </div>
+          Begin and close the day,
+          <br />
+          <span className="text-primary italic">on purpose.</span>
+        </motion.h1>
 
-      {/* Today's intention */}
-      {today.intention && (
+        <motion.p
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className="mx-auto mt-6 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg"
+        >
+          Anchor is a small, quiet space for morning and evening rituals — mood,
+          sleep, intention, journal. Web, mobile, and desktop. One unified flow.
+        </motion.p>
+
         <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+          className="mt-8 flex flex-col items-center gap-3 sm:flex-row"
+        >
+          <Link href="/app">
+            <Button size="lg" className="h-12 rounded-2xl px-7 text-base font-medium">
+              Try it now
+              <ArrowRight className="size-4" data-icon="inline-end" />
+            </Button>
+          </Link>
+          <a href="#features">
+            <Button
+              size="lg"
+              variant="outline"
+              className="h-12 rounded-2xl px-7 text-base font-medium"
+            >
+              See how it works
+            </Button>
+          </a>
+        </motion.div>
+
+        <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="mt-4 rounded-2xl border border-border bg-card/50 px-5 py-4"
+          transition={{ delay: 0.6 }}
+          className="mt-5 text-xs text-muted-foreground"
         >
-          <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-2">
-            Today&apos;s intention
-          </p>
-          <p className="text-sm text-foreground font-[family-name:var(--font-display)] italic leading-relaxed">
-            &ldquo;{today.intention}&rdquo;
-          </p>
-        </motion.div>
-      )}
+          No account required · works offline · privacy first
+        </motion.p>
+      </section>
 
-      <div className="pb-10" />
+      {/* Features */}
+      <section id="features" className="mx-auto max-w-6xl px-6 pb-20 sm:pb-28">
+        <div className="mb-10 max-w-xl">
+          <p className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">
+            What&apos;s inside
+          </p>
+          <h2 className="font-[family-name:var(--font-display)] text-balance text-3xl font-semibold leading-tight sm:text-4xl">
+            Two short rituals.
+            <br />
+            One long trend line.
+          </h2>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          {features.map((f, i) => (
+            <motion.div
+              key={f.title}
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ delay: i * 0.08 }}
+              className="group rounded-3xl border border-border bg-card/60 p-6 backdrop-blur transition-all hover:border-accent/40 hover:shadow-sm"
+            >
+              <div className="mb-5 inline-flex size-11 items-center justify-center rounded-2xl bg-accent/10 text-accent transition-transform group-hover:scale-105">
+                <f.icon className="size-5" />
+              </div>
+              <h3 className="font-[family-name:var(--font-display)] text-lg font-medium">
+                {f.title}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {f.body}
+              </p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* Platforms */}
+      <section id="platforms" className="border-y border-border/60 bg-card/30">
+        <div className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
+          <div className="grid items-center gap-10 sm:grid-cols-2">
+            <div>
+              <p className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">
+                Anywhere
+              </p>
+              <h2 className="font-[family-name:var(--font-display)] text-balance text-3xl font-semibold leading-tight sm:text-4xl">
+                One codebase.
+                <br />
+                Web, mobile, desktop.
+              </h2>
+              <p className="mt-4 max-w-md text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
+                Built once with Next.js, then wrapped natively with Capacitor for iOS &
+                Android and Electron for macOS &amp; Windows. Same UI, same flow,
+                everywhere you check in.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {platforms.map((p, i) => (
+                <motion.div
+                  key={p.label}
+                  initial={{ opacity: 0, x: 12 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.08 }}
+                  className="flex items-center gap-4 rounded-2xl border border-border bg-background/60 px-5 py-4"
+                >
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <p.icon className="size-5" />
+                  </div>
+                  <span className="font-medium">{p.label}</span>
+                  <span className="ml-auto text-xs uppercase tracking-widest text-muted-foreground">
+                    Available
+                  </span>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stack */}
+      <section id="stack" className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
+        <div className="text-center">
+          <p className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">
+            Built with
+          </p>
+          <h2 className="font-[family-name:var(--font-display)] text-balance text-2xl font-semibold sm:text-3xl">
+            A modern, production-grade stack
+          </h2>
+        </div>
+        <div className="mt-8 flex flex-wrap justify-center gap-2">
+          {stack.map((s) => (
+            <span
+              key={s}
+              className="rounded-full border border-border bg-card/60 px-3.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {s}
+            </span>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="mx-auto max-w-6xl px-6 pb-24">
+        <div className="relative overflow-hidden rounded-4xl border border-border bg-gradient-to-br from-card to-card/60 p-10 text-center sm:p-14">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 [background:radial-gradient(50%_60%_at_50%_0%,oklch(0.65_0.085_47/0.22),transparent_70%)]"
+          />
+          <div className="relative">
+            <h2 className="font-[family-name:var(--font-display)] text-balance text-3xl font-semibold leading-tight sm:text-4xl">
+              Five quiet minutes.
+              <br />
+              Twice a day.
+            </h2>
+            <p className="mx-auto mt-4 max-w-md text-sm text-muted-foreground sm:text-base">
+              That&apos;s it. Start tonight.
+            </p>
+            <Link href="/app">
+              <Button size="lg" className="mt-8 h-12 rounded-2xl px-8 text-base font-medium">
+                Open Anchor
+                <ArrowRight className="size-4" data-icon="inline-end" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border/60">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-muted-foreground sm:flex-row">
+          <div className="flex items-center gap-2">
+            <AnchorMotif size={20} className="text-primary" />
+            <span>Anchor · A daily ritual app</span>
+          </div>
+          <div className="flex items-center gap-5">
+            <Link href="/app" className="transition-colors hover:text-foreground">
+              Open app
+            </Link>
+            <span>© {new Date().getFullYear()}</span>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

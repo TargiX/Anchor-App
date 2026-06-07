@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { AnchorMotif } from "@/components/anchor-motif"
 import { cn } from "@/lib/utils"
 import { motion } from "framer-motion"
+import { getGreeting } from "@/lib/time/context"
 
 const AFFIRMATIONS = [
   "You are allowed to begin again, quietly and without apology.",
@@ -21,13 +22,6 @@ const AFFIRMATIONS = [
 interface StepAffirmationProps {
   onNext: () => void
   userName?: string
-}
-
-function getGreeting() {
-  const hour = new Date().getHours()
-  if (hour < 12) return "Good morning"
-  if (hour < 17) return "Good afternoon"
-  return "Good evening"
 }
 
 function getDate() {
@@ -58,7 +52,7 @@ export function StepAffirmation({ onNext, userName }: StepAffirmationProps) {
           {getDate()}
         </p>
         <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-foreground text-balance leading-snug">
-          {getGreeting()}{userName ? `, ${userName}` : ""}.
+          {getGreeting(new Date().getHours())}{userName ? `, ${userName}` : ""}.
         </h1>
       </div>
 

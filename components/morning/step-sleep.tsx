@@ -4,7 +4,8 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
-import { updateTodayEntry, type SleepQuality } from "@/lib/store"
+import { updateTodayEntry } from "@/lib/store/actions"
+import { type SleepQuality } from "@/lib/domain/entry"
 
 const SLEEP_OPTIONS: { value: SleepQuality; label: string; glyph: string }[] = [
   { value: "terrible", label: "Rough", glyph: "😶" },

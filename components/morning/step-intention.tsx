@@ -3,7 +3,8 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { updateTodayEntry } from "@/lib/store"
+import { updateTodayEntry } from "@/lib/store/actions"
+import { LIMITS } from "@/lib/domain/validation"
 
 const PROMPTS = [
   "Bring more ease to what I'm working on",
@@ -56,10 +57,10 @@ export function StepIntention({ onNext, onBack }: StepIntentionProps) {
             "focus:outline-none focus:ring-2 focus:ring-ring transition-shadow",
             "font-[family-name:var(--font-display)] leading-relaxed"
           )}
-          maxLength={200}
+          maxLength={LIMITS.intentionMax}
         />
         <span className="absolute bottom-3 right-4 text-xs text-muted-foreground">
-          {text.length}/200
+          {text.length}/{LIMITS.intentionMax}
         </span>
       </div>
 
