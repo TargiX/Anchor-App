@@ -11,17 +11,17 @@ describe("updateTodayEntry", () => {
   it("creates today's entry from patch", () => {
     updateTodayEntry({ intention: "Focus" })
     const s = getSnapshot()
-    const key = Object.keys(s.entries)[0]
-    expect(s.entries[key].intention).toBe("Focus")
+    const key = Object.keys(s.entries)[0]!
+    expect(s.entries[key]!.intention).toBe("Focus")
   })
 
   it("merges into existing entry", () => {
     updateTodayEntry({ intention: "A" })
     updateTodayEntry({ journal: "Went well" })
     const s = getSnapshot()
-    const key = Object.keys(s.entries)[0]
-    expect(s.entries[key].intention).toBe("A")
-    expect(s.entries[key].journal).toBe("Went well")
+    const key = Object.keys(s.entries)[0]!
+    expect(s.entries[key]!.intention).toBe("A")
+    expect(s.entries[key]!.journal).toBe("Went well")
   })
 })
 

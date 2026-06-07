@@ -15,10 +15,10 @@ export type FieldError = string | null
 
 export function validateEmail(value: string): FieldError {
   const result = EmailSchema.safeParse(value)
-  return result.success ? null : result.error.issues[0].message
+  return result.success ? null : result.error.issues[0]?.message ?? null
 }
 
 export function validatePassword(value: string): FieldError {
   const result = PasswordSchema.safeParse(value)
-  return result.success ? null : result.error.issues[0].message
+  return result.success ? null : result.error.issues[0]?.message ?? null
 }
