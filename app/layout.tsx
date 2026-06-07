@@ -4,6 +4,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth-provider"
 import { ReminderScheduler } from "@/components/reminder-scheduler"
+import { ServiceWorkerRegistrar } from "@/components/service-worker-registrar"
 import { cn } from "@/lib/utils"
 
 const display = Lora({
@@ -19,9 +20,16 @@ const body = DM_Sans({
 })
 
 export const metadata: Metadata = {
+  applicationName: "Anchor",
   title: "Anchor — Your Daily Grounding Ritual",
   description:
     "A quiet, beautiful space for your morning and evening rituals. Mood, sleep, journaling, and meditation in one unified flow.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Anchor",
+  },
 }
 
 export const viewport: Viewport = {
@@ -31,8 +39,6 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
 }
 
 export default function RootLayout({
@@ -44,13 +50,18 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("bg-background antialiased", display.variable, body.variable)}
+      className={cn(
+        "bg-background antialiased",
+        display.variable,
+        body.variable
+      )}
     >
       <body className="font-sans">
         <ThemeProvider>
           <AuthProvider>
             {children}
             <ReminderScheduler />
+            <ServiceWorkerRegistrar />
           </AuthProvider>
         </ThemeProvider>
       </body>
