@@ -1,7 +1,12 @@
 "use client"
 
-import { useSyncExternalStore } from "react"
-import { subscribe, getSnapshot, getServerSnapshot } from "@/lib/store/store"
+import { useEffect, useSyncExternalStore } from "react"
+import {
+  subscribe,
+  getSnapshot,
+  getServerSnapshot,
+  hydrateFromStorage,
+} from "@/lib/store/store"
 import type { AppState } from "@/lib/store/state"
 import { emptyEntry, type DayEntry } from "@/lib/domain/entry"
 import { computeStreak } from "@/lib/domain/selectors"
@@ -9,6 +14,10 @@ import { getTodayKey } from "@/lib/time/today"
 
 /** Subscribe a component to the whole app state. */
 export function useAppState(): AppState {
+  useEffect(() => {
+    hydrateFromStorage()
+  }, [])
+
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 }
 
