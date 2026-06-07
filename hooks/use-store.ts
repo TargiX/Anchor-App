@@ -17,7 +17,7 @@ export function useAppState(): AppState {
 
 export function useTodayEntry(): DayEntry {
   const state = useAppState()
-  const key = new Date().toISOString().split("T")[0]
+  const key = new Date().toISOString().slice(0, 10)
   return state.entries[key] ?? { date: key }
 }
 

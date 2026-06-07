@@ -72,7 +72,7 @@ export function StepSleep({ onNext, onBack }: StepSleepProps) {
           max={12}
           step={0.5}
           value={[hours]}
-          onValueChange={([v]) => setHours(v)}
+          onValueChange={([v]) => setHours(v ?? 8)}
           className="py-1"
         />
         <div className="flex justify-between text-xs text-muted-foreground">
