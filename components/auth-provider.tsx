@@ -6,7 +6,7 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase/client"
 
 /**
  * Auth state machine:
- *  - "unconfigured": no Supabase env → app runs local-only, routes are open.
+ *  - "unconfigured": no Supabase env → local development fallback.
  *  - "loading": resolving the initial session.
  *  - "authed" / "anon": signed in / not.
  */
@@ -48,12 +48,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     status,
     user,
     async signIn(email, password) {
-      if (!supabase) return { error: "Accounts are not configured." }
+      if (!supabase) return { error: "Accounts are not configured yet." }
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       return { error: error?.message ?? null }
     },
     async signUp(email, password) {
-      if (!supabase) return { error: "Accounts are not configured.", needsConfirmation: false }
+      if (!supabase) return { error: "Accounts are not configured yet.", needsConfirmation: false }
       const { data, error } = await supabase.auth.signUp({ email, password })
       // If email confirmation is on, there's no active session yet.
       return {

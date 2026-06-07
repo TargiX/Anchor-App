@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth-provider"
 import { ReminderScheduler } from "@/components/reminder-scheduler"
 import { ServiceWorkerRegistrar } from "@/components/service-worker-registrar"
+import { SyncProvider } from "@/components/sync-provider"
 import { cn } from "@/lib/utils"
 
 const display = Lora({
@@ -59,6 +60,7 @@ export default function RootLayout({
       <body className="font-sans">
         <ThemeProvider>
           <AuthProvider>
+            <SyncProvider />
             {children}
             <ReminderScheduler />
             <ServiceWorkerRegistrar />

@@ -3,19 +3,22 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 /**
  * Browser Supabase client.
  *
- * The app must run with NO Supabase configured (pure local/offline mode), so
- * this is `null` until both env vars are present. Everything downstream checks
- * `isSupabaseConfigured` and falls back to local-only behaviour otherwise.
+ * Supabase is optional for local development, but production should provide it:
+ * auth and cloud sync are what make Anchor a real journal instead of a
+ * single-device demo. The legacy anon key name stays as a fallback while
+ * Supabase transitions projects to publishable keys.
  */
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const publishableKey =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 export const isSupabaseConfigured = Boolean(
-  url && anonKey && url.startsWith("https://")
+  url && publishableKey && url.startsWith("https://")
 )
 
 export const supabase: SupabaseClient | null = isSupabaseConfigured
-  ? createClient(url!, anonKey!, {
+  ? createClient(url!, publishableKey!, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,

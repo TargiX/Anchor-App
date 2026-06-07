@@ -7,8 +7,8 @@ import { AnchorMotif } from "@/components/anchor-motif"
 
 /**
  * Guard for the app routes. When Supabase is configured, an unauthenticated
- * visitor is redirected to /login. When it's not configured, the app runs
- * fully local and the gate is transparent.
+ * visitor is redirected to /login. If local env is missing, the app remains
+ * reachable for development while production should configure Supabase.
  */
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { status } = useAuth()
@@ -26,6 +26,6 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
     )
   }
 
-  // "authed" or "unconfigured" → render the app.
+  // "authed" or local development fallback.
   return <>{children}</>
 }

@@ -165,7 +165,7 @@ export default function Landing() {
           transition={{ delay: 0.6 }}
           className="mt-5 text-xs text-muted-foreground"
         >
-          No account required · local-first storage · installable on the web
+          Account-backed journal sync · private by default · installable on the web
         </motion.p>
       </section>
 

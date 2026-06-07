@@ -22,8 +22,7 @@ export default function LoginPage() {
   const [notice, setNotice] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  // Already signed in, or accounts disabled (local-only mode) → go to the app.
-  // In local-only mode there's nothing to log into, so /login is a no-op page.
+  // Already signed in, or local dev has no Supabase env yet.
   useEffect(() => {
     if (status === "authed" || status === "unconfigured") router.replace("/app")
   }, [status, router])
@@ -67,7 +66,7 @@ export default function LoginPage() {
     )
   }
 
-  // While redirecting (authed / local-only), render nothing to avoid a flash.
+  // While redirecting, render nothing to avoid a flash.
   if (status === "authed" || status === "unconfigured") return null
 
   return (

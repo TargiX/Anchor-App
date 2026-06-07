@@ -31,11 +31,11 @@ lib/
   domain/      zod schemas + inferred types (entry, habit), selectors
                (isMorningComplete, computeStreak…), validation. Pure + tested.
   store/       state.ts (AppState schema + migrate), persistence.ts (StoragePort
-               — localStorage now, Capacitor seam later), store.ts (reactive,
-               useSyncExternalStore), actions.ts (the only mutators), index.ts.
+               — localStorage cache), cloud.ts (Supabase sync), store.ts
+               (reactive, useSyncExternalStore), actions.ts (the only mutators).
   notifications/ port.ts (web adapter + Capacitor seam), schedule.ts (pure +
                tested), index.ts (reactive permission).
-  supabase/    client.ts (null when unconfigured → app stays local-only).
+  supabase/    client.ts (production auth/sync; null only as local dev fallback).
   auth/        credentials.ts (zod validators, tested).
 components/    ui/ (shadcn primitives), feature components, providers.
 app/           / (landing), /login, (protected)/ group = gated app routes.
@@ -49,7 +49,8 @@ Rules:
 - **Day keys are local** (`lib/time/today`), never `toISOString()`.
 - **Radix data-attrs**: target `data-[orientation=…]` / `data-[state=…]`, never
   the legacy `data-horizontal`/`data-active` (that bug class bit us twice).
-- **Graceful degradation**: missing env (Supabase) must never break the app.
+- **Graceful degradation**: missing Supabase env may keep local dev usable, but
+  production must configure Supabase because journal/progress data is user-owned.
 - **No slop**: every screen handles empty/loading/error; no fake/cosmetic
   features; review AI output.
 
@@ -69,13 +70,17 @@ Quality gate (must pass before "done"): `typecheck` clean, `lint` 0 errors,
 - **Input validation** wired (intention/journal limits, habit dedupe/cap, real word count).
 - **Reminders** (honest): `lib/notifications` + `ReminderScheduler` + settings UI.
   Web fires while open; native (Capacitor) seam documented.
-- **Supabase Auth (A)**: client, `AuthProvider`/`useAuth`, `/login` (email+password,
-  validated), `(protected)` route-group gate, sign-out in settings, `.env.example`.
+- **Supabase Auth + cloud sync**: client, `AuthProvider`/`useAuth`, `/login`
+  (email+password, validated), `(protected)` route-group gate, sign-out in
+  settings, `SyncProvider`, `anchor_user_states` migration with RLS.
 
 ## Blocked / needs the human
 
-- **Supabase keys** → put `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-  in `.env.local`. Without them the app runs local-only (by design).
+- **Supabase project + keys** → create/select an Anchor Supabase project, run
+  `supabase/migrations/20260607161931_create_anchor_user_states.sql`, then set
+  `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` locally
+  and in Vercel production. Without these, production cannot persist journals
+  across devices.
 - **Decision**: Sentry DSN — wire now (no-op without DSN) or wait?
 
 ---
@@ -86,15 +91,11 @@ Each is self-contained. **To avoid collisions, run each in its own git
 worktree/branch.** "Touches" lists the files; streams that touch `lib/store`
 must not run concurrently with each other.
 
-### WS-1 · Supabase cloud sync (B)  — depends on keys
-- Goal: entries sync across devices; localStorage stays offline cache.
-- SQL (run in Supabase SQL editor) is in the bottom of this file.
-- Touches: `lib/supabase/sync.ts` (new), `components/sync-controller.tsx` (new,
-  mount in layout), `lib/store/store.ts` (hydrate-from-remote hook). 
-- Approach: pull on sign-in, merge (union entries; whole-state LWW by
-  `updated_at` for conflicts), debounced push on change. Document the LWW caveat.
-- ⚠️ Touches the store → do NOT run in parallel with other store-touching work.
-- Done when: sign in on two browsers, an entry made in one appears in the other.
+### WS-1 · Supabase cloud sync hardening
+- Implemented baseline: whole-state row per user, RLS, initial local/remote merge,
+  debounced cloud save.
+- Next hardening: add visible sync status/errors, cross-tab realtime refresh,
+  conflict timestamps per entry, and browser smoke with two signed-in sessions.
 
 ### WS-2 · Sentry (monitoring)  — isolated, parallel-safe
 - `@sentry/nextjs`; init via env DSN, no-op without it. Capture in `app/error.tsx`
@@ -128,22 +129,9 @@ must not run concurrently with each other.
 
 ---
 
-## Supabase sync SQL (run once, for WS-1)
+## Supabase setup
 
-```sql
-create table public.user_state (
-  user_id uuid primary key references auth.users(id) on delete cascade,
-  state jsonb not null,
-  updated_at timestamptz not null default now()
-);
-alter table public.user_state enable row level security;
-create policy "own state - select" on public.user_state
-  for select using (auth.uid() = user_id);
-create policy "own state - insert" on public.user_state
-  for insert with check (auth.uid() = user_id);
-create policy "own state - update" on public.user_state
-  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-```
-
-Auth → Providers → Email: enabled. For frictionless testing, temporarily turn
-off "Confirm email".
+Run `supabase/migrations/20260607161931_create_anchor_user_states.sql` once in
+the Anchor Supabase project. Auth → Providers → Email must be enabled. For
+early testing, temporarily turn off "Confirm email"; turn it back on before a
+public beta unless the onboarding copy explicitly explains instant accounts.

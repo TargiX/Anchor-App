@@ -22,6 +22,7 @@ const storage: StoragePort = localStorageAdapter
 let state: AppState = INITIAL_STATE
 const listeners = new Set<() => void>()
 let hydrated = false
+let cloudPersistence: ((state: AppState) => void) | null = null
 
 function hydrate(): void {
   const raw = storage.read(STORAGE_KEY)
@@ -33,11 +34,15 @@ function hydrate(): void {
   }
 }
 
-function persist(): void {
+function persistLocal(): void {
   storage.write(
     STORAGE_KEY,
     JSON.stringify({ version: STATE_VERSION, data: state })
   )
+}
+
+function notify(): void {
+  listeners.forEach((listener) => listener())
 }
 
 export function subscribe(listener: () => void): () => void {
@@ -59,12 +64,36 @@ export function hydrateFromStorage(): void {
   const previous = state
   hydrate()
   if (state !== previous) {
-    listeners.forEach((listener) => listener())
+    notify()
   }
 }
 
 export function setState(updater: (prev: AppState) => AppState): void {
-  state = updater(state)
-  persist()
-  listeners.forEach((listener) => listener())
+  replaceState(updater(state))
+}
+
+export function replaceState(
+  nextState: AppState,
+  options: { persistCloud?: boolean } = {}
+): void {
+  state = nextState
+  persistLocal()
+  if (options.persistCloud !== false) cloudPersistence?.(state)
+  notify()
+}
+
+export function resetState(): void {
+  state = INITIAL_STATE
+  storage.remove(STORAGE_KEY)
+  notify()
+}
+
+export function setCloudPersistence(
+  persist: (state: AppState) => void
+): void {
+  cloudPersistence = persist
+}
+
+export function clearCloudPersistence(): void {
+  cloudPersistence = null
 }
