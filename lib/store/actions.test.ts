@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest"
 import { getSnapshot, setState } from "./store"
 import { addHabit, removeHabit, updateTodayEntry, setNotificationTime } from "./actions"
 import { INITIAL_STATE } from "./state"
+import { getTodayKey } from "@/lib/time/today"
 
 beforeEach(() => {
   setState(() => INITIAL_STATE)
@@ -11,17 +12,19 @@ describe("updateTodayEntry", () => {
   it("creates today's entry from patch", () => {
     updateTodayEntry({ intention: "Focus" })
     const s = getSnapshot()
-    const key = Object.keys(s.entries)[0]!
-    expect(s.entries[key]!.intention).toBe("Focus")
+    const entry = s.entries[getTodayKey()]
+    expect(entry).toBeDefined()
+    expect(entry?.intention).toBe("Focus")
   })
 
   it("merges into existing entry", () => {
     updateTodayEntry({ intention: "A" })
     updateTodayEntry({ journal: "Went well" })
     const s = getSnapshot()
-    const key = Object.keys(s.entries)[0]!
-    expect(s.entries[key]!.intention).toBe("A")
-    expect(s.entries[key]!.journal).toBe("Went well")
+    const entry = s.entries[getTodayKey()]
+    expect(entry).toBeDefined()
+    expect(entry?.intention).toBe("A")
+    expect(entry?.journal).toBe("Went well")
   })
 })
 
