@@ -132,6 +132,17 @@ must not run concurrently with each other.
 ## Supabase setup
 
 Run `supabase/migrations/20260607161931_create_anchor_user_states.sql` once in
-the Anchor Supabase project. Auth → Providers → Email must be enabled. For
-early testing, temporarily turn off "Confirm email"; turn it back on before a
-public beta unless the onboarding copy explicitly explains instant accounts.
+the Anchor Supabase project. Auth → Providers → Email must be enabled, with
+email confirmation on for public beta.
+
+Auth → URL Configuration:
+
+- Site URL: `https://anchorapp.cc`
+- Redirect URLs: `https://anchorapp.cc/**`, `https://www.anchorapp.cc/**`,
+  `http://localhost:3000/**`
+
+Google/Gmail sign-in is a separate provider setup. Create a Google Cloud OAuth
+web client, add `https://anchorapp.cc` as an authorized JavaScript origin, add
+`https://ndxivbhtkuwurzqxqmrm.supabase.co/auth/v1/callback` as an authorized
+redirect URI, then paste the Google Client ID/Secret into Auth → Providers →
+Google. Do not show a Google button in the app until that provider is enabled.

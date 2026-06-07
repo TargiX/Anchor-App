@@ -16,7 +16,11 @@ interface AuthValue {
   status: AuthStatus
   user: User | null
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
-  signUp: (email: string, password: string) => Promise<{ error: string | null; needsConfirmation: boolean }>
+  signUp: (
+    email: string,
+    password: string
+  ) => Promise<{ error: string | null; needsConfirmation: boolean }>
+  resendConfirmation: (email: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
 }
 
@@ -49,17 +53,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     async signIn(email, password) {
       if (!supabase) return { error: "Accounts are not configured yet." }
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
       return { error: error?.message ?? null }
     },
     async signUp(email, password) {
-      if (!supabase) return { error: "Accounts are not configured yet.", needsConfirmation: false }
-      const { data, error } = await supabase.auth.signUp({ email, password })
+      if (!supabase)
+        return {
+          error: "Accounts are not configured yet.",
+          needsConfirmation: false,
+        }
+      const emailRedirectTo = getAuthEmailRedirectTo()
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: emailRedirectTo ? { emailRedirectTo } : undefined,
+      })
       // If email confirmation is on, there's no active session yet.
       return {
         error: error?.message ?? null,
         needsConfirmation: !error && !data.session,
       }
+    },
+    async resendConfirmation(email) {
+      if (!supabase) return { error: "Accounts are not configured yet." }
+      const emailRedirectTo = getAuthEmailRedirectTo()
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: emailRedirectTo ? { emailRedirectTo } : undefined,
+      })
+      return { error: error?.message ?? null }
     },
     async signOut() {
       await supabase?.auth.signOut()
@@ -73,4 +99,9 @@ export function useAuth(): AuthValue {
   const ctx = useContext(AuthContext)
   if (!ctx) throw new Error("useAuth must be used within <AuthProvider>")
   return ctx
+}
+
+function getAuthEmailRedirectTo(): string | undefined {
+  if (typeof window === "undefined") return undefined
+  return `${window.location.origin}/login?confirmed=1`
 }
