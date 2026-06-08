@@ -2,7 +2,12 @@
 
 import { createContext, useContext, useEffect, useState } from "react"
 import type { User } from "@supabase/supabase-js"
-import { supabase, isSupabaseConfigured } from "@/lib/supabase/client"
+import {
+  supabase,
+  supabasePublishableKey,
+  supabaseUrl,
+  isSupabaseConfigured,
+} from "@/lib/supabase/client"
 
 /**
  * Auth state machine:
@@ -15,7 +20,9 @@ export type AuthStatus = "unconfigured" | "loading" | "authed" | "anon"
 interface AuthValue {
   status: AuthStatus
   user: User | null
+  googleEnabled: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
+  signInWithGoogle: () => Promise<{ error: string | null }>
   signUp: (
     email: string,
     password: string
@@ -31,6 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isSupabaseConfigured ? "loading" : "unconfigured"
   )
   const [user, setUser] = useState<User | null>(null)
+  const [googleEnabled, setGoogleEnabled] = useState(false)
 
   useEffect(() => {
     if (!supabase) return
@@ -48,14 +56,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => sub.subscription.unsubscribe()
   }, [])
 
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabaseUrl || !supabasePublishableKey) return
+
+    fetch(`${supabaseUrl}/auth/v1/settings`, {
+      headers: {
+        apikey: supabasePublishableKey,
+        Authorization: `Bearer ${supabasePublishableKey}`,
+      },
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((settings) => {
+        setGoogleEnabled(Boolean(settings?.external?.google))
+      })
+      .catch(() => {
+        setGoogleEnabled(false)
+      })
+  }, [])
+
   const value: AuthValue = {
     status,
     user,
+    googleEnabled,
     async signIn(email, password) {
       if (!supabase) return { error: "Accounts are not configured yet." }
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
+      })
+      return { error: error?.message ?? null }
+    },
+    async signInWithGoogle() {
+      if (!supabase) return { error: "Accounts are not configured yet." }
+      const redirectTo = getOAuthRedirectTo()
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: redirectTo ? { redirectTo } : undefined,
       })
       return { error: error?.message ?? null }
     },
@@ -104,4 +140,9 @@ export function useAuth(): AuthValue {
 function getAuthEmailRedirectTo(): string | undefined {
   if (typeof window === "undefined") return undefined
   return `${window.location.origin}/login?confirmed=1`
+}
+
+function getOAuthRedirectTo(): string | undefined {
+  if (typeof window === "undefined") return undefined
+  return `${window.location.origin}/app`
 }

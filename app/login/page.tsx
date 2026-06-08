@@ -13,7 +13,14 @@ type Mode = "signin" | "signup"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { status, signIn, signUp, resendConfirmation } = useAuth()
+  const {
+    status,
+    googleEnabled,
+    signIn,
+    signInWithGoogle,
+    signUp,
+    resendConfirmation,
+  } = useAuth()
 
   const [mode, setMode] = useState<Mode>("signin")
   const [email, setEmail] = useState("")
@@ -28,6 +35,7 @@ export default function LoginPage() {
     null
   )
   const [submitting, setSubmitting] = useState(false)
+  const [googleSubmitting, setGoogleSubmitting] = useState(false)
   const [resending, setResending] = useState(false)
 
   // Already signed in, or local dev has no Supabase env yet.
@@ -102,6 +110,20 @@ export default function LoginPage() {
     }
   }
 
+  async function handleGoogleSignIn() {
+    setErrors({})
+    setNotice(null)
+    setGoogleSubmitting(true)
+    try {
+      const { error } = await signInWithGoogle()
+      if (error) setErrors({ form: authErrorMessage(error) })
+    } catch {
+      setErrors({ form: "Something went wrong. Please try again." })
+    } finally {
+      setGoogleSubmitting(false)
+    }
+  }
+
   // While auth is resolving, keep the page non-interactive to avoid early submits.
   if (status === "loading") {
     return (
@@ -160,6 +182,35 @@ export default function LoginPage() {
           />
         ) : (
           <>
+            {googleEnabled && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={googleSubmitting || submitting}
+                  onClick={handleGoogleSignIn}
+                  className="mb-4 h-12 w-full rounded-2xl text-base font-medium"
+                >
+                  <span aria-hidden className="text-base font-semibold">
+                    G
+                  </span>
+                  {googleSubmitting
+                    ? "Opening Google…"
+                    : "Continue with Google"}
+                </Button>
+
+                <div className="mb-4 flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="h-px flex-1 bg-border" />
+                  <span>
+                    {mode === "signin"
+                      ? "or sign in with email"
+                      : "or use email"}
+                  </span>
+                  <span className="h-px flex-1 bg-border" />
+                </div>
+              </>
+            )}
+
             <form
               onSubmit={handleSubmit}
               className="flex flex-col gap-4"

@@ -145,4 +145,5 @@ Google/Gmail sign-in is a separate provider setup. Create a Google Cloud OAuth
 web client, add `https://anchorapp.cc` as an authorized JavaScript origin, add
 `https://ndxivbhtkuwurzqxqmrm.supabase.co/auth/v1/callback` as an authorized
 redirect URI, then paste the Google Client ID/Secret into Auth → Providers →
-Google. Do not show a Google button in the app until that provider is enabled.
+Google. The app checks Supabase's public auth settings and only shows the Google
+button once that provider is enabled.
