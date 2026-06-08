@@ -39,15 +39,19 @@ const platforms = [
   { icon: Monitor, label: "macOS / Windows", note: "Electron-ready" },
 ]
 
-const stack = [
-  "Next.js 16",
-  "React 19",
-  "TypeScript",
-  "Tailwind v4",
-  "Radix UI",
-  "Framer Motion",
-  "Capacitor",
-  "Electron",
+const practice = [
+  "Intention",
+  "Mood",
+  "Sleep",
+  "Breath",
+  "Gratitude",
+  "Reflection",
+  "Affirmation",
+  "Calm",
+  "Rest",
+  "Clarity",
+  "Focus",
+  "Presence",
 ]
 
 export default function Landing() {
@@ -80,8 +84,8 @@ export default function Landing() {
           >
             Platforms
           </a>
-          <a href="#stack" className="transition-colors hover:text-foreground">
-            Stack
+          <a href="#practice" className="transition-colors hover:text-foreground">
+            Practice
           </a>
         </nav>
         <Link href="/app">
@@ -250,23 +254,23 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Stack */}
-      <section id="stack" className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
+      {/* Practice */}
+      <section id="practice" className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
         <div className="text-center">
           <p className="mb-2 text-xs tracking-widest text-muted-foreground uppercase">
-            Built with
+            The practice
           </p>
           <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-balance sm:text-3xl">
-            A modern, production-grade stack
+            A gentle vocabulary for your day
           </h2>
         </div>
         <div className="mt-8 flex flex-wrap justify-center gap-2">
-          {stack.map((s) => (
+          {practice.map((word) => (
             <span
-              key={s}
+              key={word}
               className="rounded-full border border-border bg-card/60 px-3.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
-              {s}
+              {word}
             </span>
           ))}
         </div>
