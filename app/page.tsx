@@ -34,9 +34,9 @@ const features = [
 ]
 
 const platforms = [
-  { icon: Globe, label: "Web", note: "Available" },
-  { icon: Smartphone, label: "iOS / Android", note: "Capacitor-ready" },
-  { icon: Monitor, label: "macOS / Windows", note: "Electron-ready" },
+  { icon: Globe, label: "In your browser", note: "Just open it" },
+  { icon: Smartphone, label: "On your phone", note: "Add to home" },
+  { icon: Monitor, label: "On your desktop", note: "Install it" },
 ]
 
 const practice = [
@@ -219,14 +219,14 @@ export default function Landing() {
                 Anywhere
               </p>
               <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight font-semibold text-balance sm:text-4xl">
-                One codebase.
+                Wherever
                 <br />
-                Web, mobile, desktop.
+                you check in.
               </h2>
               <p className="mt-4 max-w-md text-sm leading-relaxed text-pretty text-muted-foreground sm:text-base">
-                Built once with Next.js, then wrapped natively with Capacitor
-                for iOS & Android and Electron for macOS &amp; Windows. Same UI,
-                same flow, everywhere you check in.
+                Open Anchor in your browser, or add it to your home screen on
+                phone and desktop. No app store, no download — it&apos;s just
+                there when you need it.
               </p>
             </div>
 
