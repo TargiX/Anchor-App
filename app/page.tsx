@@ -34,9 +34,9 @@ const features = [
 ]
 
 const platforms = [
-  { icon: Globe, label: "Web" },
-  { icon: Smartphone, label: "iOS / Android" },
-  { icon: Monitor, label: "macOS / Windows" },
+  { icon: Globe, label: "Web", note: "Available" },
+  { icon: Smartphone, label: "iOS / Android", note: "Capacitor-ready" },
+  { icon: Monitor, label: "macOS / Windows", note: "Electron-ready" },
 ]
 
 const stack = [
@@ -241,7 +241,7 @@ export default function Landing() {
                   </div>
                   <span className="font-medium">{p.label}</span>
                   <span className="ml-auto text-xs tracking-widest text-muted-foreground uppercase">
-                    Available
+                    {p.note}
                   </span>
                 </motion.div>
               ))}
