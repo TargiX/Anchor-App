@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { updateTodayEntry } from "@/lib/store"
+import { updateTodayEntry } from "@/lib/store/actions"
 import { motion } from "framer-motion"
 import { Pause, Play } from "lucide-react"
 

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { updateTodayEntry } from "@/lib/store"
+import { updateTodayEntry } from "@/lib/store/actions"
 import { type MoodPoint } from "@/lib/domain/entry"
 
 interface StepMoodProps {
@@ -29,8 +29,10 @@ export function StepMood({ onNext, onBack, isMorning = true }: StepMoodProps) {
     let clientX: number, clientY: number
 
     if ("touches" in e) {
-      clientX = e.touches[0].clientX
-      clientY = e.touches[0].clientY
+      const touch = e.touches[0]
+      if (!touch) return
+      clientX = touch.clientX
+      clientY = touch.clientY
     } else {
       clientX = e.clientX
       clientY = e.clientY

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { updateTodayEntry } from "@/lib/store"
+import { updateTodayEntry } from "@/lib/store/actions"
 import { useAppState } from "@/hooks/use-store"
 import { getTodayKey } from "@/lib/time/today"
 import { LIMITS, countWords } from "@/lib/domain/validation"

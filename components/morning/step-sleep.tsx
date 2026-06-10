@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
-import { updateTodayEntry } from "@/lib/store"
+import { updateTodayEntry } from "@/lib/store/actions"
 import { type SleepQuality } from "@/lib/domain/entry"
 
 const SLEEP_OPTIONS: { value: SleepQuality; label: string; glyph: string }[] = [
@@ -73,7 +73,7 @@ export function StepSleep({ onNext, onBack }: StepSleepProps) {
           max={12}
           step={0.5}
           value={[hours]}
-          onValueChange={([v]) => setHours(v)}
+          onValueChange={([v]) => setHours(v ?? 8)}
           className="py-1"
         />
         <div className="flex justify-between text-xs text-muted-foreground">

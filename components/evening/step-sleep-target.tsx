@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
-import { updateTodayEntry } from "@/lib/store"
+import { updateTodayEntry } from "@/lib/store/actions"
 import { AnchorMotif } from "@/components/anchor-motif"
 
 interface StepSleepTargetProps {
@@ -14,7 +14,9 @@ interface StepSleepTargetProps {
 const BEDTIME_OPTIONS = ["21:00", "21:30", "22:00", "22:30", "23:00", "23:30", "00:00", "00:30", "01:00"]
 
 function formatTime(t: string) {
-  const [h, m] = t.split(":").map(Number)
+  const parts = t.split(":").map(Number)
+  const h = parts[0] ?? 0
+  const m = parts[1] ?? 0
   const period = h < 12 ? "AM" : "PM"
   const hour = h === 0 ? 12 : h > 12 ? h - 12 : h
   return `${hour}:${String(m).padStart(2, "0")} ${period}`
@@ -73,7 +75,7 @@ export function StepSleepTarget({ onNext, onBack }: StepSleepTargetProps) {
           max={10}
           step={0.5}
           value={[hours]}
-          onValueChange={([v]) => setHours(v)}
+          onValueChange={([v]) => setHours(v ?? 8)}
         />
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>5h</span>

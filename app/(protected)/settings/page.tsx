@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator"
 import { HabitIcon } from "@/components/habit-icon"
 import { useAuth } from "@/components/auth-provider"
 import { useAppState } from "@/hooks/use-store"
-import { addHabit, removeHabit, setNotificationTime } from "@/lib/store"
+import { addHabit, removeHabit, setNotificationTime } from "@/lib/store/actions"
 import { LIMITS } from "@/lib/domain/validation"
 import {
   useNotificationPermission,
