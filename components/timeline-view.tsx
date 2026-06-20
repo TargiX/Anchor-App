@@ -1,12 +1,21 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAppState } from "@/hooks/use-store"
 import { cn } from "@/lib/utils"
 import { type DayEntry, type MoodPoint } from "@/lib/domain/entry"
+import { trendPoints, type TrendPoint } from "@/lib/domain/reflection"
 import { getTodayKey, parseEntryDate } from "@/lib/time/today"
 import { ChevronDown, ChevronUp } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts"
 
 function MoodMiniChart({
   morning,
@@ -180,6 +189,281 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
   )
 }
 
+/** Recharts injects active/payload/label by cloning the element. */
+type TrendTooltipProps = {
+  active?: boolean
+  payload?: Array<{
+    dataKey?: string | number
+    name?: string
+    value?: number
+    color?: string
+  }>
+  label?: string | number
+  unit?: "score" | "h"
+}
+
+function TrendTooltip({ active, payload, label, unit }: TrendTooltipProps) {
+  if (!active || !payload || payload.length === 0) return null
+  const rows = payload.filter((p) => typeof p.value === "number")
+  if (rows.length === 0) return null
+  const date = parseEntryDate(String(label))
+  const dateLabel = date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  })
+  return (
+    <div className="rounded-xl border border-border bg-popover px-3 py-2 shadow-sm">
+      <p className="mb-1.5 text-[10px] font-medium tracking-widest text-muted-foreground uppercase">
+        {dateLabel}
+      </p>
+      <div className="flex flex-col gap-1">
+        {rows.map((row) => (
+          <p
+            key={String(row.dataKey)}
+            className="flex items-center gap-1.5 text-xs text-foreground"
+          >
+            <span
+              className="size-1.5 rounded-full"
+              style={{ backgroundColor: row.color }}
+              aria-hidden
+            />
+            <span className="text-muted-foreground">{row.name}</span>
+            <span className="ml-auto tabular-nums font-medium">
+              {unit === "h"
+                ? `${row.value}h`
+                : Number(row.value).toFixed(2)}
+            </span>
+          </p>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Mood shape over the window. We deliberately hide the numeric valence axis:
+ * this is a *reflection* (how mood has been moving), not a score. The shape and
+ * the hover detail are enough — a persistent 0–1 scale would read like grading.
+ */
+function MoodTrendChart({
+  data,
+  animate,
+}: {
+  data: TrendPoint[]
+  animate: boolean
+}) {
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <LineChart data={data} margin={{ top: 6, right: 8, bottom: 0, left: 8 }}>
+        <XAxis
+          dataKey="date"
+          tickMargin={8}
+          interval={1}
+          tickLine={false}
+          axisLine={false}
+          tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+          tickFormatter={(value: string) =>
+            parseEntryDate(value).toLocaleDateString("en-US", {
+              month: "numeric",
+              day: "numeric",
+            })
+          }
+        />
+        <YAxis hide domain={[0, 1]} />
+        <Tooltip
+          content={<TrendTooltip unit="score" />}
+          cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
+        />
+        <Line
+          type="monotone"
+          dataKey="morningValence"
+          name="Morning"
+          stroke="var(--chart-1)"
+          strokeWidth={1.5}
+          dot={{ r: 2, fill: "var(--chart-1)", strokeWidth: 0 }}
+          activeDot={{ r: 3.5, strokeWidth: 0 }}
+          connectNulls={false}
+          isAnimationActive={animate}
+        />
+        <Line
+          type="monotone"
+          dataKey="eveningValence"
+          name="Evening"
+          stroke="var(--chart-4)"
+          strokeWidth={1.5}
+          dot={{ r: 2, fill: "var(--chart-4)", strokeWidth: 0 }}
+          activeDot={{ r: 3.5, strokeWidth: 0 }}
+          connectNulls={false}
+          isAnimationActive={animate}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  )
+}
+
+/** Sleep hours are an objective measure, so the hours axis is shown. */
+function SleepTrendChart({
+  data,
+  animate,
+}: {
+  data: TrendPoint[]
+  animate: boolean
+}) {
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <LineChart data={data} margin={{ top: 6, right: 8, bottom: 0, left: 8 }}>
+        <XAxis
+          dataKey="date"
+          tickMargin={8}
+          interval={1}
+          tickLine={false}
+          axisLine={false}
+          tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+          tickFormatter={(value: string) =>
+            parseEntryDate(value).toLocaleDateString("en-US", {
+              month: "numeric",
+              day: "numeric",
+            })
+          }
+        />
+        <YAxis
+          domain={[0, 12]}
+          ticks={[0, 4, 8, 12]}
+          width={26}
+          tickLine={false}
+          axisLine={false}
+          tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+          tickFormatter={(value: number) => `${value}h`}
+        />
+        <Tooltip
+          content={<TrendTooltip unit="h" />}
+          cursor={{ stroke: "var(--border)", strokeWidth: 1 }}
+        />
+        <Line
+          type="monotone"
+          dataKey="sleepHours"
+          name="Sleep"
+          stroke="var(--chart-2)"
+          strokeWidth={1.5}
+          dot={{ r: 2, fill: "var(--chart-2)", strokeWidth: 0 }}
+          activeDot={{ r: 3.5, strokeWidth: 0 }}
+          connectNulls={false}
+          isAnimationActive={animate}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  )
+}
+
+function ChartCard({
+  title,
+  legend,
+  height,
+  children,
+}: {
+  title: string
+  legend: React.ReactNode
+  height: number
+  children: React.ReactNode
+}) {
+  // Recharts ResponsiveContainer measures its parent on the client; render a
+  // same-height skeleton until mounted to avoid a width-0 hydration warning
+  // and any layout shift.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center justify-between">
+        <h3 className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+          {title}
+        </h3>
+        <div className="flex items-center gap-3">{legend}</div>
+      </div>
+      <div className="relative" style={{ height }}>
+        {mounted ? (
+          children
+        ) : (
+          <div className="size-full animate-pulse rounded-lg bg-muted/40" />
+        )}
+      </div>
+    </div>
+  )
+}
+
+function Swatch({ className }: { className: string }) {
+  return <span className={cn("size-1.5 rounded-full", className)} aria-hidden />
+}
+
+/**
+ * "How have I been?" at a glance. Sits at the top of the timeline so the
+ * pattern is visible before the per-day detail. Needs at least two readings of
+ * a kind to draw a line; below that we say so plainly instead of drawing a
+ * broken chart.
+ */
+function TrendSection({ entries }: { entries: Record<string, DayEntry> }) {
+  const reduceMotion = useReducedMotion()
+  const animate = !reduceMotion
+  const todayKey = getTodayKey()
+  const points = trendPoints(entries, todayKey, 14)
+
+  const moodCount = points.filter(
+    (p) => p.morningValence != null || p.eveningValence != null
+  ).length
+  const sleepCount = points.filter((p) => p.sleepHours != null).length
+
+  if (moodCount < 2 && sleepCount < 2) {
+    return (
+      <p className="px-1 text-xs font-medium tracking-widest text-muted-foreground uppercase">
+        Trends appear after a couple of days
+      </p>
+    )
+  }
+
+  return (
+    <section className="rounded-2xl border border-border bg-card px-5 py-5 lg:rounded-3xl lg:px-6">
+      <div className="mb-4 flex items-baseline justify-between">
+        <h2 className="font-[family-name:var(--font-display)] text-sm font-medium text-foreground">
+          Last 14 days
+        </h2>
+        <span className="text-xs text-muted-foreground">Mood &amp; sleep</span>
+      </div>
+      <div className="flex flex-col gap-5">
+        {moodCount >= 2 && (
+          <ChartCard
+            title="Mood"
+            height={120}
+            legend={
+              <>
+                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <Swatch className="bg-[var(--chart-1)]" /> Morning
+                </span>
+                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <Swatch className="bg-[var(--chart-4)]" /> Evening
+                </span>
+              </>
+            }
+          >
+            <MoodTrendChart data={points} animate={animate} />
+          </ChartCard>
+        )}
+        {sleepCount >= 2 && (
+          <ChartCard
+            title="Sleep"
+            height={110}
+            legend={
+              <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                <Swatch className="bg-[var(--chart-2)]" /> Hours
+              </span>
+            }
+          >
+            <SleepTrendChart data={points} animate={animate} />
+          </ChartCard>
+        )}
+      </div>
+    </section>
+  )
+}
+
 export function TimelineView() {
   const state = useAppState()
   const todayKey = getTodayKey()
@@ -218,6 +502,7 @@ export function TimelineView() {
 
   return (
     <div className="flex flex-col gap-6 pb-8">
+      <TrendSection entries={state.entries} />
       {weeks.map((week, wi) => (
         <div key={wi} className="flex flex-col gap-2">
           <p className="px-1 text-xs font-medium tracking-widest text-muted-foreground uppercase">
