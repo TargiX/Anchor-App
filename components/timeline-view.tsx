@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useSyncExternalStore } from "react"
 import { useAppState } from "@/hooks/use-store"
 import { cn } from "@/lib/utils"
 import { type DayEntry, type MoodPoint } from "@/lib/domain/entry"
@@ -355,6 +355,21 @@ function SleepTrendChart({
   )
 }
 
+/**
+ * Client-only flag: `false` during SSR, `true` after hydration. Used to defer
+ * Recharts' ResponsiveContainer (which measures its parent on the client) so we
+ * never hit a width-0 hydration warning or layout shift. useSyncExternalStore is
+ * the React-blessed way to read this without a hydration mismatch or an extra
+ * setState-in-effect render.
+ */
+function useMounted(): boolean {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
+}
+
 function ChartCard({
   title,
   legend,
@@ -366,11 +381,7 @@ function ChartCard({
   height: number
   children: React.ReactNode
 }) {
-  // Recharts ResponsiveContainer measures its parent on the client; render a
-  // same-height skeleton until mounted to avoid a width-0 hydration warning
-  // and any layout shift.
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
+  const mounted = useMounted()
   return (
     <div>
       <div className="mb-1.5 flex items-center justify-between">
