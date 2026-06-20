@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
 import { updateTodayEntry } from "@/lib/store/actions"
+import { useTodayEntry } from "@/hooks/use-store"
 import { type SleepQuality } from "@/lib/domain/entry"
 
 const SLEEP_OPTIONS: { value: SleepQuality; label: string; glyph: string }[] = [
@@ -21,8 +22,9 @@ interface StepSleepProps {
 }
 
 export function StepSleep({ onNext, onBack }: StepSleepProps) {
-  const [quality, setQuality] = useState<SleepQuality | null>(null)
-  const [hours, setHours] = useState(7)
+  const today = useTodayEntry()
+  const [quality, setQuality] = useState<SleepQuality | null>(today?.sleepQuality ?? null)
+  const [hours, setHours] = useState(today?.sleepHours ?? 7)
 
   function handleNext() {
     if (!quality) return

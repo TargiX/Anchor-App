@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { updateTodayEntry } from "@/lib/store/actions"
+import { useTodayEntry } from "@/hooks/use-store"
 import { LIMITS } from "@/lib/domain/validation"
 
 const PROMPTS = [
@@ -21,7 +22,8 @@ interface StepIntentionProps {
 }
 
 export function StepIntention({ onNext, onBack }: StepIntentionProps) {
-  const [text, setText] = useState("")
+  const today = useTodayEntry()
+  const [text, setText] = useState(today?.intention ?? "")
   const [suggestions] = useState(() => {
     const shuffled = [...PROMPTS].sort(() => Math.random() - 0.5)
     return shuffled.slice(0, 3)
