@@ -1,8 +1,9 @@
 "use client"
 
-import { getSnapshot, setState } from "./store"
+import { getSnapshot, setState, setDailyReviewUiState } from "./store"
 import { getTodayKey } from "@/lib/time/today"
 import { emptyEntry, TimeOfDaySchema, type DayEntry } from "@/lib/domain/entry"
+import type { DailyReview } from "@/lib/domain/daily-review"
 import type { Habit } from "@/lib/domain/habit"
 import { validateHabitName, type ValidationResult } from "@/lib/domain/validation"
 
@@ -49,4 +50,28 @@ export function setNotificationTime(which: "morning" | "evening", time: string):
   if (!parsed.success) return
   const field = which === "morning" ? "notificationMorning" : "notificationEvening"
   setState((prev) => ({ ...prev, [field]: parsed.data }))
+}
+
+export function startDailyReviewGeneration(): void {
+  setDailyReviewUiState(() => ({
+    review: null,
+    reviewError: null,
+    reviewLoading: true,
+  }))
+}
+
+export function setDailyReviewSuccess(review: DailyReview): void {
+  setDailyReviewUiState(() => ({
+    review,
+    reviewError: null,
+    reviewLoading: false,
+  }))
+}
+
+export function setDailyReviewFailure(error: string): void {
+  setDailyReviewUiState((prev) => ({
+    ...prev,
+    reviewError: error,
+    reviewLoading: false,
+  }))
 }

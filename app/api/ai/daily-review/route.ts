@@ -1,24 +1,18 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { DayEntrySchema } from "@/lib/domain/entry"
+import { DailyReviewSchema } from "@/lib/domain/daily-review"
 import { HabitSchema } from "@/lib/domain/habit"
 import { computeDailyAnchor } from "@/lib/domain/daily-anchor"
 
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
 const DEFAULT_MODEL = "gpt-4.1-mini"
+const UPSTREAM_TIMEOUT_MS = 30_000
 
 const ReviewRequestSchema = z.object({
   entry: DayEntrySchema,
   habits: z.array(HabitSchema).max(12),
   recentEntries: z.array(DayEntrySchema).max(14).default([]),
-})
-
-const ReviewSchema = z.object({
-  summary: z.string(),
-  pattern: z.string(),
-  nextStep: z.string(),
-  evidence: z.array(z.string()).min(1).max(4),
-  tone: z.enum(["gentle", "encouraging", "reflective"]),
 })
 
 export async function POST(request: Request) {
@@ -57,85 +51,116 @@ export async function POST(request: Request) {
   const { entry, habits, recentEntries } = parsed.data
   const dailyAnchor = computeDailyAnchor(entry, habits)
 
-  const response = await fetch(OPENAI_RESPONSES_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: process.env.OPENAI_DAILY_REVIEW_MODEL ?? DEFAULT_MODEL,
-      input: [
-        {
-          role: "developer",
-          content:
-            "You write short, calm personal ritual reflections. Do not diagnose, shame, or give medical advice. Ground every claim in the provided data. Keep the language gentle and concrete.",
-        },
-        {
-          role: "user",
-          content: JSON.stringify({
-            dailyAnchor,
-            today: redactForReview(entry),
-            recentEntries: recentEntries.map(redactForReview),
-            habits: habits.map((habit) => ({
-              id: habit.id,
-              name: habit.name,
-            })),
-          }),
-        },
-      ],
-      max_output_tokens: 500,
-      store: false,
-      text: {
-        format: {
-          type: "json_schema",
-          name: "anchor_daily_review",
-          strict: true,
-          schema: {
-            type: "object",
-            additionalProperties: false,
-            required: ["summary", "pattern", "nextStep", "evidence", "tone"],
-            properties: {
-              summary: {
-                type: "string",
-                description: "One short sentence summarizing the day.",
-              },
-              pattern: {
-                type: "string",
-                description: "One observed pattern from the provided data.",
-              },
-              nextStep: {
-                type: "string",
-                description: "One small next action for tomorrow or tonight.",
-              },
-              evidence: {
-                type: "array",
-                minItems: 1,
-                maxItems: 4,
-                items: { type: "string" },
-              },
-              tone: {
-                type: "string",
-                enum: ["gentle", "encouraging", "reflective"],
+  let response: Response
+  try {
+    response = await fetchWithTimeout(OPENAI_RESPONSES_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_DAILY_REVIEW_MODEL ?? DEFAULT_MODEL,
+        input: [
+          {
+            role: "developer",
+            content:
+              "You write short, calm personal ritual reflections. Do not diagnose, shame, or give medical advice. Ground every claim in the provided data. Keep the language gentle and concrete.",
+          },
+          {
+            role: "user",
+            content: JSON.stringify({
+              dailyAnchor,
+              today: redactForReview(entry),
+              recentEntries: recentEntries.map(redactForReview),
+              habits: habits.map((habit) => ({
+                id: habit.id,
+                name: habit.name,
+              })),
+            }),
+          },
+        ],
+        max_output_tokens: 500,
+        store: false,
+        text: {
+          format: {
+            type: "json_schema",
+            name: "anchor_daily_review",
+            strict: true,
+            schema: {
+              type: "object",
+              additionalProperties: false,
+              required: ["summary", "pattern", "nextStep", "evidence", "tone"],
+              properties: {
+                summary: {
+                  type: "string",
+                  description: "One short sentence summarizing the day.",
+                },
+                pattern: {
+                  type: "string",
+                  description: "One observed pattern from the provided data.",
+                },
+                nextStep: {
+                  type: "string",
+                  description: "One small next action for tomorrow or tonight.",
+                },
+                evidence: {
+                  type: "array",
+                  minItems: 1,
+                  maxItems: 4,
+                  items: { type: "string" },
+                },
+                tone: {
+                  type: "string",
+                  enum: ["gentle", "encouraging", "reflective"],
+                },
               },
             },
           },
         },
-      },
-      user: auth.userId,
-    }),
-  })
-
-  const body = await response.json()
-
-  if (!response.ok) {
+        user: auth.userId,
+      }),
+    })
+  } catch (error) {
     return NextResponse.json(
-      { error: "AI review failed", upstream: body?.error?.message },
+      {
+        error:
+          error instanceof Error && error.message === "Upstream request timed out"
+            ? "AI review timed out"
+            : "AI review failed",
+      },
       { status: 502 }
     )
   }
 
-  const outputText = extractOutputText(body)
+  let body: unknown
+  let outputText: string
+  try {
+    body = await response.json()
+    if (!response.ok) {
+      const upstream =
+        body &&
+        typeof body === "object" &&
+        "error" in body &&
+        body.error &&
+        typeof body.error === "object" &&
+        "message" in body.error &&
+        typeof body.error.message === "string"
+          ? body.error.message
+          : undefined
+      return NextResponse.json(
+        { error: "AI review failed", upstream },
+        { status: 502 }
+      )
+    }
+    outputText = extractOutputText(body)
+  } catch {
+    return NextResponse.json(
+      { error: "AI review returned an unreadable response" },
+      { status: 502 }
+    )
+  }
+
   let outputJson: unknown
   try {
     outputJson = JSON.parse(outputText)
@@ -146,7 +171,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const review = ReviewSchema.safeParse(outputJson)
+  const review = DailyReviewSchema.safeParse(outputJson)
 
   if (!review.success) {
     return NextResponse.json(
@@ -156,6 +181,25 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ review: review.data })
+}
+
+async function fetchWithTimeout(
+  url: string | URL,
+  init: RequestInit,
+  timeoutMs = UPSTREAM_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(url, { ...init, signal: controller.signal })
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Upstream request timed out")
+    }
+    throw error
+  } finally {
+    clearTimeout(timeoutId)
+  }
 }
 
 function getBearerToken(request: Request): string | null {
@@ -179,12 +223,24 @@ async function verifySupabaseUser(
     return { ok: false, status: 500, error: "Supabase is not configured" }
   }
 
-  const response = await fetch(new URL("/auth/v1/user", url), {
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${accessToken}`,
-    },
-  })
+  let response: Response
+  try {
+    response = await fetchWithTimeout(new URL("/auth/v1/user", url), {
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${accessToken}`,
+      },
+    })
+  } catch (error) {
+    return {
+      ok: false,
+      status: 502,
+      error:
+        error instanceof Error && error.message === "Upstream request timed out"
+          ? "Auth verification timed out"
+          : "Auth verification failed",
+    }
+  }
 
   if (!response.ok) {
     return { ok: false, status: 401, error: "Unauthorized" }

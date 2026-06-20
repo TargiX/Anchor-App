@@ -1,26 +1,45 @@
+import { z } from "zod"
 import type { DayEntry } from "./entry"
 import type { Habit } from "./habit"
 import { isEveningComplete, isMorningComplete } from "./selectors"
 import { moodShift } from "./reflection"
 
-export type DailyAnchorTone = "empty" | "started" | "building" | "anchored"
+export const DailyAnchorToneSchema = z.enum([
+  "empty",
+  "started",
+  "building",
+  "anchored",
+])
+export type DailyAnchorTone = z.infer<typeof DailyAnchorToneSchema>
 
-export interface DailyAnchorMetric {
-  id: "morning" | "evening" | "habits" | "sleep" | "mood"
-  label: string
-  value: string
-  detail: string
-  points: number
-  maxPoints: number
-}
+export const DailyAnchorMetricSchema = z.object({
+  id: z.enum(["morning", "evening", "habits", "sleep", "mood"]),
+  label: z.string(),
+  value: z.string(),
+  detail: z.string(),
+  points: z.number(),
+  maxPoints: z.number(),
+})
+export type DailyAnchorMetric = z.infer<typeof DailyAnchorMetricSchema>
 
-export interface DailyAnchorSnapshot {
-  score: number
-  tone: DailyAnchorTone
-  headline: string
-  summary: string
-  nextStep: string
-  metrics: DailyAnchorMetric[]
+export const DailyAnchorSnapshotSchema = z.object({
+  score: z.number(),
+  tone: DailyAnchorToneSchema,
+  headline: z.string(),
+  summary: z.string(),
+  nextStep: z.string(),
+  metrics: z.array(DailyAnchorMetricSchema),
+})
+export type DailyAnchorSnapshot = z.infer<typeof DailyAnchorSnapshotSchema>
+
+function matchedCompletedHabits(
+  entry: DayEntry | undefined,
+  habits: Habit[]
+): number {
+  const habitIds = new Set(habits.map((habit) => habit.id))
+  return new Set(
+    (entry?.habitsCompleted ?? []).filter((id) => habitIds.has(id))
+  ).size
 }
 
 export function computeDailyAnchor(
@@ -29,9 +48,10 @@ export function computeDailyAnchor(
 ): DailyAnchorSnapshot {
   const morningDone = isMorningComplete(entry)
   const eveningDone = isEveningComplete(entry)
-  const completedHabits = entry?.habitsCompleted?.length ?? 0
+  const completedHabits = matchedCompletedHabits(entry, habits)
   const habitTotal = habits.length
-  const habitRatio = habitTotal > 0 ? completedHabits / habitTotal : 0
+  const habitRatio =
+    habitTotal > 0 ? Math.min(1, completedHabits / habitTotal) : 0
   const sleepHours = entry?.sleepHours
   const shift = moodShift(entry)
 
@@ -179,10 +199,8 @@ function summaryFor(
 function nextStepFor(entry: DayEntry | undefined, habits: Habit[]): string {
   if (!isMorningComplete(entry)) return "Start with mood and intention."
   if (!isEveningComplete(entry)) return "Close the day with a short reflection."
-  if (
-    habits.length > 0 &&
-    (entry?.habitsCompleted?.length ?? 0) < habits.length
-  ) {
+  const completed = matchedCompletedHabits(entry, habits)
+  if (habits.length > 0 && completed < habits.length) {
     return "Mark the habits that actually happened."
   }
   if (!entry?.tomorrowBedtime && !entry?.tomorrowSleepHours) {

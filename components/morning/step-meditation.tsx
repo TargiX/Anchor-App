@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { updateTodayEntry } from "@/lib/store/actions"
+import { useTodayEntry } from "@/hooks/use-store"
 import { motion } from "framer-motion"
 import { Pause, Play } from "lucide-react"
 
@@ -15,7 +16,10 @@ interface StepMeditationProps {
 }
 
 export function StepMeditation({ onNext, onBack }: StepMeditationProps) {
-  const [selected, setSelected] = useState<number | null>(null)
+  const today = useTodayEntry()
+  // Restore selected duration if it matches one of the options
+  const savedDuration = today?.meditationMinutes && DURATIONS.includes(today.meditationMinutes) ? today.meditationMinutes : null
+  const [selected, setSelected] = useState<number | null>(savedDuration)
   const [running, setRunning] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)

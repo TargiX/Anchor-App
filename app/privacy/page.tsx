@@ -80,10 +80,12 @@ export default function PrivacyPage() {
           </h2>
           <p>
             If AI Daily Review is enabled, Anchor may send selected ritual
-            details such as mood, sleep, habits, intention, and journal text to
-            an AI provider to generate a short reflection. AI reflections are
-            informational only and should not be treated as medical, mental
-            health, legal, or financial advice.
+            details such as mood, sleep, habits, intention, and journal text,
+            plus a derived Daily Anchor score, recent ritual entries for
+            context, and your account-linked user identifier, to an AI provider
+            to generate a short reflection. AI reflections are informational
+            only and should not be treated as medical, mental health, legal, or
+            financial advice.
           </p>
         </section>
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAppState, useTodayEntry, useStreak } from "@/hooks/use-store"
+import { useAppState, useDailyReviewUi } from "@/hooks/use-store"
 import { AnchorMotif } from "@/components/anchor-motif"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -18,18 +18,17 @@ import {
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { getTimeContext, getGreeting, getTimeLabel } from "@/lib/time/context"
-import { isMorningComplete, isEveningComplete } from "@/lib/domain/selectors"
+import { isMorningComplete, isEveningComplete, computeStreak } from "@/lib/domain/selectors"
 import { computeDailyAnchor } from "@/lib/domain/daily-anchor"
+import { DailyReviewSchema } from "@/lib/domain/daily-review"
+import { emptyEntry, type DayEntry } from "@/lib/domain/entry"
+import {
+  startDailyReviewGeneration,
+  setDailyReviewSuccess,
+  setDailyReviewFailure,
+} from "@/lib/store/actions"
+import { getTodayKey } from "@/lib/time/today"
 import { supabase } from "@/lib/supabase/client"
-import type { DayEntry } from "@/lib/domain/entry"
-
-interface DailyReview {
-  summary: string
-  pattern: string
-  nextStep: string
-  evidence: string[]
-  tone: "gentle" | "encouraging" | "reflective"
-}
 
 function useTimeInfo() {
   const [time, setTime] = useState<{ mounted: boolean; hour: number }>({
@@ -66,12 +65,11 @@ function useTimeInfo() {
 export default function Home() {
   const router = useRouter()
   const state = useAppState()
-  const today = useTodayEntry()
-  const streak = useStreak()
+  const todayKey = getTodayKey()
+  const today = state.entries[todayKey] ?? emptyEntry(todayKey)
+  const streak = computeStreak(state.entries)
+  const { review, reviewError, reviewLoading } = useDailyReviewUi()
   const { mounted, timeContext, greeting, timeLabel, dateStr } = useTimeInfo()
-  const [review, setReview] = useState<DailyReview | null>(null)
-  const [reviewError, setReviewError] = useState<string | null>(null)
-  const [reviewLoading, setReviewLoading] = useState(false)
 
   const morningDone = isMorningComplete(today)
   const eveningDone = isEveningComplete(today)
@@ -94,15 +92,14 @@ export default function Home() {
       : "/evening"
 
   async function handleGenerateReview() {
-    setReviewError(null)
-    setReviewLoading(true)
+    startDailyReviewGeneration()
 
     try {
       const { data } = (await supabase?.auth.getSession()) ?? { data: null }
       const token = data?.session?.access_token
 
       if (!token) {
-        setReviewError("Sign in to generate an AI review.")
+        setDailyReviewFailure("Sign in to generate an AI review.")
         return
       }
 
@@ -122,7 +119,7 @@ export default function Home() {
       const body = await response.json()
 
       if (!response.ok) {
-        setReviewError(
+        setDailyReviewFailure(
           response.status === 503
             ? "AI review is ready in the app, but the API key is not configured yet."
             : (body?.error ?? "Could not generate a review.")
@@ -130,11 +127,15 @@ export default function Home() {
         return
       }
 
-      setReview(body.review)
+      const parsed = DailyReviewSchema.safeParse(body.review)
+      if (!parsed.success) {
+        setDailyReviewFailure("Could not generate a review.")
+        return
+      }
+
+      setDailyReviewSuccess(parsed.data)
     } catch {
-      setReviewError("Could not generate a review.")
-    } finally {
-      setReviewLoading(false)
+      setDailyReviewFailure("Could not generate a review.")
     }
   }
 
