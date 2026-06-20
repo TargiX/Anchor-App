@@ -22,8 +22,8 @@ const MOOD_LABELS = {
 // Quadrant base colors (RGBA) - soft, quiet starting points
 const QUADRANT_COLORS = {
   topLeft: [99, 130, 180],    // low/low — hazy blue
-  topRight: [225, 165, 95],  // high/high — ember gold
-  bottomLeft: [200, 130, 90], // high energy/low valence — warm clay
+  topRight: [255, 195, 80],  // high/high — sunny gold/yellow
+  bottomLeft: [140, 110, 140], // high energy/low valence — muted plum
   bottomRight: [120, 165, 130], // low energy/high valence — sage
 } as const
 
@@ -290,11 +290,11 @@ export function StepMood({ onNext, onBack, isMorning = true }: StepMoodProps) {
               />
               <div
                 className="transition-all duration-400 ease-out"
-                style={quadrantStyles?.topRight ?? { backgroundColor: "rgba(225, 165, 95, 0.06)" }}
+                style={quadrantStyles?.topRight ?? { backgroundColor: "rgba(255, 195, 80, 0.06)" }}
               />
               <div
                 className="transition-all duration-400 ease-out"
-                style={quadrantStyles?.bottomLeft ?? { backgroundColor: "rgba(200, 130, 90, 0.06)" }}
+                style={quadrantStyles?.bottomLeft ?? { backgroundColor: "rgba(140, 110, 140, 0.06)" }}
               />
               <div
                 className="transition-all duration-400 ease-out"
