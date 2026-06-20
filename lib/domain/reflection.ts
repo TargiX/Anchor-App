@@ -1,4 +1,5 @@
 import type { DayEntry, MoodPoint } from "./entry"
+import { z } from "zod"
 import { getTodayKey, shiftKey } from "@/lib/time/today"
 
 /**
@@ -165,12 +166,14 @@ export function habitCounts(
  * `entriesInWindow`, which drops absent days entirely (good for averages, bad
  * for a faithful time axis).
  */
-export type TrendPoint = {
-  date: string
-  morningValence?: number
-  eveningValence?: number
-  sleepHours?: number
-}
+export const trendPointSchema = z.object({
+  date: z.string(),
+  morningValence: z.number().optional(),
+  eveningValence: z.number().optional(),
+  sleepHours: z.number().optional(),
+})
+
+export type TrendPoint = z.infer<typeof trendPointSchema>
 
 export function trendPoints(
   entries: Record<string, DayEntry>,
