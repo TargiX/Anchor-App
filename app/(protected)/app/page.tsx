@@ -2,16 +2,33 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useTodayEntry, useStreak } from "@/hooks/use-store"
+import { useAppState, useDailyReviewUi } from "@/hooks/use-store"
 import { AnchorMotif } from "@/components/anchor-motif"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Settings, Clock, BookOpen, Flame, ChevronRight } from "lucide-react"
+import {
+  Settings,
+  Clock,
+  BookOpen,
+  Flame,
+  ChevronRight,
+  Sparkles,
+} from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { getTimeContext, getGreeting, getTimeLabel } from "@/lib/time/context"
-import { isMorningComplete, isEveningComplete } from "@/lib/domain/selectors"
+import { isMorningComplete, isEveningComplete, computeStreak } from "@/lib/domain/selectors"
+import { computeDailyAnchor } from "@/lib/domain/daily-anchor"
+import { DailyReviewSchema } from "@/lib/domain/daily-review"
+import { emptyEntry, type DayEntry } from "@/lib/domain/entry"
+import {
+  startDailyReviewGeneration,
+  setDailyReviewSuccess,
+  setDailyReviewFailure,
+} from "@/lib/store/actions"
+import { getTodayKey } from "@/lib/time/today"
+import { supabase } from "@/lib/supabase/client"
 
 function useTimeInfo() {
   const [time, setTime] = useState<{ mounted: boolean; hour: number }>({
@@ -47,12 +64,16 @@ function useTimeInfo() {
 
 export default function Home() {
   const router = useRouter()
-  const today = useTodayEntry()
-  const streak = useStreak()
+  const state = useAppState()
+  const todayKey = getTodayKey()
+  const today = state.entries[todayKey] ?? emptyEntry(todayKey)
+  const streak = computeStreak(state.entries)
+  const { review, reviewError, reviewLoading } = useDailyReviewUi()
   const { mounted, timeContext, greeting, timeLabel, dateStr } = useTimeInfo()
 
   const morningDone = isMorningComplete(today)
   const eveningDone = isEveningComplete(today)
+  const dailyAnchor = computeDailyAnchor(today, state.habits)
 
   const ctaLabel =
     timeContext === "morning"
@@ -69,6 +90,54 @@ export default function Home() {
     timeContext === "morning" || timeContext === "midday"
       ? "/morning"
       : "/evening"
+
+  async function handleGenerateReview() {
+    startDailyReviewGeneration()
+
+    try {
+      const { data } = (await supabase?.auth.getSession()) ?? { data: null }
+      const token = data?.session?.access_token
+
+      if (!token) {
+        setDailyReviewFailure("Sign in to generate an AI review.")
+        return
+      }
+
+      const response = await fetch("/api/ai/daily-review", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          entry: today,
+          habits: state.habits,
+          recentEntries: recentEntries(state.entries),
+        }),
+      })
+
+      const body = await response.json()
+
+      if (!response.ok) {
+        setDailyReviewFailure(
+          response.status === 503
+            ? "AI review is ready in the app, but the API key is not configured yet."
+            : (body?.error ?? "Could not generate a review.")
+        )
+        return
+      }
+
+      const parsed = DailyReviewSchema.safeParse(body.review)
+      if (!parsed.success) {
+        setDailyReviewFailure("Could not generate a review.")
+        return
+      }
+
+      setDailyReviewSuccess(parsed.data)
+    } catch {
+      setDailyReviewFailure("Could not generate a review.")
+    }
+  }
 
   // Avoid hydration mismatch by not rendering time-dependent content until mounted
   if (!mounted) {
@@ -153,6 +222,97 @@ export default function Home() {
               <Settings className="size-4" />
             </Button>
           </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 }}
+            className="mb-4 rounded-2xl border border-primary/15 bg-primary/5 p-5 lg:mb-5 lg:p-6"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+                  Daily Anchor
+                </p>
+                <h2 className="mt-1 font-[family-name:var(--font-display)] text-xl font-semibold text-foreground lg:text-2xl">
+                  {dailyAnchor.headline}
+                </h2>
+              </div>
+              <div
+                className="grid size-14 shrink-0 place-items-center rounded-full border border-primary/20 bg-card/75 font-[family-name:var(--font-display)] text-lg font-semibold text-primary"
+                aria-label={`Daily Anchor score ${dailyAnchor.score} of 100`}
+              >
+                {dailyAnchor.score}
+              </div>
+            </div>
+
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              {dailyAnchor.summary}
+            </p>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {dailyAnchor.metrics.map((metric) => (
+                <div
+                  key={metric.id}
+                  className="rounded-xl border border-border/70 bg-card/55 px-3 py-2.5"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[0.68rem] font-medium tracking-widest text-muted-foreground uppercase">
+                      {metric.label}
+                    </span>
+                    <span className="text-xs font-medium text-foreground">
+                      {metric.value}
+                    </span>
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-xs leading-snug text-muted-foreground">
+                    {metric.detail}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-background/55 px-3 py-2.5">
+              <p className="text-xs leading-snug text-muted-foreground">
+                <span className="font-medium text-foreground">Next:</span>{" "}
+                {dailyAnchor.nextStep}
+              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 shrink-0 rounded-lg px-2.5 text-xs"
+                disabled={reviewLoading}
+                onClick={handleGenerateReview}
+              >
+                <Sparkles className="size-3.5" data-icon="inline-start" />
+                {reviewLoading ? "Reading" : "AI review"}
+              </Button>
+            </div>
+
+            {(review || reviewError) && (
+              <div className="mt-3 rounded-xl border border-border/70 bg-card/65 px-4 py-3">
+                {review ? (
+                  <div className="space-y-2">
+                    <p className="font-[family-name:var(--font-display)] text-sm leading-relaxed text-foreground italic">
+                      {review.summary}
+                    </p>
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      {review.pattern}
+                    </p>
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      <span className="font-medium text-foreground">
+                        Suggested:
+                      </span>{" "}
+                      {review.nextStep}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    {reviewError}
+                  </p>
+                )}
+              </div>
+            )}
+          </motion.div>
 
           <div className="flex flex-col gap-2.5 lg:gap-3">
             <motion.div
@@ -313,4 +473,10 @@ export default function Home() {
       </div>
     </main>
   )
+}
+
+function recentEntries(entries: Record<string, DayEntry>): DayEntry[] {
+  return Object.values(entries)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-7)
 }

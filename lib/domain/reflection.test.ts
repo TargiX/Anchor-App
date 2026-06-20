@@ -9,6 +9,7 @@ import {
   averageSleepHours,
   consecutiveLowSleepNights,
   habitCounts,
+  trendPoints,
 } from "./reflection"
 import type { DayEntry, MoodPoint } from "./entry"
 
@@ -194,5 +195,67 @@ describe("habitCounts", () => {
       entry("2026-05-18", { habitsCompleted: [] })
     )
     expect(habitCounts(entries, today)).toEqual({ move: 2, water: 1 })
+  })
+})
+
+describe("trendPoints", () => {
+  it("emits one row per calendar day in the window, oldest → newest", () => {
+    // 7-day window ending 2026-05-20 → keys 14..20
+    const rows = trendPoints({}, today, 7).map((p) => p.date)
+    expect(rows).toEqual([
+      "2026-05-14",
+      "2026-05-15",
+      "2026-05-16",
+      "2026-05-17",
+      "2026-05-18",
+      "2026-05-19",
+      "2026-05-20",
+    ])
+  })
+
+  it("keeps absent days as rows with undefined fields (honest gaps)", () => {
+    const rows = trendPoints(
+      map(
+        entry("2026-05-19", { morningMood: mood(0.4), sleepHours: 7 }),
+        // 2026-05-18 and 2026-05-20 have no entry
+        entry("2026-05-17", { eveningMood: mood(0.8) })
+      ),
+      today,
+      4
+    )
+    expect(rows).toHaveLength(4)
+    expect(rows.map((r) => r.date)).toEqual([
+      "2026-05-17",
+      "2026-05-18",
+      "2026-05-19",
+      "2026-05-20",
+    ])
+    // only present-entry days carry values
+    expect(rows[0]).toEqual({ date: "2026-05-17", eveningValence: 0.8 })
+    expect(rows[1]).toEqual({ date: "2026-05-18" })
+    expect(rows[2]).toEqual({
+      date: "2026-05-19",
+      morningValence: 0.4,
+      sleepHours: 7,
+    })
+    expect(rows[3]).toEqual({ date: "2026-05-20" })
+  })
+
+  it("maps morning/evening valence and sleep hours independently", () => {
+    const rows = trendPoints(
+      map(
+        entry("2026-05-20", {
+          morningMood: { energy: 0.2, valence: 0.3 },
+          eveningMood: { energy: 0.5, valence: 0.9 },
+          sleepHours: 6.5,
+        })
+      ),
+      today,
+      1
+    )
+    expect(rows[0]).toBeDefined()
+    expect(rows[0]!.morningValence).toBeCloseTo(0.3)
+    expect(rows[0]!.eveningValence).toBeCloseTo(0.9)
+    expect(rows[0]!.sleepHours).toBeCloseTo(6.5)
   })
 })

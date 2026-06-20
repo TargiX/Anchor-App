@@ -1,4 +1,5 @@
 import type { DayEntry, MoodPoint } from "./entry"
+import { z } from "zod"
 import { getTodayKey, shiftKey } from "@/lib/time/today"
 
 /**
@@ -153,4 +154,42 @@ export function habitCounts(
     }
   }
   return counts
+}
+
+/**
+ * One row of a mood/sleep trend chart.
+ *
+ * Every calendar day in the window is present (oldest → newest) so the X axis
+ * is continuous and gaps stay honest. Fields are `undefined` on days the user
+ * logged nothing — a chart with `connectNulls` off will simply break the line
+ * there, rather than papering over a missed day. This is distinct from
+ * `entriesInWindow`, which drops absent days entirely (good for averages, bad
+ * for a faithful time axis).
+ */
+export const trendPointSchema = z.object({
+  date: z.string(),
+  morningValence: z.number().optional(),
+  eveningValence: z.number().optional(),
+  sleepHours: z.number().optional(),
+})
+
+export type TrendPoint = z.infer<typeof trendPointSchema>
+
+export function trendPoints(
+  entries: Record<string, DayEntry>,
+  todayKey: string = getTodayKey(),
+  days = 14
+): TrendPoint[] {
+  const out: TrendPoint[] = []
+  for (let i = days - 1; i >= 0; i--) {
+    const key = shiftKey(todayKey, -i)
+    const entry = entries[key]
+    out.push({
+      date: key,
+      morningValence: entry?.morningMood?.valence,
+      eveningValence: entry?.eveningMood?.valence,
+      sleepHours: entry?.sleepHours,
+    })
+  }
+  return out
 }
