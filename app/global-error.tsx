@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import * as Sentry from "@sentry/nextjs"
 
 /**
  * Last-resort boundary for errors thrown in the root layout itself. It must
@@ -15,6 +16,8 @@ export default function GlobalError({
   reset: () => void
 }) {
   useEffect(() => {
+    // Report to Sentry (no-op when no DSN is configured), keep the dev log.
+    Sentry.captureException(error)
     console.error(error)
   }, [error])
 
