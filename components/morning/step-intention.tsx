@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { updateTodayEntry } from "@/lib/store/actions"
@@ -23,11 +23,20 @@ interface StepIntentionProps {
 
 export function StepIntention({ onNext, onBack }: StepIntentionProps) {
   const today = useTodayEntry()
-  const [text, setText] = useState(today?.intention ?? "")
+  // Default empty for first render; effect syncs the hydrated intention
+  // once useAppState finishes loading from storage. See step-sleep for the
+  // set-state-in-effect rationale.
+  const [text, setText] = useState("")
   const [suggestions] = useState(() => {
     const shuffled = [...PROMPTS].sort(() => Math.random() - 0.5)
     return shuffled.slice(0, 3)
   })
+
+  /* eslint-disable react-hooks/set-state-in-effect -- sync from external store */
+  useEffect(() => {
+    if (today.intention !== undefined) setText(today.intention)
+  }, [today.intention])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function handleNext() {
     if (!text.trim()) return
