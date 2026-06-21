@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { AnchorMotif } from "@/components/anchor-motif"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/components/auth-provider"
 
 const features = [
   {
@@ -55,6 +56,7 @@ const practice = [
 ]
 
 export default function Landing() {
+  const { status } = useAuth()
   return (
     <div className="relative min-h-dvh overflow-hidden bg-background text-foreground">
       {/* Ambient backdrop */}
@@ -88,12 +90,21 @@ export default function Landing() {
             Practice
           </a>
         </nav>
-        <Link href="/app">
-          <Button size="sm" className="rounded-xl">
-            Open app
-            <ArrowRight className="size-4" data-icon="inline-end" />
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          {status === "anon" && (
+            <Link href="/login">
+              <Button size="sm" variant="ghost" className="rounded-xl">
+                Sign in
+              </Button>
+            </Link>
+          )}
+          <Link href="/app">
+            <Button size="sm" className="rounded-xl">
+              Open app
+              <ArrowRight className="size-4" data-icon="inline-end" />
+            </Button>
+          </Link>
+        </div>
       </header>
 
       {/* Hero */}

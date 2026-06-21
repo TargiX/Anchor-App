@@ -22,7 +22,7 @@ const MOOD_LABELS = {
 // Quadrant base colors (RGBA) - soft, quiet starting points
 const QUADRANT_COLORS = {
   topLeft: [99, 130, 180],    // low/low — hazy blue
-  topRight: [225, 165, 95],  // high/high — ember gold
+  topRight: [240, 205, 70],  // high/high — warm yellow
   bottomLeft: [200, 130, 90], // high energy/low valence — warm clay
   bottomRight: [120, 165, 130], // low energy/high valence — sage
 } as const

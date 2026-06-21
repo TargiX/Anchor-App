@@ -9,7 +9,6 @@ import {
   getSnapshot,
   hydrateFromStorage,
   replaceState,
-  resetState,
   setCloudPersistence,
 } from "@/lib/store/store"
 
@@ -31,7 +30,10 @@ export function SyncProvider() {
     clearCloudPersistence()
 
     if (status === "anon") {
-      resetState()
+      // Local-first: keep the visitor's localStorage progress so a later
+      // sign-in/sign-up can merge it into the cloud (see mergeCloudState,
+      // which prefers local entries). No cloud persistence for anon.
+      hydrateFromStorage()
       return
     }
 

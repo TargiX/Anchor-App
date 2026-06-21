@@ -250,11 +250,11 @@ export default function Home() {
               {dailyAnchor.summary}
             </p>
 
-            <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="mt-4 grid grid-cols-2 divide-x divide-y divide-border/50 overflow-hidden rounded-xl border border-border/40">
               {dailyAnchor.metrics.map((metric) => (
                 <div
                   key={metric.id}
-                  className="rounded-xl border border-border/70 bg-card/55 px-3 py-2.5"
+                  className="px-3 py-2.5"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[0.68rem] font-medium tracking-widest text-muted-foreground uppercase">
