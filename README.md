@@ -1,9 +1,12 @@
 # Anchor
 
+**Live app:** [anchorapp.cc](https://anchorapp.cc)  
+**Source:** [github.com/TargiX/Next.js-Tether](https://github.com/TargiX/Next.js-Tether)
+
 A quiet daily ritual app — morning and evening check-ins, mood tracking, sleep,
 journaling, intention. One unified flow across **web, mobile, and desktop**.
 
-Live: deployed on Vercel · Mobile: iOS/Android via Capacitor · Desktop: macOS/Windows via Electron
+Web: deployed on Vercel · Mobile: iOS/Android via Capacitor · Desktop: macOS/Windows via Electron
 
 ---
 
