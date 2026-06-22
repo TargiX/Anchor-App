@@ -38,6 +38,14 @@ function LoginForm() {
   const initialMode: Mode =
     searchParams.get("mode") === "signup" ? "signup" : "signin"
   const [mode, setMode] = useState<Mode>(initialMode)
+  // Sync mode if the user (or a deep-link) navigates between
+  // /login?mode=signup and /login?mode=signin within the same client
+  // component instance — the URL changes but useState otherwise sticks.
+  /* eslint-disable react-hooks/set-state-in-effect -- sync mode with searchParams after same-component navigations */
+  useEffect(() => {
+    setMode(initialMode)
+  }, [initialMode])
+  /* eslint-enable react-hooks/set-state-in-effect */
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [errors, setErrors] = useState<{

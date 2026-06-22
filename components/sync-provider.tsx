@@ -6,9 +6,11 @@ import { supabase } from "@/lib/supabase/client"
 import { loadCloudState, mergeCloudState, saveCloudState } from "@/lib/store/cloud"
 import {
   clearCloudPersistence,
+  forceRehydrate,
   getSnapshot,
   hydrateFromStorage,
   replaceState,
+  resetState,
   setCloudPersistence,
 } from "@/lib/store/store"
 
@@ -17,6 +19,7 @@ const SAVE_DELAY_MS = 650
 export function SyncProvider() {
   const { status, user } = useAuth()
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const previousStatusRef = useRef<typeof status>(null)
   const userId = user?.id ?? null
 
   useEffect(() => {
@@ -29,11 +32,27 @@ export function SyncProvider() {
     }
     clearCloudPersistence()
 
+    const previousStatus = previousStatusRef.current
+    previousStatusRef.current = status
+    // authed → anon is a sign-out: wipe the previous user's persisted state
+    // so the new anonymous visitor can't see the prior user's rituals.
+    const isSignOut = previousStatus === "authed" && status === "anon"
+
     if (status === "anon") {
-      // Local-first: keep the visitor's localStorage progress so a later
-      // sign-in/sign-up can merge it into the cloud (see mergeCloudState,
-      // which prefers local entries). No cloud persistence for anon.
-      hydrateFromStorage()
+      if (isSignOut) {
+        // First-anon-load is the safe path: keep visitor's local progress.
+        // Sign-out must look like a fresh device to the next visitor.
+        resetState()
+        // hydrateFromStorage is a no-op after the first call in this tab; the
+        // reset above already cleared localStorage, but flush the in-memory
+        // "hydrated" guard too so a subsequent authed session re-hydrates.
+        forceRehydrate()
+      } else {
+        // Local-first: keep the visitor's localStorage progress so a later
+        // sign-in/sign-up can merge it into the cloud (see mergeCloudState,
+        // which prefers local entries). No cloud persistence for anon.
+        hydrateFromStorage()
+      }
       return
     }
 
