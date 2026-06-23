@@ -17,7 +17,14 @@ export const AppStateSchema = z.object({
 })
 export type AppState = z.infer<typeof AppStateSchema>
 
-export const STORAGE_KEY = "anchor-state"
+export const STORAGE_KEY = "anchor-state-authed"
+/**
+ * Anon visitors get their own localStorage slot. Keeping it separate from the
+ * authed slot is the privacy boundary: a previous authenticated user's data
+ * can never leak into a fresh anonymous session, and an anonymous visitor's
+ * local progress can still be merged into the cloud on first sign-in.
+ */
+export const ANON_STORAGE_KEY = "anchor-state-anon"
 /** Bump when the persisted shape changes; add a branch in `migrate`. */
 export const STATE_VERSION = 1
 
