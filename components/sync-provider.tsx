@@ -9,8 +9,8 @@ import {
   getSnapshot,
   hydrateFromStorage,
   replaceState,
-  resetState,
   setCloudPersistence,
+  setStorageScope,
 } from "@/lib/store/store"
 
 const SAVE_DELAY_MS = 650
@@ -31,12 +31,18 @@ export function SyncProvider() {
     clearCloudPersistence()
 
     if (status === "anon") {
-      resetState()
+      // Switch the storage scope to the anon slot. setStorageScope wipes the
+      // previously-active slot (e.g. the prior authed user's data) so a fresh
+      // anonymous visitor can never see the previous user's rituals. The anon
+      // slot keeps this visitor's own progress for later cloud merge.
+      setStorageScope("anon")
+      hydrateFromStorage()
       return
     }
 
     if (status !== "authed" || !userId) return
 
+    setStorageScope("authed")
     let cancelled = false
 
     async function syncInitialState() {

@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  ANON_STORAGE_KEY,
   AppState,
   INITIAL_STATE,
   STATE_VERSION,
@@ -38,8 +39,19 @@ const listeners = new Set<() => void>()
 let hydrated = false
 let cloudPersistence: ((state: AppState) => void) | null = null
 
+/**
+ * Active storage slot. Anon and authed never share a slot — see STORAGE_KEY /
+ * ANON_STORAGE_KEY. SyncProvider is responsible for calling `setStorageScope`
+ * when auth status changes (before any hydrate/persist this tick).
+ */
+let storageScope: "authed" | "anon" = "authed"
+
+function activeKey(): string {
+  return storageScope === "anon" ? ANON_STORAGE_KEY : STORAGE_KEY
+}
+
 function hydrate(): void {
-  const raw = storage.read(STORAGE_KEY)
+  const raw = storage.read(activeKey())
   if (!raw) return
   try {
     state = migrate(JSON.parse(raw))
@@ -50,7 +62,7 @@ function hydrate(): void {
 
 function persistLocal(): void {
   storage.write(
-    STORAGE_KEY,
+    activeKey(),
     JSON.stringify({ version: STATE_VERSION, data: state })
   )
 }
@@ -111,9 +123,29 @@ export function replaceState(
   notify()
 }
 
+/**
+ * Switch the persistence slot. Resets in-memory state and the hydrated guard
+ * so the next `hydrateFromStorage` reads the new scope. When entering the
+ * `anon` scope we also wipe the anon slot — defensive against shared devices
+ * where a previous anon visitor's local progress must not leak to the next
+ * fresh visitor. We never wipe the `authed` slot: a returning authed user
+ * must see their own persisted state.
+ */
+export function setStorageScope(scope: "authed" | "anon"): void {
+  if (storageScope === scope) return
+  const target = scope
+  storageScope = scope
+  state = INITIAL_STATE
+  hydrated = false
+  if (target === "anon") {
+    storage.remove(ANON_STORAGE_KEY)
+  }
+  notify()
+}
+
 export function resetState(): void {
   state = INITIAL_STATE
-  storage.remove(STORAGE_KEY)
+  storage.remove(activeKey())
   notify()
 }
 
