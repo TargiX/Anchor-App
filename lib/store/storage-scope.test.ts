@@ -234,4 +234,41 @@ describe("storage scope isolation", () => {
     expect(getSnapshot().entries["2026-04-15"]?.intention).toBe("anon-pre-scope")
     expect(memStorage.has(LEGACY_STORAGE_KEY)).toBe(false)
   })
+
+  it("legacy key is dropped but never overwrites an already-populated scoped slot", () => {
+    // First the user has scoped data; then (perhaps because of a long
+    // deploy window) a legacy entry shows up in storage. The active
+    // scoped slot must remain the source of truth; legacy data must not
+    // be migrated into it.
+    setStorageScope("authed", USER_A)
+    const current: AppState = {
+      ...INITIAL_STATE,
+      entries: {
+        "2026-06-20": { date: "2026-06-20", journal: "current journal" },
+      },
+    }
+    replaceState(current)
+    hydrateFromStorage()
+    expect(memStorage.has(authedStorageKey(USER_A))).toBe(true)
+
+    // A stale legacy entry appears (e.g. shared device, manual edit).
+    const stale: AppState = {
+      ...INITIAL_STATE,
+      entries: {
+        "2025-01-01": { date: "2025-01-01", journal: "very old journal" },
+      },
+    }
+    memStorage.set(
+      LEGACY_STORAGE_KEY,
+      JSON.stringify({ version: 1, data: stale })
+    )
+
+    // Force re-hydrate by switching to anon then back to authed.
+    setStorageScope("anon")
+    setStorageScope("authed", USER_A)
+    hydrateFromStorage()
+    expect(getSnapshot().entries["2026-06-20"]?.journal).toBe("current journal")
+    expect(getSnapshot().entries["2025-01-01"]).toBeUndefined()
+    expect(memStorage.has(LEGACY_STORAGE_KEY)).toBe(false)
+  })
 })
