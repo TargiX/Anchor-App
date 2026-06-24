@@ -50,10 +50,22 @@ function hasActiveKey(): boolean {
 
 function migrateLegacyIfPresent(): void {
   // One-time migration from the pre-scope-split single `anchor-state`
-  // key into the active scope's slot. The legacy envelope had the same
-  // shape ({ version, data }) or was the raw AppState itself; `migrate`
-  // already handles both. Runs at most once per browser: after we move
-  // the data we delete the legacy key.
+  // key into the active authed user's slot. The legacy envelope had
+  // the same shape ({ version, data }) or was the raw AppState itself;
+  // `migrate` already handles both. Runs at most once per browser: after
+  // we move the data we delete the legacy key.
+  //
+  // Privacy note: we only migrate into an authed scope with a known
+  // userId. The legacy `anchor-state` key was a single shared slot,
+  // so its contents may have belonged to a previous authenticated
+  // user. Migrating those entries into the anonymous slot — and then
+  // merging anon into the next signer's account — would leak one
+  // user's private journal into another's cloud row. An anonymous
+  // hydration always drops the legacy entry without reading it.
+  if (storageScope !== "authed" || !authedUserId) {
+    storage.remove(LEGACY_STORAGE_KEY)
+    return
+  }
   const raw = storage.read(LEGACY_STORAGE_KEY)
   if (!raw) return
   try {

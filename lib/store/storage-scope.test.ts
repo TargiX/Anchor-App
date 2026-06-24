@@ -217,11 +217,15 @@ describe("storage scope isolation", () => {
     expect(getSnapshot().entries["2026-05-01"]).toBeUndefined()
   })
 
-  it("legacy anchor-state key migrates into the anon scope when the visitor is unauthenticated", () => {
+  it("legacy anchor-state key is dropped — not migrated — when the visitor is anonymous", () => {
+    // The legacy `anchor-state` key may have belonged to a previous
+    // authenticated user. Migrating it into the anonymous slot would
+    // leak that user's journal entries into the next signer's cloud
+    // row via the anon -> authed merge. Drop it instead.
     const legacy: AppState = {
       ...INITIAL_STATE,
       entries: {
-        "2026-04-15": { date: "2026-04-15", intention: "anon-pre-scope" },
+        "2026-04-15": { date: "2026-04-15", intention: "previous-user-data" },
       },
     }
     memStorage.set(
@@ -231,7 +235,31 @@ describe("storage scope isolation", () => {
 
     setStorageScope("anon")
     hydrateFromStorage()
-    expect(getSnapshot().entries["2026-04-15"]?.intention).toBe("anon-pre-scope")
+    expect(getSnapshot().entries["2026-04-15"]).toBeUndefined()
+    expect(memStorage.has(LEGACY_STORAGE_KEY)).toBe(false)
+    expect(memStorage.has("anchor-state-anon")).toBe(false)
+  })
+
+  it("legacy anchor-state key is dropped — not migrated — when scope is unconfigured (anon-equivalent)", () => {
+    // The unconfigured status (no Supabase env) hydrates into the anon
+    // scope. Same privacy rationale applies: a legacy `anchor-state`
+    // entry may belong to a previous authenticated user, so we must
+    // not migrate it into the anon slot from which a future sign-in
+    // could pick it up.
+    const legacy: AppState = {
+      ...INITIAL_STATE,
+      entries: {
+        "2026-03-01": { date: "2026-03-01", journal: "previous-user-journal" },
+      },
+    }
+    memStorage.set(
+      LEGACY_STORAGE_KEY,
+      JSON.stringify({ version: 1, data: legacy })
+    )
+
+    setStorageScope("anon")
+    hydrateFromStorage()
+    expect(getSnapshot().entries["2026-03-01"]).toBeUndefined()
     expect(memStorage.has(LEGACY_STORAGE_KEY)).toBe(false)
   })
 
