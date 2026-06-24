@@ -5,7 +5,7 @@ import {
   AppState,
   INITIAL_STATE,
   STATE_VERSION,
-  STORAGE_KEY,
+  authedStorageKey,
   migrate,
 } from "./state"
 import type { DailyReview } from "@/lib/domain/daily-review"
@@ -40,17 +40,29 @@ let hydrated = false
 let cloudPersistence: ((state: AppState) => void) | null = null
 
 /**
- * Active storage slot. Anon and authed never share a slot — see STORAGE_KEY /
- * ANON_STORAGE_KEY. SyncProvider is responsible for calling `setStorageScope`
- * when auth status changes (before any hydrate/persist this tick).
+ * Active storage slot. Anon and authed never share a slot, and every
+ * authed user has their own slot keyed by id — see authedStorageKey.
+ * SyncProvider is responsible for calling `setStorageScope` when auth
+ * status changes (before any hydrate/persist this tick).
  */
 let storageScope: "authed" | "anon" = "authed"
+let authedUserId: string | null = null
 
 function activeKey(): string {
-  return storageScope === "anon" ? ANON_STORAGE_KEY : STORAGE_KEY
+  if (storageScope === "anon") return ANON_STORAGE_KEY
+  if (authedUserId) return authedStorageKey(authedUserId)
+  // Authed scope with no user id yet: nothing to read/write. Callers must
+  // set authedUserId via setStorageScope("authed", userId) before
+  // hydrating; see SyncProvider.
+  return ANON_STORAGE_KEY
+}
+
+function hasActiveKey(): boolean {
+  return storageScope === "anon" || authedUserId !== null
 }
 
 function hydrate(): void {
+  if (!hasActiveKey()) return
   const raw = storage.read(activeKey())
   if (!raw) return
   try {
@@ -61,6 +73,7 @@ function hydrate(): void {
 }
 
 function persistLocal(): void {
+  if (!hasActiveKey()) return
   storage.write(
     activeKey(),
     JSON.stringify({ version: STATE_VERSION, data: state })
@@ -124,28 +137,78 @@ export function replaceState(
 }
 
 /**
- * Switch the persistence slot. Resets in-memory state and the hydrated guard
- * so the next `hydrateFromStorage` reads the new scope. When entering the
- * `anon` scope we also wipe the anon slot — defensive against shared devices
- * where a previous anon visitor's local progress must not leak to the next
- * fresh visitor. We never wipe the `authed` slot: a returning authed user
- * must see their own persisted state.
+ * Switch the persistence slot. Resets in-memory state and the hydrated
+ * guard so the next `hydrateFromStorage` reads the new scope. Storage
+ * isolation is already provided by `activeKey()` reading distinct keys
+ * per (scope, userId); this function intentionally does NOT clear storage
+ * itself — callers that need a fresh start (e.g. anon visitors must not
+ * see a previous anon visitor's local progress on a shared device) own
+ * that decision via `resetAnonSlot()` / `clearAuthedSlot()`.
+ *
+ * Entering `anon` requires no user id; entering `authed` requires
+ * `userId` so the slot is keyed per-user — a previous authed user's
+ * state can never leak into a different authed user's slot.
  */
-export function setStorageScope(scope: "authed" | "anon"): void {
-  if (storageScope === scope) return
-  const target = scope
-  storageScope = scope
+export function setStorageScope(
+  scope: "authed" | "anon",
+  userId?: string | null
+): void {
+  if (scope === "authed") {
+    if (!userId) {
+      throw new Error("setStorageScope('authed', …) requires a userId")
+    }
+    if (storageScope === "authed" && authedUserId === userId) return
+    storageScope = "authed"
+    authedUserId = userId
+  } else {
+    if (storageScope === "anon") return
+    storageScope = "anon"
+    authedUserId = null
+  }
   state = INITIAL_STATE
   hydrated = false
-  if (target === "anon") {
-    storage.remove(ANON_STORAGE_KEY)
-  }
   notify()
+}
+
+/**
+ * Wipe the anon localStorage slot AND reset the in-memory state back to
+ * INITIAL_STATE so the next `hydrateFromStorage()` reads a clean slot.
+ * Call this on `authed → anon` sign-out (or any time a fresh anon
+ * visitor is expected) so a previous anonymous visitor's local progress
+ * cannot leak to the next fresh visitor on a shared device.
+ *
+ * Safe to call when the active scope is not anon — only the anon slot
+ * is touched and the in-memory reset is skipped if we're in an authed
+ * scope (that scope's state is intentionally preserved).
+ */
+export function resetAnonSlot(): void {
+  storage.remove(ANON_STORAGE_KEY)
+  if (storageScope === "anon") {
+    state = INITIAL_STATE
+    hydrated = false
+    notify()
+  }
+}
+
+/**
+ * Wipe a specific authed user's localStorage slot AND reset the
+ * in-memory state if that user is currently the active authed scope, so
+ * a sign-out clears the signing-out user's local progress without
+ * affecting any other authed user's slot. Always clears storage for the
+ * named user (so it is safe to call on sign-out from the authed scope).
+ */
+export function clearAuthedSlot(userId: string): void {
+  storage.remove(authedStorageKey(userId))
+  if (storageScope === "authed" && authedUserId === userId) {
+    state = INITIAL_STATE
+    hydrated = false
+    notify()
+  }
 }
 
 export function resetState(): void {
   state = INITIAL_STATE
-  storage.remove(activeKey())
+  if (hasActiveKey()) storage.remove(activeKey())
   notify()
 }
 
