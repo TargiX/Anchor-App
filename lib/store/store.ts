@@ -72,7 +72,7 @@ function hydrate(): void {
   const raw = storage.read(activeKey())
   if (!raw) {
     // No data in the current scope yet. If a legacy `anchor-state` entry
-    // exists, fold it into the active scope exactly once.
+    // exists, fold it into the active scope exactly once and stop.
     migrateLegacyIfPresent()
     return
   }
@@ -81,9 +81,11 @@ function hydrate(): void {
   } catch {
     state = INITIAL_STATE
   }
-  // Also drain a legacy entry if one is present so we never strand old
-  // data under the legacy key after the active scope is populated.
-  migrateLegacyIfPresent()
+  // The active scope already had data — never touch state from a
+  // legacy key in this branch; that would clobber the user's current
+  // progress. We do still drop a stray legacy entry so future deploys
+  // do not re-read it.
+  storage.remove(LEGACY_STORAGE_KEY)
 }
 
 function persistLocal(): void {

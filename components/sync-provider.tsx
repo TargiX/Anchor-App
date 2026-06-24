@@ -81,6 +81,16 @@ export function SyncProvider() {
 
     if (status !== "authed" || !userId) return
 
+    // Cross-account guard: if a different authed user was previously
+    // active in this tab/session, wipe their local slot before we touch
+    // any state. Without this an authed -> authed (A -> B) transition
+    // that bypasses an intermediate anon render would read A's state as
+    // "anon progress" and merge it into B's cloud row on the next save.
+    const prevUserId = previousAuthedUserIdRef.current
+    if (prevUserId && prevUserId !== userId) {
+      clearAuthedSlot(prevUserId)
+    }
+
     // Authed path: snapshot anon state (if any) BEFORE switching scopes —
     // setStorageScope resets in-memory state to INITIAL_STATE, so reading
     // getSnapshot() after would yield nothing.
