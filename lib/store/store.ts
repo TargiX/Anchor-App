@@ -4,6 +4,7 @@ import {
   ANON_STORAGE_KEY,
   AppState,
   INITIAL_STATE,
+  LEGACY_STORAGE_KEY,
   STATE_VERSION,
   authedStorageKey,
   migrate,
@@ -47,15 +48,42 @@ function hasActiveKey(): boolean {
   return storageScope === "anon" || authedUserId !== null
 }
 
+function migrateLegacyIfPresent(): void {
+  // One-time migration from the pre-scope-split single `anchor-state`
+  // key into the active scope's slot. The legacy envelope had the same
+  // shape ({ version, data }) or was the raw AppState itself; `migrate`
+  // already handles both. Runs at most once per browser: after we move
+  // the data we delete the legacy key.
+  const raw = storage.read(LEGACY_STORAGE_KEY)
+  if (!raw) return
+  try {
+    state = migrate(JSON.parse(raw))
+    persistLocal()
+    storage.remove(LEGACY_STORAGE_KEY)
+  } catch {
+    // Corrupt legacy entry: drop it so the migration does not retry on
+    // every reload and so the user gets a clean initial state.
+    storage.remove(LEGACY_STORAGE_KEY)
+  }
+}
+
 function hydrate(): void {
   if (!hasActiveKey()) return
   const raw = storage.read(activeKey())
-  if (!raw) return
+  if (!raw) {
+    // No data in the current scope yet. If a legacy `anchor-state` entry
+    // exists, fold it into the active scope exactly once.
+    migrateLegacyIfPresent()
+    return
+  }
   try {
     state = migrate(JSON.parse(raw))
   } catch {
     state = INITIAL_STATE
   }
+  // Also drain a legacy entry if one is present so we never strand old
+  // data under the legacy key after the active scope is populated.
+  migrateLegacyIfPresent()
 }
 
 function persistLocal(): void {

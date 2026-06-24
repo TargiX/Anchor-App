@@ -5,6 +5,7 @@ import { useAuth } from "@/components/auth-provider"
 import { supabase } from "@/lib/supabase/client"
 import { loadCloudState, mergeCloudState, saveCloudState } from "@/lib/store/cloud"
 import {
+  clearAuthedSlot,
   clearCloudPersistence,
   getSnapshot,
   hydrateFromStorage,
@@ -20,10 +21,14 @@ const SAVE_DELAY_MS = 650
 export function SyncProvider() {
   const { status, user } = useAuth()
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Remember the previous authed user id so an authed → anon/unconfigured
+  // transition can wipe that user's local slot on its way out. Without
+  // this the local journal persists forever after sign-out on a shared
+  // device.
+  const previousAuthedUserIdRef = useRef<string | null>(null)
   const userId = user?.id ?? null
 
   useEffect(() => {
-    if (!supabase) return
     const client = supabase
 
     if (timeoutRef.current) {
@@ -32,7 +37,30 @@ export function SyncProvider() {
     }
     clearCloudPersistence()
 
+    // Unconfigured (no Supabase env) is a fully-supported local-only mode:
+    // local persistence must work even though there is no cloud to sync to.
+    // Use the anon scope so the user keeps their progress across reloads.
+    if (status === "unconfigured") {
+      const prevUserId = previousAuthedUserIdRef.current
+      if (prevUserId) clearAuthedSlot(prevUserId)
+      previousAuthedUserIdRef.current = null
+      setStorageScope("anon")
+      hydrateFromStorage()
+      return () => {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current)
+          timeoutRef.current = null
+        }
+        clearCloudPersistence()
+      }
+    }
+
     if (status === "anon") {
+      // Wipe the previous authed user's local slot on sign-out so private
+      // journal data does not survive a logout on a shared device.
+      const prevUserId = previousAuthedUserIdRef.current
+      if (prevUserId) clearAuthedSlot(prevUserId)
+      previousAuthedUserIdRef.current = null
       // Wipe any previous anon visitor's local progress so the current
       // visitor starts fresh on shared devices. Then switch to the anon
       // scope (a no-op if already there, but resets the hydrated guard so
@@ -64,44 +92,45 @@ export function SyncProvider() {
     setStorageScope("authed", userId)
     hydrateFromStorage()
     const localState = getSnapshot()
+    previousAuthedUserIdRef.current = userId
 
     let cancelled = false
 
     async function syncInitialState() {
       if (!userId) return
 
-      const remoteState = await loadCloudState(client, userId)
+      const remoteState = client
+        ? await loadCloudState(client, userId)
+        : null
       if (cancelled) return
 
       let syncedState: AppState = remoteState
         ? mergeCloudState(localState, remoteState)
         : localState
 
-      // If the visitor had unsynced anon entries, fold them into the
-      // synced authed state. mergeCloudState already prefers local
-      // entries, but here `localState` is the authed-slot read (which
-      // may be INITIAL_STATE on a fresh device) so we explicitly carry
-      // the anon entries forward.
+      // If the visitor had unsynced anon entries from this same tab/session,
+      // fold them into the synced authed state. Anon edits are the freshest
+      // data the user has, so they win on conflicting keys.
       if (hadAnonEntries) {
         syncedState = {
           ...syncedState,
           entries: {
-            ...anonProgress.entries,
             ...syncedState.entries,
+            ...anonProgress.entries,
           },
         }
       }
 
       replaceState(syncedState, { persistCloud: false })
-      // Persist anon progress so future hydrations within the same
-      // browser see it; cloud sync follows on the schedule below.
-      await saveCloudState(client, userId, syncedState)
+      if (client) {
+        await saveCloudState(client, userId, syncedState)
+      }
       if (cancelled) return
 
       setCloudPersistence((nextState) => {
         if (timeoutRef.current) clearTimeout(timeoutRef.current)
         timeoutRef.current = setTimeout(() => {
-          void saveCloudState(client, userId, nextState)
+          if (client) void saveCloudState(client, userId, nextState)
         }, SAVE_DELAY_MS)
       })
     }
