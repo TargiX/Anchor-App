@@ -17,12 +17,21 @@ interface StepMeditationProps {
 
 export function StepMeditation({ onNext, onBack }: StepMeditationProps) {
   const today = useTodayEntry()
-  // Restore selected duration if it matches one of the options
-  const savedDuration = today?.meditationMinutes && DURATIONS.includes(today.meditationMinutes) ? today.meditationMinutes : null
-  const [selected, setSelected] = useState<number | null>(savedDuration)
+  // Defaults for first render; effect syncs the hydrated meditationMinutes
+  // once useAppState finishes loading from storage. See step-sleep for the
+  // set-state-in-effect rationale.
+  const [selected, setSelected] = useState<number | null>(null)
   const [running, setRunning] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  /* eslint-disable react-hooks/set-state-in-effect -- sync from external store */
+  useEffect(() => {
+    // Only restore if it matches one of the offered options
+    const saved = today.meditationMinutes
+    if (saved !== undefined && DURATIONS.includes(saved)) setSelected(saved)
+  }, [today.meditationMinutes])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const totalSeconds = selected ? selected * 60 : 0
   const progress = totalSeconds > 0 ? elapsed / totalSeconds : 0

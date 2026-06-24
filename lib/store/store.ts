@@ -7,20 +7,7 @@ import {
   STORAGE_KEY,
   migrate,
 } from "./state"
-import type { DailyReview } from "@/lib/domain/daily-review"
 import { localStorageAdapter, type StoragePort } from "./persistence"
-
-export type DailyReviewUiState = {
-  review: DailyReview | null
-  reviewError: string | null
-  reviewLoading: boolean
-}
-
-const INITIAL_DAILY_REVIEW_UI: DailyReviewUiState = {
-  review: null,
-  reviewError: null,
-  reviewLoading: false,
-}
 
 /**
  * Tiny reactive store built on the `useSyncExternalStore` contract.
@@ -33,7 +20,6 @@ const INITIAL_DAILY_REVIEW_UI: DailyReviewUiState = {
 const storage: StoragePort = localStorageAdapter
 
 let state: AppState = INITIAL_STATE
-let dailyReviewUi: DailyReviewUiState = INITIAL_DAILY_REVIEW_UI
 const listeners = new Set<() => void>()
 let hydrated = false
 let cloudPersistence: ((state: AppState) => void) | null = null
@@ -70,21 +56,6 @@ export function getSnapshot(): AppState {
 
 export function getServerSnapshot(): AppState {
   return INITIAL_STATE
-}
-
-export function getDailyReviewUiSnapshot(): DailyReviewUiState {
-  return dailyReviewUi
-}
-
-export function getDailyReviewUiServerSnapshot(): DailyReviewUiState {
-  return INITIAL_DAILY_REVIEW_UI
-}
-
-export function setDailyReviewUiState(
-  updater: (prev: DailyReviewUiState) => DailyReviewUiState
-): void {
-  dailyReviewUi = updater(dailyReviewUi)
-  notify()
 }
 
 export function hydrateFromStorage(): void {

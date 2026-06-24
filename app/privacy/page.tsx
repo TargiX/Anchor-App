@@ -26,7 +26,7 @@ export default function PrivacyPage() {
       </div>
 
       <div className="space-y-6 text-sm leading-7 text-muted-foreground">
-        <p>Last updated: June 15, 2026</p>
+        <p>Last updated: June 7, 2026</p>
 
         <section className="space-y-2">
           <h2 className="text-base font-medium text-foreground">
@@ -67,25 +67,10 @@ export default function PrivacyPage() {
             Optional accounts and sync
           </h2>
           <p>
-            If you create an account, Anchor uses Supabase Auth and
-            account-backed sync to keep your ritual entries available across
-            devices. Sync data is used to provide the service, not for
-            advertising.
-          </p>
-        </section>
-
-        <section className="space-y-2">
-          <h2 className="text-base font-medium text-foreground">
-            AI reflections
-          </h2>
-          <p>
-            If AI Daily Review is enabled, Anchor may send selected ritual
-            details such as mood, sleep, habits, intention, and journal text,
-            plus a derived Daily Anchor score, recent ritual entries for
-            context, and your account-linked user identifier, to an AI provider
-            to generate a short reflection. AI reflections are informational
-            only and should not be treated as medical, mental health, legal, or
-            financial advice.
+            Anchor may support optional account-based sync in future beta
+            builds. If enabled, account and sync data will only be used to
+            provide the service and will be disclosed in this policy before
+            public release.
           </p>
         </section>
 

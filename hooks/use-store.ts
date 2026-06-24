@@ -6,10 +6,7 @@ import {
   getSnapshot,
   getServerSnapshot,
   hydrateFromStorage,
-  getDailyReviewUiSnapshot,
-  getDailyReviewUiServerSnapshot,
 } from "@/lib/store/store"
-import type { DailyReviewUiState } from "@/lib/store/store"
 import type { AppState } from "@/lib/store/state"
 import { emptyEntry, type DayEntry } from "@/lib/domain/entry"
 import { computeStreak } from "@/lib/domain/selectors"
@@ -35,17 +32,4 @@ export function useTodayEntry(): DayEntry {
 export function useStreak(): number {
   const state = useAppState()
   return computeStreak(state.entries)
-}
-
-/** Ephemeral AI daily review UI state (not persisted). */
-export function useDailyReviewUi(): DailyReviewUiState {
-  useEffect(() => {
-    hydrateFromStorage()
-  }, [])
-
-  return useSyncExternalStore(
-    subscribe,
-    getDailyReviewUiSnapshot,
-    getDailyReviewUiServerSnapshot
-  )
 }

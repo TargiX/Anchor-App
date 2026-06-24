@@ -22,8 +22,8 @@ const MOOD_LABELS = {
 // Quadrant base colors (RGBA) - soft, quiet starting points
 const QUADRANT_COLORS = {
   topLeft: [99, 130, 180],    // low/low — hazy blue
-  topRight: [225, 165, 95],  // high/high — ember gold
-  bottomLeft: [200, 130, 90], // high energy/low valence — warm clay
+  topRight: [255, 195, 80],  // high/high — sunny gold/yellow
+  bottomLeft: [140, 110, 140], // high energy/low valence — muted plum
   bottomRight: [120, 165, 130], // low energy/high valence — sage
 } as const
 
@@ -37,7 +37,8 @@ const QUADRANT_CORNERS = {
 
 /**
  * Calculate saturation boost for a quadrant based on distance to its corner.
- * Center (0.5, 0.5) = 0 boost, corner = 1 boost.
+ * Center (0.5, 0.5) = 0 boost, corner = 1 boost. Max distance ~0.707
+ * (corner-to-center), normalized to 0-1.
  */
 function quadrantBoost(
   pointX: number,
@@ -47,8 +48,23 @@ function quadrantBoost(
   const dx = pointX - corner.x
   const dy = pointY - corner.y
   const distance = Math.sqrt(dx * dx + dy * dy)
-  // Max distance from corner to center is ~0.707; normalize to 0-1
   return Math.max(0, 1 - distance / 0.71)
+}
+
+/**
+ * Per-quadrant saturation boosts (0 at center, 1 at corner) for a mood point.
+ * Energy is flipped because grid Y is inverted relative to the data Y axis.
+ * Shared by quadrantStyles and pointColor to keep them in sync.
+ */
+function quadrantBoosts(point: MoodPoint) {
+  const px = point.valence
+  const py = 1 - point.energy
+  return {
+    topLeft: quadrantBoost(px, py, QUADRANT_CORNERS.topLeft),
+    topRight: quadrantBoost(px, py, QUADRANT_CORNERS.topRight),
+    bottomLeft: quadrantBoost(px, py, QUADRANT_CORNERS.bottomLeft),
+    bottomRight: quadrantBoost(px, py, QUADRANT_CORNERS.bottomRight),
+  }
 }
 
 /** A short, human word for where the point sits. */
@@ -68,10 +84,19 @@ function moodWord(valence: number, energy: number): string {
 
 export function StepMood({ onNext, onBack, isMorning = true }: StepMoodProps) {
   const today = useTodayEntry()
-  const savedMood = isMorning ? today?.morningMood : today?.eveningMood
-  const [point, setPoint] = useState<MoodPoint | null>(savedMood ?? { valence: 0.5, energy: 0.5 })
+  // Default to grid center; effect syncs the hydrated mood point after
+  // useAppState finishes loading from storage. See step-sleep for the
+  // set-state-in-effect rationale.
+  const [point, setPoint] = useState<MoodPoint | null>({ valence: 0.5, energy: 0.5 })
   const [dragging, setDragging] = useState(false)
   const gridRef = useRef<HTMLDivElement>(null)
+
+  /* eslint-disable react-hooks/set-state-in-effect -- sync from external store */
+  useEffect(() => {
+    const saved = isMorning ? today?.morningMood : today?.eveningMood
+    if (saved) setPoint(saved)
+  }, [today?.morningMood, today?.eveningMood, isMorning])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const updateFromEvent = useCallback((clientX: number, clientY: number) => {
     const el = gridRef.current
@@ -150,12 +175,7 @@ export function StepMood({ onNext, onBack, isMorning = true }: StepMoodProps) {
   const quadrantStyles = useMemo(() => {
     if (!point) return null
 
-    const boosts = {
-      topLeft: quadrantBoost(point.valence, 1 - point.energy, QUADRANT_CORNERS.topLeft),
-      topRight: quadrantBoost(point.valence, 1 - point.energy, QUADRANT_CORNERS.topRight),
-      bottomLeft: quadrantBoost(point.valence, 1 - point.energy, QUADRANT_CORNERS.bottomLeft),
-      bottomRight: quadrantBoost(point.valence, 1 - point.energy, QUADRANT_CORNERS.bottomRight),
-    }
+    const boosts = quadrantBoosts(point)
 
     // Base opacity is 0.06, max is 0.18 for subtle, breathing presence
     return {
@@ -182,12 +202,7 @@ export function StepMood({ onNext, onBack, isMorning = true }: StepMoodProps) {
   const pointColor = useMemo(() => {
     if (!point) return null
 
-    const boosts = {
-      topLeft: quadrantBoost(point.valence, 1 - point.energy, QUADRANT_CORNERS.topLeft),
-      topRight: quadrantBoost(point.valence, 1 - point.energy, QUADRANT_CORNERS.topRight),
-      bottomLeft: quadrantBoost(point.valence, 1 - point.energy, QUADRANT_CORNERS.bottomLeft),
-      bottomRight: quadrantBoost(point.valence, 1 - point.energy, QUADRANT_CORNERS.bottomRight),
-    }
+    const boosts = quadrantBoosts(point)
 
     // Weighted blend of all quadrants
     const totalWeight = boosts.topLeft + boosts.topRight + boosts.bottomLeft + boosts.bottomRight || 1
@@ -290,11 +305,11 @@ export function StepMood({ onNext, onBack, isMorning = true }: StepMoodProps) {
               />
               <div
                 className="transition-all duration-400 ease-out"
-                style={quadrantStyles?.topRight ?? { backgroundColor: "rgba(225, 165, 95, 0.06)" }}
+                style={quadrantStyles?.topRight ?? { backgroundColor: "rgba(255, 195, 80, 0.06)" }}
               />
               <div
                 className="transition-all duration-400 ease-out"
-                style={quadrantStyles?.bottomLeft ?? { backgroundColor: "rgba(200, 130, 90, 0.06)" }}
+                style={quadrantStyles?.bottomLeft ?? { backgroundColor: "rgba(140, 110, 140, 0.06)" }}
               />
               <div
                 className="transition-all duration-400 ease-out"
@@ -332,7 +347,7 @@ export function StepMood({ onNext, onBack, isMorning = true }: StepMoodProps) {
                 style={{
                   ...pointPos,
                   ...pointStyle,
-                  animation: "mood-drift 4s ease-in-out infinite",
+                  animation: "mood-dot-enter 0.5s ease-out, mood-drift 4s ease-in-out 0.5s infinite",
                 }}
               />
             )}

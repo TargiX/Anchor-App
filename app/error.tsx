@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect } from "react"
-import * as Sentry from "@sentry/nextjs"
 import Link from "next/link"
 import { AnchorMotif } from "@/components/anchor-motif"
 import { Button } from "@/components/ui/button"
@@ -19,8 +18,7 @@ export default function Error({
   reset: () => void
 }) {
   useEffect(() => {
-    // Report to Sentry (no-op when no DSN is configured), keep the dev log.
-    Sentry.captureException(error)
+    // Surface the error in dev; replace with Sentry capture once configured.
     console.error(error)
   }, [error])
 
