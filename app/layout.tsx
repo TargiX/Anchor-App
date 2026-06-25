@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import { Lora, DM_Sans } from "next/font/google"
+import { Cormorant_Garamond, DM_Sans } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth-provider"
@@ -8,7 +8,7 @@ import { ServiceWorkerRegistrar } from "@/components/service-worker-registrar"
 import { SyncProvider } from "@/components/sync-provider"
 import { cn } from "@/lib/utils"
 
-const display = Lora({
+const display = Cormorant_Garamond({
   subsets: ["latin"],
   variable: "--font-display",
   weight: ["400", "500", "600", "700"],
@@ -35,8 +35,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f8f3ec" },
-    { media: "(prefers-color-scheme: dark)", color: "#2e2519" },
+    { media: "(prefers-color-scheme: light)", color: "#fffdf8" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e332f" },
   ],
   width: "device-width",
   initialScale: 1,
