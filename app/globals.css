@@ -317,11 +317,10 @@
 
 .landing-hero::before {
   position: absolute;
-  inset: -5% -1% -20% 0;
+  inset: -5% -6% -20% 0;
   z-index: 0;
   background-image: url("/landing/hero-background.png");
-  background-position-x: right;
-  background-position-y: 47%;
+  background-position: right 56%;
   background-repeat: no-repeat;
   background-size: contain;
   content: "";
@@ -537,7 +536,7 @@
 .landing-platforms__grid {
   position: relative;
   z-index: 2;
-  min-height: 325px;
+  min-height: 498px;
   align-items: center;
 }
 
