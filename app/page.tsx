@@ -9,6 +9,8 @@ import {
   Sunrise,
 } from "lucide-react"
 
+import { LandingHeroVideo } from "@/components/landing-hero-video"
+
 const features = [
   {
     icon: Sunrise,
@@ -67,6 +69,7 @@ export default function Landing() {
       </header>
 
       <section className="landing-hero" aria-labelledby="landing-title">
+        <LandingHeroVideo />
         <div className="landing-grid landing-hero__grid">
           <div className="landing-hero__copy">
             <p className="landing-kicker">A quiet daily ritual</p>

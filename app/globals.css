@@ -315,16 +315,57 @@
   min-height: min(88vh, 1061px);
 }
 
-.landing-hero::before {
+.landing-hero__media {
   position: absolute;
   inset: -5% -6% -20% 0;
   z-index: 0;
   background-image: url("/landing/hero-background.png");
   background-position: right 56%;
   background-repeat: no-repeat;
-  background-size: contain;
-  content: "";
+  background-size: auto 100%;
+  overflow: hidden;
   pointer-events: none;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    transparent 16%,
+    rgb(0 0 0 / 38%) 29%,
+    #000 43%,
+    #000 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    transparent 16%,
+    rgb(0 0 0 / 38%) 29%,
+    #000 43%,
+    #000 100%
+  );
+}
+
+.landing-hero__media--video-ready {
+  background-image: none;
+}
+
+.landing-hero__video {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: block;
+  height: 100%;
+  width: auto;
+  max-width: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-hero__media--video-ready {
+    background-image: url("/landing/hero-background.png");
+  }
+
+  .landing-hero__video {
+    display: none;
+  }
 }
 
 .landing-hero::after {
@@ -748,11 +789,36 @@
     min-height: 0;
   }
 
-  .landing-hero::before {
+  .landing-hero__media {
     inset: auto -66% 0 0%;
     height: 574px;
     background-position: 106% 109%;
     background-size: contain;
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      transparent 12%,
+      rgb(0 0 0 / 34%) 24%,
+      #000 40%,
+      #000 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      transparent 12%,
+      rgb(0 0 0 / 34%) 24%,
+      #000 40%,
+      #000 100%
+    );
+  }
+
+  .landing-hero__video {
+    position: static;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+    object-position: 106% 109%;
   }
 
   .landing-hero::after {
@@ -864,6 +930,27 @@
   .landing-footer nav {
     flex-wrap: wrap;
     gap: 18px 26px;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1100px) {
+  .landing-hero__media {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      transparent 26%,
+      rgb(0 0 0 / 24%) 42%,
+      #000 58%,
+      #000 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      transparent 26%,
+      rgb(0 0 0 / 24%) 42%,
+      #000 58%,
+      #000 100%
+    );
   }
 }
 
