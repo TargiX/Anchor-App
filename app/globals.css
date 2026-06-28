@@ -350,7 +350,7 @@
 .landing-hero__video {
   position: absolute;
   top: 0;
-  right: 0;
+  right: -41px;
   bottom: 0;
   display: block;
   height: 100%;
