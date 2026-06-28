@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 
 import { LandingHeroVideo } from "@/components/landing-hero-video"
+import { LandingMotion } from "@/components/landing-motion"
 
 const features = [
   {
@@ -53,6 +54,7 @@ const practice = [
 export default function Landing() {
   return (
     <main className="landing-page">
+      <LandingMotion />
       <header className="landing-header">
         <Link href="/" className="landing-logo" aria-label="Anchor home">
           Anchor
