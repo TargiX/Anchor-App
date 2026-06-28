@@ -22,7 +22,6 @@ export function LandingMotion() {
 
       gsap.from(cards, {
         autoAlpha: 0,
-        y: 56,
         clipPath: "inset(16% 0% 0% 0% round 10px)",
         duration: 1.1,
         ease: "power3.out",
