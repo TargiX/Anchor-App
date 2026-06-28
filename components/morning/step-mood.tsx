@@ -239,10 +239,21 @@ export function StepMood({ onNext, onBack, isMorning = true }: StepMoodProps) {
 
   // Respect prefers-reduced-motion: suppress the dot-drift float and the
   // word fade-in for users who have opted out of motion at the OS level.
-  const reduceMotion = useMemo(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return false
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  // Subscribed via matchMedia so a runtime toggle (the user changing the
+  // OS preference without a page reload) updates the UI without a remount.
+  // The initial setState is sync-from-external-source, mirroring the
+  // pattern in step-sleep for the hydrated mood point.
+  const [reduceMotion, setReduceMotion] = useState(false)
+  /* eslint-disable react-hooks/set-state-in-effect -- sync from matchMedia on mount */
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return
+    const mql = window.matchMedia("(prefers-reduced-motion: reduce)")
+    setReduceMotion(mql.matches)
+    const handler = (e: MediaQueryListEvent) => setReduceMotion(e.matches)
+    mql.addEventListener("change", handler)
+    return () => mql.removeEventListener("change", handler)
   }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
     <div className="flex flex-col flex-1 gap-8">
@@ -258,11 +269,16 @@ export function StepMood({ onNext, onBack, isMorning = true }: StepMoodProps) {
 
       {/* 2D Mood grid */}
       <div className="relative">
-        {/* Ambient mood word — also the polite live region for screen readers.
-            When the word changes (because the point crossed a bucket
-            threshold) AT users hear the new word without having to move
-            focus off the grid. */}
-        <div className="flex justify-center mb-2 h-5">
+        {/* Ambient mood word — the wrapper holds the live region so screen
+            readers track changes against a stable node (re-mounting the
+            live-region element itself is often silent). The inner span is
+            keyed only for the entry animation; the live announcement reads
+            the updated text via the parent's aria-live attribute. */}
+        <div
+          className="flex justify-center mb-2 h-5"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           {word && (
             <span
               key={word}
@@ -270,8 +286,6 @@ export function StepMood({ onNext, onBack, isMorning = true }: StepMoodProps) {
               style={{
                 animation: reduceMotion ? undefined : "mood-word-enter 0.35s ease-out",
               }}
-              aria-live="polite"
-              aria-atomic="true"
             >
               {word}
             </span>
