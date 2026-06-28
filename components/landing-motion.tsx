@@ -22,8 +22,7 @@ export function LandingMotion() {
 
       gsap.from(cards, {
         autoAlpha: 0,
-        y: 76,
-        rotateX: -9,
+        y: 56,
         clipPath: "inset(16% 0% 0% 0% round 10px)",
         duration: 1.1,
         ease: "power3.out",
@@ -75,8 +74,7 @@ export function LandingMotion() {
 
       gsap.from(".landing-platform-row", {
         autoAlpha: 0,
-        x: 82,
-        rotateY: -12,
+        x: 56,
         duration: 0.95,
         ease: "power3.out",
         stagger: 0.12,

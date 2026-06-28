@@ -461,7 +461,6 @@
   grid-column: 5 / span 8;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 28px;
-  perspective: 1100px;
 }
 
 .landing-card {
@@ -473,7 +472,6 @@
   border-radius: 10px;
   background: #f4efea;
   padding: 34px 31px 30px;
-  transform-style: preserve-3d;
   transition:
     border-color 260ms ease,
     box-shadow 260ms ease,
@@ -606,7 +604,6 @@
   background: #f3f1ec;
   padding: 0 22px;
   box-shadow: 0 14px 34px rgb(14 51 47 / 6%);
-  transform-style: preserve-3d;
   transition:
     border-color 240ms ease,
     box-shadow 240ms ease,
