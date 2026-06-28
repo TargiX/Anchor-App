@@ -312,7 +312,7 @@
   overflow: hidden;
   border-bottom: 1px solid var(--landing-line);
   background: var(--landing-cream);
-  min-height: min(88vh, 1061px);
+  min-height: min(100vh, 1127px);
 }
 
 .landing-hero__media {
