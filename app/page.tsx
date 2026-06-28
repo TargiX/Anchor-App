@@ -207,13 +207,45 @@ export default function Landing() {
 
       <footer className="landing-footer">
         <div className="landing-grid landing-footer__inner">
-          <p>Anchor &middot; A daily ritual app</p>
-          <nav aria-label="Footer navigation">
-            <Link href="/app">Open app</Link>
-            <Link href="/privacy">Privacy</Link>
-            <Link href="/support">Support</Link>
-            <span>© 2025</span>
+          <div className="landing-footer__brand">
+            <Link href="/" className="landing-logo" aria-label="Anchor home">
+              Anchor
+            </Link>
+            <p>
+              A quiet daily ritual for mood, sleep, intention, and reflection.
+            </p>
+            <Link href="/app" className="landing-button landing-button--primary">
+              <span>Open Anchor</span>
+              <ArrowRight aria-hidden="true" size={17} strokeWidth={1.7} />
+            </Link>
+          </div>
+
+          <nav className="landing-footer__nav" aria-label="Footer navigation">
+            <div>
+              <span>Practice</span>
+              <a href="#features">Features</a>
+              <a href="#practice">Daily ritual</a>
+              <a href="#about">Why Anchor</a>
+            </div>
+            <div>
+              <span>App</span>
+              <Link href="/morning">Morning</Link>
+              <Link href="/evening">Evening</Link>
+              <Link href="/timeline">Timeline</Link>
+            </div>
+            <div>
+              <span>Company</span>
+              <Link href="/support">Support</Link>
+              <Link href="/privacy">Privacy</Link>
+              <Link href="/terms">Terms</Link>
+            </div>
           </nav>
+
+          <div className="landing-footer__bottom">
+            <span>© 2026 Anchor</span>
+            <span>Private by default</span>
+            <span>Account-backed sync</span>
+          </div>
         </div>
       </footer>
     </main>
