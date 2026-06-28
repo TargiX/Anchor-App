@@ -169,7 +169,7 @@
 
 /* Anchor landing redesign */
 .landing-page {
-  --landing-cream: #f7eee35c;
+  --landing-cream: #f6eee3;
   --landing-paper: #f2eade;
   --landing-ink: #15130f;
   --landing-muted: #6c665e;
@@ -311,7 +311,7 @@
   position: relative;
   overflow: hidden;
   border-bottom: 1px solid var(--landing-line);
-  background: #f6ece1;
+  background: #f6eee3;
   min-height: min(100vh, 1127px);
 }
 
@@ -714,7 +714,8 @@
 }
 
 .landing-closing__copy .landing-button {
-  margin-top: 22px;
+  margin-top: -6px;
+  margin-bottom: 47px;
 }
 
 .landing-footer {
