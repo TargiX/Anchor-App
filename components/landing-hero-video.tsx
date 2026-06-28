@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react"
 
+const NATURAL_HERO_PLAYBACK_RATE = 10 / 7
+
 export function LandingHeroVideo() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [videoReady, setVideoReady] = useState(false)
@@ -9,6 +11,9 @@ export function LandingHeroVideo() {
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
+
+    video.defaultPlaybackRate = NATURAL_HERO_PLAYBACK_RATE
+    video.playbackRate = NATURAL_HERO_PLAYBACK_RATE
 
     const markReady = () => {
       if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
