@@ -182,7 +182,7 @@
   --landing-ocean: #2d7478;
   --landing-deep: #0e332f;
   min-height: 100dvh;
-  overflow-x: clip;
+  overflow: hidden;
   background: var(--landing-cream);
   color: var(--landing-ink);
   font-family: var(--font-body), sans-serif;
@@ -309,7 +309,7 @@
 
 .landing-hero {
   position: relative;
-  overflow: clip;
+  overflow: hidden;
   border-bottom: 1px solid var(--landing-line);
   background: var(--landing-cream);
   min-height: min(100vh, 1127px);
@@ -386,17 +386,14 @@
 .landing-hero__grid {
   position: relative;
   z-index: 2;
-  min-height: min(132vh, 1360px);
+  min-height: 780px;
   align-items: start;
 }
 
 .landing-hero__copy {
-  position: sticky;
-  top: clamp(118px, 18vh, 166px);
   z-index: 2;
   grid-column: 1 / span 6;
-  margin-top: 166px;
-  padding-bottom: 72px;
+  padding-top: 166px;
 }
 
 .landing-kicker {
@@ -833,10 +830,7 @@
   }
 
   .landing-hero__copy {
-    position: static;
-    top: auto;
     grid-column: 1 / -1;
-    margin-top: 0;
     padding-top: 54px;
     padding-bottom: 153px;
   }
