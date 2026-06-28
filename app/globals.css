@@ -311,7 +311,7 @@
   position: relative;
   overflow: hidden;
   border-bottom: 1px solid var(--landing-line);
-  background: var(--landing-cream);
+  background: #f6ece1;
   min-height: min(100vh, 1127px);
 }
 
@@ -325,22 +325,6 @@
   background-size: auto 100%;
   overflow: hidden;
   pointer-events: none;
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    transparent 16%,
-    rgb(0 0 0 / 38%) 29%,
-    #000 43%,
-    #000 100%
-  );
-  mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    transparent 16%,
-    rgb(0 0 0 / 38%) 29%,
-    #000 43%,
-    #000 100%
-  );
 }
 
 .landing-hero__media--video-ready {
@@ -350,7 +334,7 @@
 .landing-hero__video {
   position: absolute;
   top: 0;
-  right: -41px;
+  right: -182px;
   bottom: 0;
   display: block;
   height: 100%;
