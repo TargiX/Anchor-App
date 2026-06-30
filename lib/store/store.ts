@@ -68,6 +68,15 @@ export function hydrateFromStorage(): void {
   }
 }
 
+/**
+ * Clear the "already hydrated" guard so the next `hydrateFromStorage()` call
+ * re-reads from storage. Used after `resetState()` on authed→anon transitions
+ * so a subsequent sign-in re-hydrates from the (now empty) store cleanly.
+ */
+export function forceRehydrate(): void {
+  hydrated = false
+}
+
 export function setState(updater: (prev: AppState) => AppState): void {
   replaceState(updater(state))
 }

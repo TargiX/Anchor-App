@@ -64,10 +64,15 @@ export default function Landing() {
           <a href="#practice">Practice</a>
           <a href="#about">About</a>
         </nav>
-        <Link href="/app" className="landing-button landing-button--primary">
-          <span>Open app</span>
-          <ArrowRight aria-hidden="true" size={17} strokeWidth={1.7} />
-        </Link>
+        <div className="landing-header-actions">
+          <Link href="/login" className="landing-button landing-button--ghost">
+            Sign in
+          </Link>
+          <Link href="/app" className="landing-button landing-button--primary">
+            <span>Open app</span>
+            <ArrowRight aria-hidden="true" size={17} strokeWidth={1.7} />
+          </Link>
+        </div>
       </header>
 
       <section className="landing-hero" aria-labelledby="landing-title">

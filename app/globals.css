@@ -307,6 +307,13 @@
   padding-inline: 26px 23px;
 }
 
+.landing-header-actions {
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  gap: 10px;
+}
+
 .landing-hero {
   position: relative;
   overflow: hidden;
@@ -1009,6 +1016,10 @@
     font-size: 13px;
   }
 
+  .landing-header-actions {
+    gap: 8px;
+  }
+
   .landing-hero__title {
     font-size: 48px;
   }
@@ -1069,6 +1080,12 @@
   .landing-footer__bottom {
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+@media (max-width: 430px) {
+  .landing-header-actions .landing-button--ghost {
+    display: none;
   }
 }
 
