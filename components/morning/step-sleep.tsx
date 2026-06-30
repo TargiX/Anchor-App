@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
@@ -23,8 +23,21 @@ interface StepSleepProps {
 
 export function StepSleep({ onNext, onBack }: StepSleepProps) {
   const today = useTodayEntry()
-  const [quality, setQuality] = useState<SleepQuality | null>(today?.sleepQuality ?? null)
-  const [hours, setHours] = useState(today?.sleepHours ?? 7)
+  // Defaults for first render; effect below syncs the hydrated entry after
+  // useAppState finishes loading from storage. Initializing via useState(saved)
+  // only would freeze the pre-hydration (empty) values and miss the persisted
+  // entry on app launch. The set-state-in-effect lint rule is disabled here
+  // because this is exactly the documented "sync from external source" pattern
+  // (see react.dev/learn/you-might-not-need-an-effect#subscribing-to-a-store).
+  const [quality, setQuality] = useState<SleepQuality | null>(null)
+  const [hours, setHours] = useState(7)
+
+  /* eslint-disable react-hooks/set-state-in-effect -- sync from external store */
+  useEffect(() => {
+    if (today.sleepQuality !== undefined) setQuality(today.sleepQuality)
+    if (today.sleepHours !== undefined) setHours(today.sleepHours)
+  }, [today.sleepQuality, today.sleepHours])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function handleNext() {
     if (!quality) return

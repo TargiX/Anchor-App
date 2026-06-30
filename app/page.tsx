@@ -1,20 +1,16 @@
-"use client"
-
 import Link from "next/link"
-import { motion } from "framer-motion"
 import {
   ArrowRight,
-  Sunrise,
-  Moon,
+  Globe2,
   LineChart,
-  Sparkles,
-  Smartphone,
   Monitor,
-  Globe,
+  Moon,
+  Smartphone,
+  Sunrise,
 } from "lucide-react"
-import { AnchorMotif } from "@/components/anchor-motif"
-import { Button } from "@/components/ui/button"
-import { useAuth } from "@/components/auth-provider"
+
+import { LandingHeroVideo } from "@/components/landing-hero-video"
+import { LandingMotion } from "@/components/landing-motion"
 
 const features = [
   {
@@ -30,12 +26,12 @@ const features = [
   {
     icon: LineChart,
     title: "Timeline",
-    body: "Mood, sleep and habit streaks visualised over time. Trends, not just snapshots.",
+    body: "Mood, sleep and habit streaks visualized over time. Trends, not just snapshots.",
   },
 ]
 
 const platforms = [
-  { icon: Globe, label: "In your browser", note: "Just open it" },
+  { icon: Globe2, label: "In your browser", note: "Just open it" },
   { icon: Smartphone, label: "On your phone", note: "Add to home" },
   { icon: Monitor, label: "On your desktop", note: "Install it" },
 ]
@@ -56,296 +52,207 @@ const practice = [
 ]
 
 export default function Landing() {
-  const { status } = useAuth()
   return (
-    <div className="relative min-h-dvh overflow-hidden bg-background text-foreground">
-      {/* Ambient backdrop */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 [background:radial-gradient(60%_50%_at_50%_0%,oklch(0.65_0.085_47/0.18),transparent_70%),radial-gradient(45%_40%_at_85%_30%,oklch(0.38_0.065_52/0.12),transparent_75%)]"
-      />
-
-      {/* Nav */}
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <Link href="/" className="flex items-center gap-2.5">
-          <AnchorMotif size={32} className="text-primary" />
-          <span className="font-[family-name:var(--font-display)] text-lg font-semibold tracking-tight">
-            Anchor
-          </span>
+    <main className="landing-page">
+      <LandingMotion />
+      <header className="landing-header">
+        <Link href="/" className="landing-logo" aria-label="Anchor home">
+          Anchor
         </Link>
-        <nav className="hidden gap-7 text-sm text-muted-foreground sm:flex">
-          <a
-            href="#features"
-            className="transition-colors hover:text-foreground"
-          >
-            Features
-          </a>
-          <a
-            href="#platforms"
-            className="transition-colors hover:text-foreground"
-          >
-            Platforms
-          </a>
-          <a href="#practice" className="transition-colors hover:text-foreground">
-            Practice
-          </a>
+        <nav className="landing-nav" aria-label="Landing navigation">
+          <a href="#features">Features</a>
+          <a href="#practice">Practice</a>
+          <a href="#about">About</a>
         </nav>
-        <div className="flex items-center gap-2">
-          {status === "anon" && (
-            <Link href="/login">
-              <Button size="sm" variant="ghost" className="rounded-xl">
-                Sign in
-              </Button>
-            </Link>
-          )}
-          <Link href="/app">
-            <Button size="sm" className="rounded-xl">
-              Open app
-              <ArrowRight className="size-4" data-icon="inline-end" />
-            </Button>
+        <div className="landing-header-actions">
+          <Link href="/login" className="landing-button landing-button--ghost">
+            Sign in
+          </Link>
+          <Link href="/app" className="landing-button landing-button--primary">
+            <span>Open app</span>
+            <ArrowRight aria-hidden="true" size={17} strokeWidth={1.7} />
           </Link>
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="mx-auto flex max-w-6xl flex-col items-center px-6 pt-12 pb-20 text-center sm:pt-20 sm:pb-28">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
-          className="mb-8"
-        >
-          <AnchorMotif size={140} className="text-primary" />
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs tracking-widest text-muted-foreground uppercase backdrop-blur"
-        >
-          <Sparkles className="size-3 text-accent" />A quiet daily ritual
-        </motion.div>
-
-        <motion.h1
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="font-[family-name:var(--font-display)] text-4xl leading-[1.05] font-semibold tracking-tight text-balance sm:text-6xl"
-        >
-          Begin and close the day,
-          <br />
-          <span className="text-primary italic">on purpose.</span>
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-pretty text-muted-foreground sm:text-lg"
-        >
-          Anchor is a small, quiet space for morning and evening rituals — mood,
-          sleep, intention, journal. Web, mobile, and desktop. One unified flow.
-        </motion.p>
-
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45 }}
-          className="mt-8 flex flex-col items-center gap-3 sm:flex-row"
-        >
-          <Link href="/app">
-            <Button
-              size="lg"
-              className="h-12 rounded-2xl px-7 text-base font-medium"
+      <section className="landing-hero" aria-labelledby="landing-title">
+        <LandingHeroVideo />
+        <div className="landing-grid landing-hero__grid">
+          <div className="landing-hero__copy">
+            <p className="landing-kicker">A quiet daily ritual</p>
+            <h1
+              id="landing-title"
+              className="landing-display landing-hero__title"
             >
-              Try it now
-              <ArrowRight className="size-4" data-icon="inline-end" />
-            </Button>
-          </Link>
-          <a href="#features">
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-12 rounded-2xl px-7 text-base font-medium"
-            >
-              See how it works
-            </Button>
-          </a>
-        </motion.div>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="mt-5 text-xs text-muted-foreground"
-        >
-          Account-backed journal sync · private by default · installable on the web
-        </motion.p>
-      </section>
-
-      {/* Features */}
-      <section id="features" className="mx-auto max-w-6xl px-6 pb-20 sm:pb-28">
-        <div className="mb-10 max-w-xl">
-          <p className="mb-2 text-xs tracking-widest text-muted-foreground uppercase">
-            What&apos;s inside
-          </p>
-          <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight font-semibold text-balance sm:text-4xl">
-            Two short rituals.
-            <br />
-            One long trend line.
-          </h2>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-3">
-          {features.map((f, i) => (
-            <motion.div
-              key={f.title}
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-80px" }}
-              transition={{ delay: i * 0.08 }}
-              className="group rounded-3xl border border-border bg-card/60 p-6 backdrop-blur transition-all hover:border-accent/40 hover:shadow-sm"
-            >
-              <div className="mb-5 inline-flex size-11 items-center justify-center rounded-2xl bg-accent/10 text-accent transition-transform group-hover:scale-105">
-                <f.icon className="size-5" />
-              </div>
-              <h3 className="font-[family-name:var(--font-display)] text-lg font-medium">
-                {f.title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {f.body}
-              </p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* Platforms */}
-      <section id="platforms" className="border-y border-border/60 bg-card/30">
-        <div className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
-          <div className="grid items-center gap-10 sm:grid-cols-2">
-            <div>
-              <p className="mb-2 text-xs tracking-widest text-muted-foreground uppercase">
-                Anywhere
-              </p>
-              <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight font-semibold text-balance sm:text-4xl">
-                Wherever
-                <br />
-                you check in.
-              </h2>
-              <p className="mt-4 max-w-md text-sm leading-relaxed text-pretty text-muted-foreground sm:text-base">
-                Open Anchor in your browser, or add it to your home screen on
-                phone and desktop. No app store, no download — it&apos;s just
-                there when you need it.
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              {platforms.map((p, i) => (
-                <motion.div
-                  key={p.label}
-                  initial={{ opacity: 0, x: 12 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.08 }}
-                  className="flex items-center gap-4 rounded-2xl border border-border bg-background/60 px-5 py-4"
-                >
-                  <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <p.icon className="size-5" />
-                  </div>
-                  <span className="font-medium">{p.label}</span>
-                  <span className="ml-auto text-xs tracking-widest text-muted-foreground uppercase">
-                    {p.note}
-                  </span>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Practice */}
-      <section id="practice" className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
-        <div className="text-center">
-          <p className="mb-2 text-xs tracking-widest text-muted-foreground uppercase">
-            The practice
-          </p>
-          <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-balance sm:text-3xl">
-            A gentle vocabulary for your day
-          </h2>
-        </div>
-        <div className="mt-8 flex flex-wrap justify-center gap-2">
-          {practice.map((word) => (
-            <span
-              key={word}
-              className="rounded-full border border-border bg-card/60 px-3.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {word}
-            </span>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="mx-auto max-w-6xl px-6 pb-24">
-        <div className="relative overflow-hidden rounded-4xl border border-border bg-gradient-to-br from-card to-card/60 p-10 text-center sm:p-14">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 [background:radial-gradient(50%_60%_at_50%_0%,oklch(0.65_0.085_47/0.22),transparent_70%)]"
-          />
-          <div className="relative">
-            <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight font-semibold text-balance sm:text-4xl">
-              Five quiet minutes.
+              Begin and close
               <br />
-              Twice a day.
-            </h2>
-            <p className="mx-auto mt-4 max-w-md text-sm text-muted-foreground sm:text-base">
-              That&apos;s it. Start tonight.
+              the day,
+              <br />
+              <em>on purpose.</em>
+            </h1>
+            <p className="landing-body landing-hero__body">
+              Anchor is a small, quiet space for morning and evening rituals
+              &mdash; mood, sleep, intention, journal. One unified flow.
             </p>
-            <Link href="/app">
-              <Button
-                size="lg"
-                className="mt-8 h-12 rounded-2xl px-8 text-base font-medium"
-              >
-                Open Anchor
-                <ArrowRight className="size-4" data-icon="inline-end" />
-              </Button>
-            </Link>
+            <div className="landing-actions" aria-label="Primary actions">
+              <Link href="/app" className="landing-button landing-button--primary">
+                <span>Try it now</span>
+                <ArrowRight aria-hidden="true" size={18} strokeWidth={1.7} />
+              </Link>
+              <a href="#features" className="landing-button landing-button--ghost">
+                See how it works
+              </a>
+            </div>
+            <p className="landing-proof">
+              Account-backed journal sync &middot; Private by default &middot;
+              Available on the web
+            </p>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border/60">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-muted-foreground sm:flex-row">
-          <div className="flex items-center gap-2">
-            <AnchorMotif size={20} className="text-primary" />
-            <span>Anchor · A daily ritual app</span>
+      <section id="features" className="landing-section landing-features">
+        <div className="landing-grid landing-features__grid">
+          <div className="landing-section-intro">
+            <p className="landing-kicker">What&apos;s inside</p>
+            <h2 className="landing-display">
+              Two short rituals.
+              <br />
+              One long trend line.
+            </h2>
           </div>
-          <div className="flex items-center gap-5">
-            <Link
-              href="/app"
-              className="transition-colors hover:text-foreground"
-            >
-              Open app
+
+          <div className="landing-feature-list">
+            {features.map((feature) => (
+              <article className="landing-card" key={feature.title}>
+                <span className="landing-icon" aria-hidden="true">
+                  <feature.icon size={30} strokeWidth={1.45} />
+                </span>
+                <h3 className="landing-display">{feature.title}</h3>
+                <p>{feature.body}</p>
+                <ArrowRight
+                  className="landing-card__arrow"
+                  aria-hidden="true"
+                  size={22}
+                  strokeWidth={1.35}
+                />
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="landing-platforms" aria-labelledby="platforms-title">
+        <div className="landing-platforms__image" aria-hidden="true" />
+
+        <div className="landing-grid landing-platforms__grid">
+          <div className="landing-section-intro">
+            <p className="landing-kicker">Anywhere</p>
+            <h2 id="platforms-title" className="landing-display">
+              Wherever
+              <br />
+              you check in.
+            </h2>
+            <p className="landing-body">
+              Open Anchor in your browser, or add it to your home screen on
+              phone and desktop. No app store, no download &mdash; it&apos;s
+              just there when you need it.
+            </p>
+          </div>
+
+          <div className="landing-platform-list">
+            {platforms.map((platform) => (
+              <div className="landing-platform-row" key={platform.label}>
+                <span className="landing-platform-row__icon" aria-hidden="true">
+                  <platform.icon size={24} strokeWidth={1.5} />
+                </span>
+                <span>{platform.label}</span>
+                <small>{platform.note}</small>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="practice" className="landing-practice">
+        <div className="landing-grid">
+          <div className="landing-practice__intro">
+            <p className="landing-kicker">The practice</p>
+            <h2 className="landing-display">
+              A gentle vocabulary for your day
+            </h2>
+          </div>
+
+          <div className="landing-chip-list" aria-label="Practice vocabulary">
+            {practice.map((word) => (
+              <span key={word}>{word}</span>
+            ))}
+          </div>
+
+          <section
+            id="about"
+            className="landing-closing"
+            aria-labelledby="closing-title"
+          >
+            <div className="landing-closing__copy">
+              <h2 id="closing-title" className="landing-display">
+                Five quiet minutes.
+                <br />
+                Twice a day.
+              </h2>
+              <p>That&apos;s it. Start tonight.</p>
+              <Link href="/app" className="landing-button landing-button--primary">
+                <span>Open Anchor</span>
+                <ArrowRight aria-hidden="true" size={18} strokeWidth={1.7} />
+              </Link>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <footer className="landing-footer">
+        <div className="landing-grid landing-footer__inner">
+          <div className="landing-footer__brand">
+            <Link href="/" className="landing-logo" aria-label="Anchor home">
+              Anchor
             </Link>
-            <Link
-              href="/privacy"
-              className="transition-colors hover:text-foreground"
-            >
-              Privacy
+            <p>
+              A quiet daily ritual for mood, sleep, intention, and reflection.
+            </p>
+            <Link href="/app" className="landing-button landing-button--primary">
+              <span>Open Anchor</span>
+              <ArrowRight aria-hidden="true" size={17} strokeWidth={1.7} />
             </Link>
-            <Link
-              href="/support"
-              className="transition-colors hover:text-foreground"
-            >
-              Support
-            </Link>
-            <span>© {new Date().getFullYear()}</span>
+          </div>
+
+          <nav className="landing-footer__nav" aria-label="Footer navigation">
+            <div>
+              <span>Practice</span>
+              <a href="#features">Features</a>
+              <a href="#practice">Daily ritual</a>
+              <a href="#about">Why Anchor</a>
+            </div>
+            <div>
+              <span>App</span>
+              <Link href="/morning">Morning</Link>
+              <Link href="/evening">Evening</Link>
+              <Link href="/timeline">Timeline</Link>
+            </div>
+            <div>
+              <span>Company</span>
+              <Link href="/support">Support</Link>
+              <Link href="/privacy">Privacy</Link>
+              <Link href="/terms">Terms</Link>
+            </div>
+          </nav>
+
+          <div className="landing-footer__bottom">
+            <span>© 2026 Anchor</span>
+            <span>Private by default</span>
+            <span>Account-backed sync</span>
           </div>
         </div>
       </footer>
-    </div>
+    </main>
   )
 }
