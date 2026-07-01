@@ -33,10 +33,10 @@ export const ANON_STORAGE_KEY = "anchor-state-anon"
 /**
  * Legacy pre-scope-split key. Pre-084e93a the entire app wrote to a single
  * `anchor-state` slot — meaning any anon visitor saw the previous authed
- * user's data. On first hydrate we read this key once, migrate its data
- * into the active scope (anon for unconfigured users, authed for the
- * signed-in user) and delete the legacy entry. After this one-time
- * migration the legacy key is never read again.
+ * user's data. On first hydrate the local-only path migrates this key into
+ * the local slot and deletes the legacy entry. Authenticated and anonymous
+ * auth flows treat the legacy entry as unowned and drop it rather than
+ * importing it across a privacy boundary.
  */
 export const LEGACY_STORAGE_KEY = "anchor-state"
 /** Bump when the persisted shape changes; add a branch in `migrate`. */

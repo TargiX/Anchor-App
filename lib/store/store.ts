@@ -36,17 +36,13 @@ let cloudPersistence: ((state: AppState) => void) | null = null
 let storageScope: "authed" | "anon" | "local" = "authed"
 let authedUserId: string | null = null
 
-function activeKey(): string {
+function activeKey(): string | null {
   if (storageScope === "anon" || storageScope === "local") return ANON_STORAGE_KEY
   if (authedUserId) return authedStorageKey(authedUserId)
   // Authed scope with no user id yet: nothing to read/write. Callers must
   // set authedUserId via setStorageScope("authed", userId) before
   // hydrating; see SyncProvider.
-  return ANON_STORAGE_KEY
-}
-
-function hasActiveKey(): boolean {
-  return storageScope === "anon" || storageScope === "local" || authedUserId !== null
+  return null
 }
 
 function migrateLegacyIfPresent(): void {
@@ -80,11 +76,14 @@ function migrateLegacyIfPresent(): void {
 }
 
 function hydrate(): void {
-  if (!hasActiveKey()) return
-  const raw = storage.read(activeKey())
+  const key = activeKey()
+  if (!key) return
+  const raw = storage.read(key)
   if (!raw) {
     // No data in the current scope yet. If a legacy `anchor-state` entry
-    // exists, fold it into the active scope exactly once and stop.
+    // exists, migrate it only for the local-only scope. Anonymous and
+    // authenticated auth scopes treat legacy data as unowned and may drop
+    // it without importing across a privacy boundary.
     migrateLegacyIfPresent()
     return
   }
@@ -101,9 +100,10 @@ function hydrate(): void {
 }
 
 function persistLocal(): boolean {
-  if (!hasActiveKey()) return false
+  const key = activeKey()
+  if (!key) return false
   return storage.write(
-    activeKey(),
+    key,
     JSON.stringify({ version: STATE_VERSION, data: state })
   )
 }
@@ -238,7 +238,8 @@ export function clearAllAuthedSlots(): void {
 
 export function resetState(): void {
   state = INITIAL_STATE
-  if (hasActiveKey()) storage.remove(activeKey())
+  const key = activeKey()
+  if (key) storage.remove(key)
   notify()
 }
 

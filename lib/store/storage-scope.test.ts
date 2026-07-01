@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
   getSnapshot,
   hydrateFromStorage,
@@ -10,6 +10,7 @@ import {
 } from "./store"
 import {
   INITIAL_STATE,
+  ANON_STORAGE_KEY,
   LEGACY_STORAGE_KEY,
   authedStorageKey,
   type AppState,
@@ -39,8 +40,7 @@ const USER_A = "user-aaa"
 const USER_B = "user-bbb"
 
 beforeEach(() => {
-  // @ts-expect-error polyfill localStorage for store.ts
-  globalThis.window = { localStorage: localStorageShim }
+  vi.stubGlobal("window", { localStorage: localStorageShim })
   failWrites = false
   memStorage.clear()
   // Start each test from a known authed scope.
@@ -49,8 +49,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  // @ts-expect-error cleanup
-  delete globalThis.window
+  vi.unstubAllGlobals()
   failWrites = false
   memStorage.clear()
   setStorageScope("authed", USER_A)
@@ -258,7 +257,7 @@ describe("storage scope isolation", () => {
       "local-only journal"
     )
     expect(memStorage.has(LEGACY_STORAGE_KEY)).toBe(false)
-    expect(memStorage.has("anchor-state-anon")).toBe(true)
+    expect(memStorage.has(ANON_STORAGE_KEY)).toBe(true)
   })
 
   it("keeps legacy local-only data if scoped migration write fails", () => {
@@ -279,14 +278,16 @@ describe("storage scope isolation", () => {
 
     expect(getSnapshot().entries["2026-05-01"]?.journal).toBe("must survive")
     expect(memStorage.has(LEGACY_STORAGE_KEY)).toBe(true)
-    expect(memStorage.has("anchor-state-anon")).toBe(false)
+    expect(memStorage.has(ANON_STORAGE_KEY)).toBe(false)
   })
 
   it("legacy anchor-state key is dropped — not migrated — when the visitor is anonymous", () => {
     // The legacy `anchor-state` key may have belonged to a previous
-    // authenticated user. Migrating it into the anonymous slot would
-    // leak that user's journal entries into the next signer's cloud
-    // row via the anon -> authed merge. Drop it instead.
+    // authenticated user. Anonymous and unconfigured cloud states both use
+    // the anon auth scope here, so this single path covers both cases.
+    // Migrating it into the anonymous slot would leak that user's journal
+    // entries into the next signer's cloud row via the anon -> authed merge.
+    // Drop it instead.
     const legacy: AppState = {
       ...INITIAL_STATE,
       entries: {
@@ -302,32 +303,8 @@ describe("storage scope isolation", () => {
     hydrateFromStorage()
     expect(getSnapshot().entries["2026-04-15"]).toBeUndefined()
     expect(memStorage.has(LEGACY_STORAGE_KEY)).toBe(false)
-    expect(memStorage.has("anchor-state-anon")).toBe(false)
+    expect(memStorage.has(ANON_STORAGE_KEY)).toBe(false)
   })
-
-  it("legacy anchor-state key is dropped — not migrated — when scope is unconfigured (anon-equivalent)", () => {
-    // The unconfigured status (no Supabase env) hydrates into the anon
-    // scope. Same privacy rationale applies: a legacy `anchor-state`
-    // entry may belong to a previous authenticated user, so we must
-    // not migrate it into the anon slot from which a future sign-in
-    // could pick it up.
-    const legacy: AppState = {
-      ...INITIAL_STATE,
-      entries: {
-        "2026-03-01": { date: "2026-03-01", journal: "previous-user-journal" },
-      },
-    }
-    memStorage.set(
-      LEGACY_STORAGE_KEY,
-      JSON.stringify({ version: 1, data: legacy })
-    )
-
-    setStorageScope("anon")
-    hydrateFromStorage()
-    expect(getSnapshot().entries["2026-03-01"]).toBeUndefined()
-    expect(memStorage.has(LEGACY_STORAGE_KEY)).toBe(false)
-  })
-
   it("legacy key is dropped but never overwrites an already-populated scoped slot", () => {
     // First the user has scoped data; then (perhaps because of a long
     // deploy window) a legacy entry shows up in storage. The active
