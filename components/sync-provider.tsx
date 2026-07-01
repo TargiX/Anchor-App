@@ -111,7 +111,6 @@ export function SyncProvider() {
 
     setStorageScope("authed", userId)
     hydrateFromStorage()
-    const localState = getSnapshot()
     previousAuthedUserIdRef.current = userId
 
     let cancelled = false
@@ -124,9 +123,12 @@ export function SyncProvider() {
         : null
       if (cancelled) return
 
+      // Re-read after the async cloud load so local edits made while the
+      // request was in flight are not overwritten by a stale pre-await snapshot.
+      const currentLocalState = getSnapshot()
       let syncedState: AppState = remoteState
-        ? mergeCloudState(localState, remoteState)
-        : localState
+        ? mergeCloudState(currentLocalState, remoteState)
+        : currentLocalState
 
       // If the visitor had unsynced anon entries from this same tab/session,
       // fold them into the synced authed state. Anon edits are the freshest
@@ -150,7 +152,11 @@ export function SyncProvider() {
       setCloudPersistence((nextState) => {
         if (timeoutRef.current) clearTimeout(timeoutRef.current)
         timeoutRef.current = setTimeout(() => {
-          if (client) void saveCloudState(client, userId, nextState)
+          if (client) {
+            void saveCloudState(client, userId, nextState).catch((error) => {
+              console.error("Anchor cloud persistence failed", error)
+            })
+          }
         }, SAVE_DELAY_MS)
       })
     }
