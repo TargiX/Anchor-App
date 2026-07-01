@@ -182,9 +182,10 @@ describe("storage scope isolation", () => {
     expect(authedStorageKey(USER_B)).toBe(`anchor-state-authed:${USER_B}`)
   })
 
-  it("legacy anchor-state key migrates into the active scope once and is removed", () => {
-    // Simulate a browser that was last written by the pre-scope-split
-    // store: a single `anchor-state` entry, no scoped slot yet.
+  it("legacy anchor-state key is dropped — not migrated — when the visitor is authenticated", () => {
+    // The legacy key has no user id binding. On a shared device it may
+    // belong to a different account, so an authenticated hydrate must not
+    // import it into the current signer's scoped slot.
     const legacy: AppState = {
       ...INITIAL_STATE,
       entries: {
@@ -196,25 +197,36 @@ describe("storage scope isolation", () => {
       JSON.stringify({ version: 1, data: legacy })
     )
 
-    // First hydrate in an authed scope folds legacy into the authed slot
-    // and removes the legacy key.
+    // First hydrate in an authed scope removes the legacy key without
+    // reading it into this user's slot.
     setStorageScope("authed", USER_A)
     hydrateFromStorage()
-    expect(getSnapshot().entries["2026-05-01"]?.journal).toBe("old journal")
+    expect(getSnapshot().entries["2026-05-01"]).toBeUndefined()
     expect(memStorage.has(LEGACY_STORAGE_KEY)).toBe(false)
-    expect(memStorage.has(authedStorageKey(USER_A))).toBe(true)
+    expect(memStorage.has(authedStorageKey(USER_A))).toBe(false)
+  })
 
-    // A second hydrate in the same scope does NOT re-migrate (legacy
-    // key is gone) and does NOT clobber the existing scoped data.
-    replaceState({
+  it("legacy anchor-state key migrates into local-only mode once and is removed", () => {
+    // Unconfigured/local-only users have no cloud account boundary. Their
+    // pre-scope-split local data should survive the scoped-storage upgrade.
+    const legacy: AppState = {
       ...INITIAL_STATE,
       entries: {
-        "2026-06-10": { date: "2026-06-10", journal: "current journal" },
+        "2026-05-01": { date: "2026-05-01", journal: "local-only journal" },
       },
-    })
+    }
+    memStorage.set(
+      LEGACY_STORAGE_KEY,
+      JSON.stringify({ version: 1, data: legacy })
+    )
+
+    setStorageScope("local")
     hydrateFromStorage()
-    expect(getSnapshot().entries["2026-06-10"]?.journal).toBe("current journal")
-    expect(getSnapshot().entries["2026-05-01"]).toBeUndefined()
+    expect(getSnapshot().entries["2026-05-01"]?.journal).toBe(
+      "local-only journal"
+    )
+    expect(memStorage.has(LEGACY_STORAGE_KEY)).toBe(false)
+    expect(memStorage.has("anchor-state-anon")).toBe(true)
   })
 
   it("legacy anchor-state key is dropped — not migrated — when the visitor is anonymous", () => {

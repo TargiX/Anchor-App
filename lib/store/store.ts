@@ -32,11 +32,11 @@ let cloudPersistence: ((state: AppState) => void) | null = null
  * SyncProvider is responsible for calling `setStorageScope` when auth
  * status changes (before any hydrate/persist this tick).
  */
-let storageScope: "authed" | "anon" = "authed"
+let storageScope: "authed" | "anon" | "local" = "authed"
 let authedUserId: string | null = null
 
 function activeKey(): string {
-  if (storageScope === "anon") return ANON_STORAGE_KEY
+  if (storageScope === "anon" || storageScope === "local") return ANON_STORAGE_KEY
   if (authedUserId) return authedStorageKey(authedUserId)
   // Authed scope with no user id yet: nothing to read/write. Callers must
   // set authedUserId via setStorageScope("authed", userId) before
@@ -45,24 +45,22 @@ function activeKey(): string {
 }
 
 function hasActiveKey(): boolean {
-  return storageScope === "anon" || authedUserId !== null
+  return storageScope === "anon" || storageScope === "local" || authedUserId !== null
 }
 
 function migrateLegacyIfPresent(): void {
   // One-time migration from the pre-scope-split single `anchor-state`
-  // key into the active authed user's slot. The legacy envelope had
+  // key into the local-only slot. The legacy envelope had
   // the same shape ({ version, data }) or was the raw AppState itself;
   // `migrate` already handles both. Runs at most once per browser: after
   // we move the data we delete the legacy key.
   //
-  // Privacy note: we only migrate into an authed scope with a known
-  // userId. The legacy `anchor-state` key was a single shared slot,
-  // so its contents may have belonged to a previous authenticated
-  // user. Migrating those entries into the anonymous slot — and then
-  // merging anon into the next signer's account — would leak one
-  // user's private journal into another's cloud row. An anonymous
-  // hydration always drops the legacy entry without reading it.
-  if (storageScope !== "authed" || !authedUserId) {
+  // Privacy note: only the unconfigured/local-only path migrates legacy
+  // data. Authenticated and anonymous auth flows treat the legacy key as
+  // unowned because it may have belonged to a previous account on a shared
+  // device; importing it into a user slot or anon slot could leak private
+  // journal entries into the next signer's cloud row.
+  if (storageScope !== "local") {
     storage.remove(LEGACY_STORAGE_KEY)
     return
   }
@@ -163,7 +161,7 @@ export function replaceState(
  * state can never leak into a different authed user's slot.
  */
 export function setStorageScope(
-  scope: "authed" | "anon",
+  scope: "authed" | "anon" | "local",
   userId?: string | null
 ): void {
   if (scope === "authed") {
@@ -174,8 +172,8 @@ export function setStorageScope(
     storageScope = "authed"
     authedUserId = userId
   } else {
-    if (storageScope === "anon") return
-    storageScope = "anon"
+    if (storageScope === scope) return
+    storageScope = scope
     authedUserId = null
   }
   state = INITIAL_STATE

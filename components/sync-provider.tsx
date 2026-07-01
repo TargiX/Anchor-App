@@ -21,6 +21,7 @@ const SAVE_DELAY_MS = 650
 export function SyncProvider() {
   const { status, user } = useAuth()
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const previousStatusRef = useRef<typeof status | null>(null)
   // Remember the previous authed user id so an authed → anon/unconfigured
   // transition can wipe that user's local slot on its way out. Without
   // this the local journal persists forever after sign-out on a shared
@@ -30,6 +31,8 @@ export function SyncProvider() {
 
   useEffect(() => {
     const client = supabase
+    const previousStatus = previousStatusRef.current
+    previousStatusRef.current = status
 
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
@@ -39,12 +42,13 @@ export function SyncProvider() {
 
     // Unconfigured (no Supabase env) is a fully-supported local-only mode:
     // local persistence must work even though there is no cloud to sync to.
-    // Use the anon scope so the user keeps their progress across reloads.
+    // Use a local-only scope so legacy local data can migrate without being
+    // treated as anonymous sign-in progress for a future cloud account.
     if (status === "unconfigured") {
       const prevUserId = previousAuthedUserIdRef.current
       if (prevUserId) clearAuthedSlot(prevUserId)
       previousAuthedUserIdRef.current = null
-      setStorageScope("anon")
+      setStorageScope("local")
       hydrateFromStorage()
       return () => {
         if (timeoutRef.current) {
@@ -91,11 +95,14 @@ export function SyncProvider() {
       clearAuthedSlot(prevUserId)
     }
 
-    // Authed path: snapshot anon state (if any) BEFORE switching scopes —
-    // setStorageScope resets in-memory state to INITIAL_STATE, so reading
-    // getSnapshot() after would yield nothing.
+    // Authed path: snapshot true anonymous same-tab state (if any) BEFORE
+    // switching scopes — setStorageScope resets in-memory state to
+    // INITIAL_STATE, so reading getSnapshot() after would yield nothing.
+    // Do not carry `unconfigured` local-only legacy data into cloud auth:
+    // the old pre-scope key had no account binding and may be unowned.
     const anonProgress = getSnapshot()
     const hadAnonEntries =
+      previousStatus === "anon" &&
       anonProgress !== INITIAL_STATE &&
       Object.keys(anonProgress.entries).length > 0
 
