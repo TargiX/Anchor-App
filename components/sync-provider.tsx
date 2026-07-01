@@ -145,7 +145,11 @@ export function SyncProvider() {
 
       replaceState(syncedState, { persistCloud: false })
       if (client) {
-        await saveCloudState(client, userId, syncedState)
+        try {
+          await saveCloudState(client, userId, syncedState)
+        } catch (error) {
+          console.error("Anchor initial cloud persistence failed", error)
+        }
       }
       if (cancelled) return
 

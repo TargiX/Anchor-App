@@ -283,11 +283,9 @@ describe("storage scope isolation", () => {
 
   it("legacy anchor-state key is dropped — not migrated — when the visitor is anonymous", () => {
     // The legacy `anchor-state` key may have belonged to a previous
-    // authenticated user. Anonymous and unconfigured cloud states both use
-    // the anon auth scope here, so this single path covers both cases.
-    // Migrating it into the anonymous slot would leak that user's journal
-    // entries into the next signer's cloud row via the anon -> authed merge.
-    // Drop it instead.
+    // authenticated user. Migrating it into the anonymous slot would leak
+    // that user's journal entries into the next signer's cloud row via the
+    // anon -> authed merge, so the anon scope drops it instead.
     const legacy: AppState = {
       ...INITIAL_STATE,
       entries: {
