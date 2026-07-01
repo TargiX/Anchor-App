@@ -5,7 +5,7 @@
  */
 export interface StoragePort {
   read(key: string): string | null
-  write(key: string, value: string): void
+  write(key: string, value: string): boolean
   remove(key: string): void
   keys(): string[]
 }
@@ -21,11 +21,13 @@ export const localStorageAdapter: StoragePort = {
     }
   },
   write(key, value) {
-    if (typeof window === "undefined") return
+    if (typeof window === "undefined") return false
     try {
       window.localStorage.setItem(key, value)
+      return window.localStorage.getItem(key) === value
     } catch {
       // Ignore: storage unavailable / over quota. In-memory state still works.
+      return false
     }
   },
   remove(key) {

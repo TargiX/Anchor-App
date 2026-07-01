@@ -69,8 +69,9 @@ function migrateLegacyIfPresent(): void {
   if (!raw) return
   try {
     state = migrate(JSON.parse(raw))
-    persistLocal()
-    storage.remove(LEGACY_STORAGE_KEY)
+    if (persistLocal()) {
+      storage.remove(LEGACY_STORAGE_KEY)
+    }
   } catch {
     // Corrupt legacy entry: drop it so the migration does not retry on
     // every reload and so the user gets a clean initial state.
@@ -99,9 +100,9 @@ function hydrate(): void {
   storage.remove(LEGACY_STORAGE_KEY)
 }
 
-function persistLocal(): void {
-  if (!hasActiveKey()) return
-  storage.write(
+function persistLocal(): boolean {
+  if (!hasActiveKey()) return false
+  return storage.write(
     activeKey(),
     JSON.stringify({ version: STATE_VERSION, data: state })
   )

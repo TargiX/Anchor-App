@@ -16,9 +16,11 @@ import {
 } from "./state"
 
 const memStorage = new Map<string, string>()
+let failWrites = false
 const localStorageShim = {
   getItem: (k: string) => memStorage.get(k) ?? null,
   setItem: (k: string, v: string) => {
+    if (failWrites) throw new Error("storage unavailable")
     memStorage.set(k, v)
   },
   removeItem: (k: string) => {
@@ -39,6 +41,7 @@ const USER_B = "user-bbb"
 beforeEach(() => {
   // @ts-expect-error polyfill localStorage for store.ts
   globalThis.window = { localStorage: localStorageShim }
+  failWrites = false
   memStorage.clear()
   // Start each test from a known authed scope.
   setStorageScope("authed", USER_A)
@@ -48,6 +51,7 @@ beforeEach(() => {
 afterEach(() => {
   // @ts-expect-error cleanup
   delete globalThis.window
+  failWrites = false
   memStorage.clear()
   setStorageScope("authed", USER_A)
   resetState()
@@ -255,6 +259,27 @@ describe("storage scope isolation", () => {
     )
     expect(memStorage.has(LEGACY_STORAGE_KEY)).toBe(false)
     expect(memStorage.has("anchor-state-anon")).toBe(true)
+  })
+
+  it("keeps legacy local-only data if scoped migration write fails", () => {
+    const legacy: AppState = {
+      ...INITIAL_STATE,
+      entries: {
+        "2026-05-01": { date: "2026-05-01", journal: "must survive" },
+      },
+    }
+    memStorage.set(
+      LEGACY_STORAGE_KEY,
+      JSON.stringify({ version: 1, data: legacy })
+    )
+
+    failWrites = true
+    setStorageScope("local")
+    hydrateFromStorage()
+
+    expect(getSnapshot().entries["2026-05-01"]?.journal).toBe("must survive")
+    expect(memStorage.has(LEGACY_STORAGE_KEY)).toBe(true)
+    expect(memStorage.has("anchor-state-anon")).toBe(false)
   })
 
   it("legacy anchor-state key is dropped — not migrated — when the visitor is anonymous", () => {
