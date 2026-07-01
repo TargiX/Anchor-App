@@ -103,9 +103,8 @@ const WORD_BUCKETS: Array<{ test: (v: number, e: number) => boolean; word: strin
 
 /**
  * Single source of truth for the mood word shown above the grid and spoken by
- * assistive tech. Matches `moodWord()` in `components/morning/step-mood.tsx`
- * exactly — kept in sync intentionally so screen-reader users hear the same
- * word the sighted user sees.
+ * assistive tech. Imported directly by `components/morning/step-mood.tsx` so
+ * screen-reader users hear the same word the sighted user sees.
  */
 export function moodWord(valence: number, energy: number): string {
   for (const bucket of WORD_BUCKETS) {
