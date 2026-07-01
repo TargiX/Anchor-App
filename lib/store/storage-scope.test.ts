@@ -5,6 +5,7 @@ import {
   replaceState,
   resetAnonSlot,
   resetState,
+  clearAllAuthedSlots,
   setStorageScope,
 } from "./store"
 import {
@@ -26,7 +27,7 @@ const localStorageShim = {
   get length() {
     return memStorage.size
   },
-  key: () => null,
+  key: (index: number) => Array.from(memStorage.keys())[index] ?? null,
   clear() {
     memStorage.clear()
   },
@@ -154,6 +155,33 @@ describe("storage scope isolation", () => {
     resetAnonSlot()
     hydrateFromStorage()
     expect(getSnapshot().entries["2026-06-21"]).toBeUndefined()
+    expect(getSnapshot()).toEqual(INITIAL_STATE)
+  })
+
+  it("clearAllAuthedSlots removes every persisted authed user slot", () => {
+    setStorageScope("authed", USER_A)
+    replaceState({
+      ...INITIAL_STATE,
+      entries: {
+        "2026-06-21": { date: "2026-06-21", journal: "user A journal" },
+      },
+    })
+
+    setStorageScope("authed", USER_B)
+    replaceState({
+      ...INITIAL_STATE,
+      entries: {
+        "2026-06-22": { date: "2026-06-22", journal: "user B journal" },
+      },
+    })
+
+    expect(memStorage.has(authedStorageKey(USER_A))).toBe(true)
+    expect(memStorage.has(authedStorageKey(USER_B))).toBe(true)
+
+    clearAllAuthedSlots()
+
+    expect(memStorage.has(authedStorageKey(USER_A))).toBe(false)
+    expect(memStorage.has(authedStorageKey(USER_B))).toBe(false)
     expect(getSnapshot()).toEqual(INITIAL_STATE)
   })
 

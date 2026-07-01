@@ -7,6 +7,7 @@ export interface StoragePort {
   read(key: string): string | null
   write(key: string, value: string): void
   remove(key: string): void
+  keys(): string[]
 }
 
 /** Web adapter. SSR-safe and never throws (private mode, quota, etc.). */
@@ -33,6 +34,19 @@ export const localStorageAdapter: StoragePort = {
       window.localStorage.removeItem(key)
     } catch {
       // Ignore.
+    }
+  },
+  keys() {
+    if (typeof window === "undefined") return []
+    try {
+      const keys: string[] = []
+      for (let index = 0; index < window.localStorage.length; index += 1) {
+        const key = window.localStorage.key(index)
+        if (key) keys.push(key)
+      }
+      return keys
+    } catch {
+      return []
     }
   },
 }

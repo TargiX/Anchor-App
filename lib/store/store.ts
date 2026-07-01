@@ -3,6 +3,7 @@
 import {
   ANON_STORAGE_KEY,
   AppState,
+  AUTHED_STORAGE_KEY_PREFIX,
   INITIAL_STATE,
   LEGACY_STORAGE_KEY,
   STATE_VERSION,
@@ -211,6 +212,23 @@ export function resetAnonSlot(): void {
 export function clearAuthedSlot(userId: string): void {
   storage.remove(authedStorageKey(userId))
   if (storageScope === "authed" && authedUserId === userId) {
+    state = INITIAL_STATE
+    hydrated = false
+    notify()
+  }
+}
+
+/**
+ * Remove every persisted authenticated slot. Used when the app enters an
+ * anonymous/local-only state and the previous user id is unavailable (fresh
+ * tab, expired session, or external logout). This protects private journals
+ * at rest on shared devices instead of relying only on an in-memory ref.
+ */
+export function clearAllAuthedSlots(): void {
+  for (const key of storage.keys()) {
+    if (key.startsWith(AUTHED_STORAGE_KEY_PREFIX)) storage.remove(key)
+  }
+  if (storageScope === "authed") {
     state = INITIAL_STATE
     hydrated = false
     notify()

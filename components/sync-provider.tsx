@@ -5,6 +5,7 @@ import { useAuth } from "@/components/auth-provider"
 import { supabase } from "@/lib/supabase/client"
 import { loadCloudState, mergeCloudState, saveCloudState } from "@/lib/store/cloud"
 import {
+  clearAllAuthedSlots,
   clearAuthedSlot,
   clearCloudPersistence,
   getSnapshot,
@@ -47,6 +48,7 @@ export function SyncProvider() {
     if (status === "unconfigured") {
       const prevUserId = previousAuthedUserIdRef.current
       if (prevUserId) clearAuthedSlot(prevUserId)
+      else clearAllAuthedSlots()
       previousAuthedUserIdRef.current = null
       setStorageScope("local")
       hydrateFromStorage()
@@ -64,6 +66,7 @@ export function SyncProvider() {
       // journal data does not survive a logout on a shared device.
       const prevUserId = previousAuthedUserIdRef.current
       if (prevUserId) clearAuthedSlot(prevUserId)
+      else clearAllAuthedSlots()
       previousAuthedUserIdRef.current = null
       // Wipe any previous anon visitor's local progress so the current
       // visitor starts fresh on shared devices. Then switch to the anon
