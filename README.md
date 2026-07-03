@@ -56,6 +56,12 @@ npm run desktop:pack   # produce an unpacked desktop binary
 npm run desktop:make   # produce a distributable installer
 ```
 
+## Showcase assets
+
+Use [`docs/showcase.md`](docs/showcase.md) for the LinkedIn/portfolio capture
+plan: required screenshots, motion clips, carousel outline, and the quality bar
+for proving web + mobile + desktop from one codebase.
+
 ## Mobile (Capacitor)
 
 The mobile platforms are added on-demand because they require Xcode / Android Studio.
