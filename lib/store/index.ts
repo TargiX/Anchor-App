@@ -9,4 +9,12 @@ export {
   removeHabit,
   setNotificationTime,
 } from "./actions"
-export { INITIAL_STATE, STORAGE_KEY, STATE_VERSION, type AppState } from "./state"
+export {
+  ANON_STORAGE_KEY,
+  AUTHED_STORAGE_KEY_PREFIX,
+  INITIAL_STATE,
+  LEGACY_STORAGE_KEY,
+  STATE_VERSION,
+  authedStorageKey,
+  type AppState,
+} from "./state"
