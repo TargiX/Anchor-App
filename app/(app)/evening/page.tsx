@@ -7,8 +7,9 @@ import { StepEveningMood } from "@/components/evening/step-evening-mood"
 import { StepJournal } from "@/components/evening/step-journal"
 import { StepHabits } from "@/components/evening/step-habits"
 import { StepSleepTarget } from "@/components/evening/step-sleep-target"
+import { StepComplete } from "@/components/ritual/step-complete"
 
-const TOTAL_STEPS = 4
+const TOTAL_STEPS = 5
 
 export default function EveningRitual() {
   const [step, setStep] = useState(0)
@@ -35,6 +36,9 @@ export default function EveningRitual() {
       {step === 1 && <StepJournal onNext={next} onBack={back} />}
       {step === 2 && <StepHabits onNext={next} onBack={back} />}
       {step === 3 && <StepSleepTarget onNext={next} onBack={back} />}
+      {step === 4 && (
+        <StepComplete variant="evening" onNext={next} onBack={back} />
+      )}
     </RitualShell>
   )
 }
