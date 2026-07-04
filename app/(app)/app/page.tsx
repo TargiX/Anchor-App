@@ -3,11 +3,19 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useTodayEntry, useStreak } from "@/hooks/use-store"
+import { useAuth } from "@/components/auth-provider"
 import { AnchorMotif } from "@/components/anchor-motif"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Settings, Clock, BookOpen, Flame, ChevronRight } from "lucide-react"
+import {
+  Settings,
+  Clock,
+  BookOpen,
+  Flame,
+  ChevronRight,
+  Sparkles,
+} from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { getTimeContext, getGreeting, getTimeLabel } from "@/lib/time/context"
@@ -47,9 +55,15 @@ function useTimeInfo() {
 
 export default function Home() {
   const router = useRouter()
+  const { status: authStatus } = useAuth()
   const today = useTodayEntry()
   const streak = useStreak()
   const { mounted, timeContext, greeting, timeLabel, dateStr } = useTimeInfo()
+
+  // Settings is still under the (protected) layout and bounces anon users to
+  // /login, so hide the shortcut for guests — they have no settings to tweak
+  // until they sign in (the post-ritual save-prompt already covers that).
+  const isAuthed = authStatus === "authed"
 
   const morningDone = isMorningComplete(today)
   const eveningDone = isEveningComplete(today)
@@ -99,13 +113,15 @@ export default function Home() {
                 {greeting}.
               </h1>
             </div>
-            <button
-              onClick={() => router.push("/settings")}
-              className="flex size-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
-              aria-label="Settings"
-            >
-              <Settings className="size-4" />
-            </button>
+            {isAuthed && (
+              <button
+                onClick={() => router.push("/settings")}
+                className="flex size-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
+                aria-label="Settings"
+              >
+                <Settings className="size-4" />
+              </button>
+            )}
           </header>
 
           <motion.div
@@ -143,15 +159,17 @@ export default function Home() {
                 {timeLabel}
               </h2>
             </div>
-            <Button
-              variant="ghost"
-              size="icon-lg"
-              className="rounded-xl"
-              onClick={() => router.push("/settings")}
-              aria-label="Settings"
-            >
-              <Settings className="size-4" />
-            </Button>
+            {isAuthed && (
+              <Button
+                variant="ghost"
+                size="icon-lg"
+                className="rounded-xl"
+                onClick={() => router.push("/settings")}
+                aria-label="Settings"
+              >
+                <Settings className="size-4" />
+              </Button>
+            )}
           </div>
 
           <div className="flex flex-col gap-2.5 lg:gap-3">
@@ -284,14 +302,25 @@ export default function Home() {
               <BookOpen className="size-4" data-icon="inline-start" />
               Timeline
             </Button>
-            <Button
-              variant="outline"
-              className="h-12 flex-1 rounded-xl text-sm"
-              onClick={() => router.push("/settings")}
-            >
-              <Settings className="size-4" data-icon="inline-start" />
-              Settings
-            </Button>
+            {isAuthed ? (
+              <Button
+                variant="outline"
+                className="h-12 flex-1 rounded-xl text-sm"
+                onClick={() => router.push("/settings")}
+              >
+                <Settings className="size-4" data-icon="inline-start" />
+                Settings
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                className="h-12 flex-1 rounded-xl text-sm"
+                onClick={() => router.push("/login?mode=signup")}
+              >
+                <Sparkles className="size-4" data-icon="inline-start" />
+                Save progress
+              </Button>
+            )}
           </div>
 
           {today.intention && (

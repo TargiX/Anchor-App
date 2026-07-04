@@ -179,7 +179,7 @@ export function StepMeditation({ onNext, onBack }: StepMeditationProps) {
           className={cn("flex-1 rounded-2xl h-14 text-base font-medium", !selected && "opacity-50")}
           disabled={!selected}
         >
-          Complete ritual
+          Continue
         </Button>
       </div>
     </div>

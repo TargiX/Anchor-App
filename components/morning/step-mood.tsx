@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button"
 import { updateTodayEntry } from "@/lib/store/actions"
 import { useTodayEntry } from "@/hooks/use-store"
 import { type MoodPoint } from "@/lib/domain/entry"
+import {
+  applyKeyboardStep,
+  ariaValueTextForMood,
+  jumpEdgeForKey,
+  MOOD_GRID_KEYBOARD_HINT,
+  moodWord,
+} from "@/lib/mood/a11y"
 
 interface StepMoodProps {
   onNext: () => void
@@ -67,21 +74,6 @@ function quadrantBoosts(point: MoodPoint) {
   }
 }
 
-/** A short, human word for where the point sits. */
-function moodWord(valence: number, energy: number): string {
-  if (valence > 0.5 && energy > 0.5) {
-    if (valence > 0.75 && energy > 0.75) return "Radiant"
-    return "Bright"
-  }
-  if (valence <= 0.5 && energy > 0.5) {
-    return energy > 0.75 ? "Wired" : "Tense"
-  }
-  if (valence > 0.5 && energy <= 0.5) {
-    return energy < 0.25 ? "Serene" : "At ease"
-  }
-  return energy < 0.25 ? "Drained" : "Low"
-}
-
 export function StepMood({ onNext, onBack, isMorning = true }: StepMoodProps) {
   const today = useTodayEntry()
   // Default to grid center; effect syncs the hydrated mood point after
@@ -128,31 +120,29 @@ export function StepMood({ onNext, onBack, isMorning = true }: StepMoodProps) {
   }
 
   // Keyboard nudging for accessibility.
+  // Arrow keys nudge one axis; Shift halves the step; PageUp/PageDown move
+  // both axes 10%; Home/End jump to the corners of the 2D plane. All handled
+  // keys call preventDefault() so the page does not scroll on Space/Arrow.
   function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
-    const step = e.shiftKey ? 0.05 : 0.1
     const cur = point ?? { valence: 0.5, energy: 0.5 }
-    let { valence, energy } = cur
-    let used = true
-    switch (e.key) {
-      case "ArrowRight":
-        valence = Math.min(1, valence + step)
-        break
-      case "ArrowLeft":
-        valence = Math.max(0, valence - step)
-        break
-      case "ArrowUp":
-        energy = Math.min(1, energy + step)
-        break
-      case "ArrowDown":
-        energy = Math.max(0, energy - step)
-        break
-      default:
-        used = false
+    const jump = jumpEdgeForKey(e.key)
+    let next: MoodPoint
+    if (jump) {
+      next = jump
+    } else if (
+      e.key === "ArrowLeft" ||
+      e.key === "ArrowRight" ||
+      e.key === "ArrowUp" ||
+      e.key === "ArrowDown" ||
+      e.key === "PageUp" ||
+      e.key === "PageDown"
+    ) {
+      next = applyKeyboardStep(cur, e.key, e.shiftKey)
+    } else {
+      return
     }
-    if (used) {
-      e.preventDefault()
-      setPoint({ valence, energy })
-    }
+    e.preventDefault()
+    setPoint(next)
   }
 
   function handleNext() {
@@ -247,6 +237,24 @@ export function StepMood({ onNext, onBack, isMorning = true }: StepMoodProps) {
     return () => setDragging(false)
   }, [])
 
+  // Respect prefers-reduced-motion: suppress the dot-drift float and the
+  // word fade-in for users who have opted out of motion at the OS level.
+  // Subscribed via matchMedia so a runtime toggle (the user changing the
+  // OS preference without a page reload) updates the UI without a remount.
+  // The initial setState is sync-from-external-source, mirroring the
+  // pattern in step-sleep for the hydrated mood point.
+  const [reduceMotion, setReduceMotion] = useState(false)
+  /* eslint-disable react-hooks/set-state-in-effect -- sync from matchMedia on mount */
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return
+    const mql = window.matchMedia("(prefers-reduced-motion: reduce)")
+    setReduceMotion(mql.matches)
+    const handler = (e: MediaQueryListEvent) => setReduceMotion(e.matches)
+    mql.addEventListener("change", handler)
+    return () => mql.removeEventListener("change", handler)
+  }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
+
   return (
     <div className="flex flex-col flex-1 gap-8">
       <div className="flex flex-col gap-2 pt-4">
@@ -261,13 +269,23 @@ export function StepMood({ onNext, onBack, isMorning = true }: StepMoodProps) {
 
       {/* 2D Mood grid */}
       <div className="relative">
-        {/* Ambient mood word */}
-        <div className="flex justify-center mb-2 h-5">
+        {/* Ambient mood word — the wrapper holds the live region so screen
+            readers track changes against a stable node (re-mounting the
+            live-region element itself is often silent). The inner span is
+            keyed only for the entry animation; the live announcement reads
+            the updated text via the parent's aria-live attribute. */}
+        <div
+          className="flex justify-center mb-2 h-5"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           {word && (
             <span
               key={word}
               className="text-xs font-[family-name:var(--font-display)] tracking-wide text-muted-foreground"
-              style={{ animation: "mood-word-enter 0.35s ease-out" }}
+              style={{
+                animation: reduceMotion ? undefined : "mood-word-enter 0.35s ease-out",
+              }}
             >
               {word}
             </span>
@@ -293,10 +311,21 @@ export function StepMood({ onNext, onBack, isMorning = true }: StepMoodProps) {
             role="slider"
             tabIndex={0}
             aria-label="Mood grid — drag or tap to place your mood, arrow keys to nudge"
+            aria-valuetext={
+              point ? ariaValueTextForMood(point) : "Mood not yet set"
+            }
             aria-valuenow={point ? Math.round(point.valence * 100) : 0}
             aria-valuemin={0}
             aria-valuemax={100}
+            aria-describedby="mood-grid-keyboard-hint"
           >
+            {/* Visually hidden but available to AT — surfaces the keyboard
+                interaction model so screen-reader users know about Shift,
+                PageUp/PageDown, and Home/End without having to discover them. */}
+            <span id="mood-grid-keyboard-hint" className="sr-only">
+              {MOOD_GRID_KEYBOARD_HINT}
+            </span>
+
             {/* Quadrant grid — each breathes with saturation */}
             <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
               <div
@@ -347,7 +376,9 @@ export function StepMood({ onNext, onBack, isMorning = true }: StepMoodProps) {
                 style={{
                   ...pointPos,
                   ...pointStyle,
-                  animation: "mood-dot-enter 0.5s ease-out, mood-drift 4s ease-in-out 0.5s infinite",
+                  animation: reduceMotion
+                    ? undefined
+                    : "mood-dot-enter 0.5s ease-out, mood-drift 4s ease-in-out 0.5s infinite",
                 }}
               />
             )}
