@@ -259,7 +259,7 @@ export function StepMood({ onNext, onBack, isMorning = true }: StepMoodProps) {
     <div className="flex flex-col flex-1 gap-8">
       <div className="flex flex-col gap-2 pt-4">
         <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Mood</p>
-        <h2 className="font-[family-name:var(--font-display)] text-2xl font-medium text-foreground text-balance leading-snug">
+        <h2 className="font-[family-name:var(--font-display)] text-3xl font-medium text-foreground text-balance leading-tight lg:text-4xl">
           Where are you right now?
         </h2>
         <p className="text-sm text-muted-foreground">
