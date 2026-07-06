@@ -65,6 +65,11 @@ export type CreateCheckInInput = {
   morningIntention?: string | null
 }
 
+// Anchor is a single-user founder app, so dayKey/inferKind anchor on the
+// founder's calendar (Asia/Saigon) rather than the process TZ. Using the
+// system TZ via `lib/time/today` here would misfile late-evening or early-
+// morning entries if the build ever runs in CI or on a different host.
+// See `docs/anchor-hermes-checkin-experiment.md` for the rationale.
 const LOCAL_TIME_ZONE = "Asia/Saigon"
 
 function dayKeyFor(date: Date): string {
@@ -93,12 +98,12 @@ function inferKind(date: Date): CheckInKind {
   return "spontaneous"
 }
 
-function stableId(dayKey: string, kind: CheckInKind, transcript: string): string {
-  let hash = 0
-  for (let i = 0; i < transcript.length; i++) {
-    hash = (hash * 31 + transcript.charCodeAt(i)) >>> 0
-  }
-  return `${dayKey}-${kind}-${hash.toString(16)}`
+function stableId(dayKey: string, kind: CheckInKind): string {
+  // Per-submission UUID: the previous dayKey+kind+hash-of-transcript ID collided
+  // on identical resubmissions (no dedup in appendCheckIn) and produced the
+  // same row on legitimate client retries. crypto.randomUUID() is universally
+  // available in the Node 24 / modern-browser targets this app serves.
+  return `${dayKey}-${kind}-${crypto.randomUUID()}`
 }
 
 function includesAny(text: string, terms: readonly string[]): boolean {
@@ -249,7 +254,10 @@ export function createCheckInFromTranscript(input: CreateCheckInInput): AnchorCh
   const tasks = extractTasks(transcript)
   const mood = extractMood(transcript)
   const checkIn: AnchorCheckIn = {
-    id: stableId(dayKey, kind, transcript),
+    id: stableId(dayKey, kind),
+    // `ts` is an Instant used for sort/diff/UI, not a day key — the day key
+    // is `dayKey` above (local calendar, Asia/Saigon). Avoid `toISOString`
+    // for day keys per the project guideline; here it's intentional.
     ts: now.toISOString(),
     dayKey,
     kind,

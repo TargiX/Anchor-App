@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Mic, Send, Sparkles, BarChart3, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { AnchorCheckIn, CheckInKind } from "@/lib/anchor-checkin/checkin"
@@ -53,6 +53,16 @@ export function AnchorVoiceCheckInMvp() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [listening, setListening] = useState(false)
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
+
+  // Stop any in-flight recognition on unmount so onresult/onend/onerror
+  // don't fire setState on an unmounted component (or keep the mic hot).
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop()
+      recognitionRef.current = null
+    }
+  }, [])
 
   useEffect(() => {
     void fetch("/api/anchor-checkins", { cache: "no-store" })
@@ -114,7 +124,11 @@ export function AnchorVoiceCheckInMvp() {
       setError("Голосовой ввод сорвался. Не страшно — напиши кашу текстом.")
       setListening(false)
     }
-    recognition.onend = () => setListening(false)
+    recognition.onend = () => {
+      recognitionRef.current = null
+      setListening(false)
+    }
+    recognitionRef.current = recognition
     setListening(true)
     recognition.start()
   }

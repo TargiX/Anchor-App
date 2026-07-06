@@ -44,6 +44,16 @@ export async function listCheckIns(
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => AnchorCheckInSchema.parse(JSON.parse(line)))
+    .flatMap((line) => {
+      // Per-line isolation: a single truncated/corrupted JSONL line (e.g. a
+      // crash mid-appendFile) must not break every subsequent read of the
+      // storage file. Invalid lines are dropped silently; future work can
+      // surface them via a log channel without taking the whole list down.
+      try {
+        return [AnchorCheckInSchema.parse(JSON.parse(line))]
+      } catch {
+        return []
+      }
+    })
     .sort((a, b) => a.ts.localeCompare(b.ts))
 }
