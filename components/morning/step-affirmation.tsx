@@ -69,9 +69,10 @@ export function StepAffirmation({ onNext, userName }: StepAffirmationProps) {
 
       {/* Brand motif */}
       <div className="flex justify-center">
-        <AnchorMotif size={140} className="text-primary opacity-70 lg:hidden" />
+        <AnchorMotif size={140} animate className="text-primary opacity-70 lg:hidden" />
         <AnchorMotif
           size={180}
+          animate
           className="hidden text-primary opacity-70 lg:block"
         />
       </div>

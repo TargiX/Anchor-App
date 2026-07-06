@@ -2,9 +2,12 @@
 export function AnchorMotif({
   className,
   size = 200,
+  animate = false,
 }: {
   className?: string
   size?: number
+  /** Slow, meditative "breath". Honors prefers-reduced-motion. */
+  animate?: boolean
 }) {
   return (
     <svg
@@ -13,7 +16,9 @@ export function AnchorMotif({
       viewBox="0 0 200 200"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={className}
+      className={[animate ? "anchor-motif--breathing" : "", className]
+        .filter(Boolean)
+        .join(" ")}
       aria-hidden="true"
     >
       <defs>

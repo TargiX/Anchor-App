@@ -377,7 +377,7 @@
 .landing-hero__copy {
   z-index: 2;
   grid-column: 1 / span 6;
-  padding-top: 166px;
+  padding-top: 275px;
 }
 
 .landing-kicker {
@@ -888,7 +888,13 @@
   }
 
   .landing-hero::after {
-    background: linear-gradient(to right, #f7eee3 0%, #f7eee3db -24%, #f7eee361 35%, #f7eee300 50%);
+    background: linear-gradient(
+      to right,
+      #f7eee3 0%,
+      #f7eee3db -24%,
+      #f7eee361 35%,
+      #f7eee300 50%
+    );
   }
 
   .landing-hero__grid {
@@ -1112,5 +1118,57 @@
   100% {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Warm, low-contrast atmosphere behind a ritual — depth instead of a flat page.
+   A soft ember glow up top, a quiet grounding wash at the base. */
+.ritual-atmosphere {
+  position: relative;
+  isolation: isolate;
+}
+
+.ritual-atmosphere::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      125% 80% at 50% -12%,
+      color-mix(in oklab, var(--accent) 13%, transparent),
+      transparent 58%
+    ),
+    radial-gradient(
+      95% 60% at 50% 118%,
+      color-mix(in oklab, var(--primary) 9%, transparent),
+      transparent 55%
+    );
+}
+
+/* Slow, meditative "breath" for the anchor motif — a quiet sign of life. */
+@keyframes anchor-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.72;
+  }
+  50% {
+    transform: scale(1.045);
+    opacity: 1;
+  }
+}
+
+.anchor-motif--breathing {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: anchor-breathe 7s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anchor-motif--breathing {
+    animation: none;
   }
 }
