@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 import { AnchorMotif } from "@/components/anchor-motif"
 import { Button } from "@/components/ui/button"
@@ -11,8 +11,19 @@ import { cn } from "@/lib/utils"
 
 type Mode = "signin" | "signup"
 
+// `useSearchParams()` must be inside a Suspense boundary for the page to
+// prerender statically. The default export wraps the form accordingly.
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  )
+}
+
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const {
     status,
     googleEnabled,
@@ -22,7 +33,19 @@ export default function LoginPage() {
     resendConfirmation,
   } = useAuth()
 
-  const [mode, setMode] = useState<Mode>("signin")
+  // Allow deep-linking to sign-up vs sign-in (e.g. /login?mode=signup from the
+  // post-ritual save-prompt). Defaults to "signin" for any unknown/absent value.
+  const initialMode: Mode =
+    searchParams.get("mode") === "signup" ? "signup" : "signin"
+  const [mode, setMode] = useState<Mode>(initialMode)
+  // Sync mode if the user (or a deep-link) navigates between
+  // /login?mode=signup and /login?mode=signin within the same client
+  // component instance — the URL changes but useState otherwise sticks.
+  /* eslint-disable react-hooks/set-state-in-effect -- sync mode with searchParams after same-component navigations */
+  useEffect(() => {
+    setMode(initialMode)
+  }, [initialMode])
+  /* eslint-enable react-hooks/set-state-in-effect */
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [errors, setErrors] = useState<{

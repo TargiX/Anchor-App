@@ -17,7 +17,28 @@ export const AppStateSchema = z.object({
 })
 export type AppState = z.infer<typeof AppStateSchema>
 
-export const STORAGE_KEY = "anchor-state"
+export const AUTHED_STORAGE_KEY_PREFIX = "anchor-state-authed:"
+export function authedStorageKey(userId: string): string {
+  return `${AUTHED_STORAGE_KEY_PREFIX}${userId}`
+}
+/**
+ * Anon visitors get their own localStorage slot. Keeping it separate from
+ * every authed user's slot is the privacy boundary: a previous authenticated
+ * user's data can never leak into a fresh anonymous session, and an
+ * anonymous visitor's local progress can still be merged into the cloud on
+ * first sign-in (see SyncProvider's anon→auth merge path).
+ */
+export const ANON_STORAGE_KEY = "anchor-state-anon"
+
+/**
+ * Legacy pre-scope-split key. Pre-084e93a the entire app wrote to a single
+ * `anchor-state` slot — meaning any anon visitor saw the previous authed
+ * user's data. On first hydrate the local-only path migrates this key into
+ * the local slot and deletes the legacy entry. Authenticated and anonymous
+ * auth flows treat the legacy entry as unowned and drop it rather than
+ * importing it across a privacy boundary.
+ */
+export const LEGACY_STORAGE_KEY = "anchor-state"
 /** Bump when the persisted shape changes; add a branch in `migrate`. */
 export const STATE_VERSION = 1
 

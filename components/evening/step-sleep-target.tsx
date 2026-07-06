@@ -100,7 +100,7 @@ export function StepSleepTarget({ onNext, onBack }: StepSleepTargetProps) {
           onClick={handleNext}
           className="flex-1 rounded-2xl h-14 text-base font-medium"
         >
-          Close the day
+          Continue
         </Button>
       </div>
     </div>
