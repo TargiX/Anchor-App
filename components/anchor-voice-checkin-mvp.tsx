@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { Mic, Send, Sparkles, BarChart3, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { AnchorCheckIn, CheckInKind } from "@/lib/anchor-checkin/checkin"
+import { isSupabaseConfigured, supabase } from "@/lib/supabase/client"
 
 type ApiResponse = {
   records?: AnchorCheckIn[]
@@ -44,6 +45,16 @@ function lines(text: string | undefined): string[] {
   return text?.split("\n").filter(Boolean) ?? []
 }
 
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  if (!isSupabaseConfigured || !supabase) return {}
+
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token
+  if (!token) throw new Error("Нужно войти, чтобы читать и писать чек-ины.")
+
+  return { Authorization: `Bearer ${token}` }
+}
+
 export function AnchorVoiceCheckInMvp() {
   const [kind, setKind] = useState<CheckInKind>("morning")
   const [transcript, setTranscript] = useState("")
@@ -65,13 +76,31 @@ export function AnchorVoiceCheckInMvp() {
   }, [])
 
   useEffect(() => {
-    void fetch("/api/anchor-checkins", { cache: "no-store" })
-      .then((res) => res.json() as Promise<ApiResponse>)
-      .then((data) => {
+    let cancelled = false
+
+    async function loadCheckIns() {
+      try {
+        const response = await fetch("/api/anchor-checkins", {
+          cache: "no-store",
+          headers: await getAuthHeaders(),
+        })
+        const data = (await response.json()) as ApiResponse
+        if (!response.ok) throw new Error(data.error ?? "Check-in load failed")
+        if (cancelled) return
         setRecords(data.records ?? [])
         setDigest(data.digest ?? "")
-      })
-      .catch(() => setError("Не смог загрузить локальные чек-ины."))
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Не смог загрузить локальные чек-ины.")
+        }
+      }
+    }
+
+    void loadCheckIns()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const latestMain = useMemo(
@@ -85,7 +114,10 @@ export function AnchorVoiceCheckInMvp() {
     try {
       const response = await fetch("/api/anchor-checkins", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          ...(await getAuthHeaders()),
+        },
         body: JSON.stringify({ transcript, kind }),
       })
       const data = (await response.json()) as ApiResponse
