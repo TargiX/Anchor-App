@@ -75,6 +75,36 @@ describe("Anchor voice check-in MVP", () => {
     expect(reflection).toContain("частично")
   })
 
+  it("uses the shared local-time helper for Saigon day keys and timestamps", () => {
+    const checkIn = createCheckInFromTranscript({
+      transcript: "вечером надо закрыть заметки",
+      now: new Date("2026-07-04T18:30:00Z"),
+    })
+
+    expect(checkIn.kind).toBe("evening")
+    expect(checkIn.dayKey).toBe("2026-07-05")
+    expect(checkIn.ts).toBe("2026-07-05T01:30:00+07:00")
+  })
+
+  it("flags broader Russian self-harm phrasing before normal reflection", () => {
+    const riskyPhrases = [
+      "я не хочу жить, всё давит",
+      "смысла жить нет вообще",
+      "иногда хочется умереть",
+      "думаю покончить с собой",
+      "хочется выйти в окно",
+    ]
+
+    for (const transcript of riskyPhrases) {
+      const checkIn = createCheckInFromTranscript({
+        transcript,
+        now: new Date("2026-07-05T22:15:00+07:00"),
+      })
+      expect(checkIn.flags.needsAttention).toBe(true)
+      expect(createImmediateReflection(checkIn)).toContain("напиши живому человеку")
+    }
+  })
+
   it("creates weekly digest insights only when there is a countable basis", () => {
     const records = [
       createCheckInFromTranscript({

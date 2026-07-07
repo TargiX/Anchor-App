@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { getLocalDayKey, getLocalHour, getLocalTimestamp } from "@/lib/time/today"
 
 export const CheckInKindSchema = z.enum(["morning", "evening", "spontaneous"])
 export type CheckInKind = z.infer<typeof CheckInKindSchema>
@@ -66,33 +67,17 @@ export type CreateCheckInInput = {
 }
 
 // Anchor is a single-user founder app, so dayKey/inferKind anchor on the
-// founder's calendar (Asia/Saigon) rather than the process TZ. Using the
-// system TZ via `lib/time/today` here would misfile late-evening or early-
-// morning entries if the build ever runs in CI or on a different host.
+// founder's calendar (Asia/Saigon) rather than the process TZ. Keep the
+// date/time derivation centralized in `lib/time/today` to avoid UTC day-key bugs.
 // See `docs/anchor-hermes-checkin-experiment.md` for the rationale.
 const LOCAL_TIME_ZONE = "Asia/Saigon"
 
 function dayKeyFor(date: Date): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: LOCAL_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date)
-  const year = parts.find((p) => p.type === "year")?.value ?? "1970"
-  const month = parts.find((p) => p.type === "month")?.value ?? "01"
-  const day = parts.find((p) => p.type === "day")?.value ?? "01"
-  return `${year}-${month}-${day}`
+  return getLocalDayKey(date, LOCAL_TIME_ZONE)
 }
 
 function inferKind(date: Date): CheckInKind {
-  const hour = Number(
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: LOCAL_TIME_ZONE,
-      hour: "2-digit",
-      hour12: false,
-    }).format(date)
-  )
+  const hour = getLocalHour(date, LOCAL_TIME_ZONE)
   if (hour >= 5 && hour < 12) return "morning"
   if (hour >= 18 || hour < 3) return "evening"
   return "spontaneous"
@@ -242,8 +227,19 @@ function extractHighlight(transcript: string): string | null {
   return null
 }
 
+const CRISIS_PATTERNS = [
+  /не\s+хоч(?:у|ется)\s+жить/,
+  /(?:нет\s+смысла\s+жить|смысла\s+жить\s+нет|жить\s+бессмысленн)/,
+  /(?:убить|убью)\s+себя/,
+  /поконч(?:ить|у)\s+с\s+собой/,
+  /(?:суицид|самоубийств)/,
+  /(?:хочу|хочется|лучше)\s+умереть/,
+  /(?:выйти\s+в\s+окно|шагнуть\s+с\s+крыши|перерезать\s+(?:себе\s+)?вены)/,
+] as const
+
 function crisisFlag(text: string): boolean {
-  return includesAny(text.toLowerCase(), ["не хочу жить", "убить себя", "суицид", "нет смысла жить"])
+  const normalized = text.toLowerCase().replaceAll("ё", "е").replace(/\s+/g, " ").trim()
+  return CRISIS_PATTERNS.some((pattern) => pattern.test(normalized))
 }
 
 export function createCheckInFromTranscript(input: CreateCheckInInput): AnchorCheckIn {
@@ -255,10 +251,7 @@ export function createCheckInFromTranscript(input: CreateCheckInInput): AnchorCh
   const mood = extractMood(transcript)
   const checkIn: AnchorCheckIn = {
     id: stableId(dayKey, kind),
-    // `ts` is an Instant used for sort/diff/UI, not a day key — the day key
-    // is `dayKey` above (local calendar, Asia/Saigon). Avoid `toISOString`
-    // for day keys per the project guideline; here it's intentional.
-    ts: now.toISOString(),
+    ts: getLocalTimestamp(now, LOCAL_TIME_ZONE),
     dayKey,
     kind,
     raw: {
