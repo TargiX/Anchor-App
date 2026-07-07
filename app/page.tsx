@@ -11,6 +11,7 @@ import {
 
 import { LandingHeroVideo } from "@/components/landing-hero-video"
 import { LandingMotion } from "@/components/landing-motion"
+import { LandingShowcase } from "@/components/landing-showcase"
 
 const features = [
   {
@@ -110,6 +111,8 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      <LandingShowcase />
 
       <section id="features" className="landing-section landing-features">
         <div className="landing-grid landing-features__grid">

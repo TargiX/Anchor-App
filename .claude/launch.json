@@ -5,8 +5,8 @@
       "name": "anchor-dev",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-      "port": 3007,
-      "autoPort": true
+      "port": 3088,
+      "autoPort": false
     }
   ]
 }

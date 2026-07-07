@@ -14,6 +14,7 @@ import {
   BookOpen,
   Flame,
   ChevronRight,
+  Mic,
   Sparkles,
 } from "lucide-react"
 import { motion } from "framer-motion"
@@ -130,9 +131,10 @@ export default function Home() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="flex flex-col items-center gap-3 py-8 lg:items-start lg:gap-5 lg:py-12"
           >
-            <AnchorMotif size={120} className="text-primary lg:hidden" />
+            <AnchorMotif size={120} animate className="text-primary lg:hidden" />
             <AnchorMotif
               size={240}
+              animate
               className="hidden text-primary opacity-80 lg:block"
             />
             <div className="flex items-center gap-1.5 rounded-full border border-border/70 bg-card/60 px-3 py-1.5 lg:px-4 lg:py-2">
@@ -293,10 +295,18 @@ export default function Home() {
             </motion.p>
           )}
 
-          <div className="mt-3 flex gap-3 lg:mt-4">
+          <div className="mt-3 grid gap-3 lg:mt-4 lg:grid-cols-3">
             <Button
               variant="outline"
-              className="h-12 flex-1 rounded-xl text-sm"
+              className="h-12 rounded-xl text-sm"
+              onClick={() => router.push("/voice-checkin")}
+            >
+              <Mic className="size-4" data-icon="inline-start" />
+              Voice MVP
+            </Button>
+            <Button
+              variant="outline"
+              className="h-12 rounded-xl text-sm"
               onClick={() => router.push("/timeline")}
             >
               <BookOpen className="size-4" data-icon="inline-start" />

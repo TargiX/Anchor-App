@@ -42,11 +42,11 @@ export function RitualShell({
   const stepLabel = `${Math.min(step + 1, totalSteps)} of ${totalSteps}`
 
   return (
-    <div className={cn("min-h-dvh px-6 lg:px-10 lg:py-10", className)}>
+    <div className={cn("ritual-atmosphere min-h-dvh px-6 lg:px-10 lg:py-10", className)}>
       <div className="mx-auto flex min-h-dvh max-w-md flex-col lg:grid lg:min-h-[calc(100dvh-5rem)] lg:max-w-6xl lg:grid-cols-[320px_minmax(0,1fr)] lg:items-stretch lg:gap-12 xl:grid-cols-[360px_minmax(0,1fr)]">
         <aside className="hidden border-r border-border/70 pr-10 lg:flex lg:flex-col lg:justify-between">
           <div>
-            <AnchorMotif size={220} className="-ml-8 text-primary opacity-75" />
+            <AnchorMotif size={220} animate className="-ml-8 text-primary opacity-75" />
             <p className="mt-8 text-xs font-medium tracking-widest text-muted-foreground uppercase">
               {stepLabel}
             </p>

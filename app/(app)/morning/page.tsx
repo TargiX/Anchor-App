@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { RitualShell } from "@/components/ritual-shell"
+import { RitualComplete } from "@/components/ritual-complete"
 import { StepAffirmation } from "@/components/morning/step-affirmation"
 import { StepSleep } from "@/components/morning/step-sleep"
 import { StepMood } from "@/components/morning/step-mood"
@@ -14,16 +15,21 @@ const TOTAL_STEPS = 6
 
 export default function MorningRitual() {
   const [step, setStep] = useState(0)
+  const [done, setDone] = useState(false)
   const router = useRouter()
 
   function next() {
     if (step < TOTAL_STEPS - 1) setStep((s) => s + 1)
-    else router.push("/app")
+    else setDone(true)
   }
 
   function back() {
     if (step > 0) setStep((s) => s - 1)
     else router.push("/app")
+  }
+
+  if (done) {
+    return <RitualComplete kind="morning" onDone={() => router.push("/app")} />
   }
 
   return (

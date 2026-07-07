@@ -7,7 +7,7 @@
     "node": "24.x"
   },
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "cross-env PORT=3088 next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "showcase:capture": "node scripts/capture-showcase.mjs",
     "build:native": "cross-env BUILD_TARGET=native next build",
     "cap:sync": "npm run build:native && cap sync",
     "desktop:dev": "npm run cap:sync && cd electron && npm run electron:start",
@@ -62,6 +63,7 @@
     "postcss": "8.5.15",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
+    "puppeteer-core": "^25.3.0",
     "tailwindcss": "^4.2.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.7"

@@ -29,6 +29,10 @@ describe("shiftKey", () => {
   it("is a no-op for 0", () => {
     expect(shiftKey("2026-06-15", 0)).toBe("2026-06-15")
   })
+
+  it("rejects malformed day keys", () => {
+    expect(() => shiftKey("2026-6-15", 1)).toThrow("Invalid day key")
+  })
 })
 
 describe("dayDiff", () => {
@@ -37,10 +41,24 @@ describe("dayDiff", () => {
     expect(dayDiff("2026-01-04", "2026-01-01")).toBe(-3)
     expect(dayDiff("2026-01-01", "2026-01-01")).toBe(0)
   })
+
+  it("rejects malformed range keys", () => {
+    expect(() => dayDiff("not-a-day", "2026-01-01")).toThrow("Invalid day key")
+    expect(() => dayDiff("2026-01-01", "2026/01/02")).toThrow("Invalid day key")
+  })
 })
 
 describe("parseEntryDate", () => {
   it("round-trips with getTodayKey", () => {
     expect(getTodayKey(parseEntryDate("2026-07-20"))).toBe("2026-07-20")
+  })
+
+  it("fails fast for malformed keys", () => {
+    expect(() => parseEntryDate("2026-7-20")).toThrow("Invalid day key")
+  })
+
+  it("fails fast for impossible calendar dates", () => {
+    expect(() => parseEntryDate("2026-02-30")).toThrow("Invalid day key")
+    expect(() => shiftKey("2026-13-45", 1)).toThrow("Invalid day key")
   })
 })

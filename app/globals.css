@@ -384,7 +384,7 @@
 .landing-hero__copy {
   z-index: 2;
   grid-column: 1 / span 6;
-  padding-top: 166px;
+  padding-top: 275px;
 }
 
 .landing-kicker {
@@ -534,6 +534,161 @@
 
 .landing-card:hover .landing-card__arrow {
   transform: translateX(6px);
+}
+
+/* Product showcase — a phone with rotating, demo-seeded app screens */
+.landing-showcase {
+  border-bottom: 1px solid var(--landing-line);
+  background: var(--landing-cream);
+  padding-block: 82px 90px;
+}
+
+.landing-showcase__grid {
+  align-items: center;
+  row-gap: 40px;
+}
+
+.landing-showcase__intro {
+  grid-column: 1 / span 5;
+}
+
+.landing-showcase__intro h2 {
+  margin: 17px 0 0;
+  font-size: 44px;
+  line-height: 1;
+}
+
+.landing-showcase__intro > .landing-body {
+  max-width: 360px;
+  margin-top: 22px;
+}
+
+.landing-showcase__tabs {
+  display: inline-flex;
+  gap: 6px;
+  margin-top: 30px;
+  padding: 5px;
+  border: 1px solid var(--landing-line);
+  border-radius: 999px;
+  background: #f4efea;
+}
+
+.landing-showcase__tab {
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 18px;
+  background: transparent;
+  color: var(--landing-muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
+}
+
+.landing-showcase__tab:hover {
+  color: var(--landing-ink);
+}
+
+.landing-showcase__tab[data-state="active"] {
+  background: var(--landing-clay);
+  color: #fdf7ef;
+}
+
+.landing-showcase__caption {
+  max-width: 330px;
+  min-height: 46px;
+  margin: 20px 0 0;
+  color: var(--landing-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.landing-showcase__stage {
+  display: flex;
+  grid-column: 7 / span 6;
+  justify-content: center;
+}
+
+.landing-showcase__phone {
+  position: relative;
+  width: 300px;
+  aspect-ratio: 390 / 844;
+  padding: 11px;
+  border-radius: 46px;
+  background: #1c1712;
+  box-shadow:
+    0 2px 3px rgb(14 51 47 / 20%) inset,
+    0 40px 80px -30px rgb(14 51 47 / 45%),
+    0 12px 30px -18px rgb(14 51 47 / 40%);
+}
+
+.landing-showcase__notch {
+  position: absolute;
+  top: 11px;
+  left: 50%;
+  z-index: 3;
+  width: 108px;
+  height: 20px;
+  transform: translateX(-50%);
+  border-radius: 0 0 16px 16px;
+  background: #1c1712;
+}
+
+.landing-showcase__screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 36px;
+  background: var(--landing-cream);
+}
+
+.landing-showcase__panel {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 700ms ease;
+}
+
+.landing-showcase__panel[data-state="active"] {
+  opacity: 1;
+}
+
+.landing-showcase__shot {
+  object-fit: cover;
+  object-position: top center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-showcase__panel {
+    transition: none;
+  }
+}
+
+.landing-showcase__dots {
+  position: absolute;
+  inset: auto 0 14px;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.landing-showcase__dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgb(28 23 18 / 25%);
+  transition:
+    width 300ms ease,
+    background-color 300ms ease;
+}
+
+.landing-showcase__dots span[data-state="active"] {
+  width: 18px;
+  background: var(--landing-clay);
 }
 
 .landing-platforms {
@@ -895,7 +1050,13 @@
   }
 
   .landing-hero::after {
-    background: linear-gradient(to right, #f7eee3 0%, #f7eee3db -24%, #f7eee361 35%, #f7eee300 50%);
+    background: linear-gradient(
+      to right,
+      #f7eee3 0%,
+      #f7eee3db -24%,
+      #f7eee361 35%,
+      #f7eee300 50%
+    );
   }
 
   .landing-hero__grid {
@@ -923,6 +1084,32 @@
 
   .landing-card {
     min-height: 246px;
+  }
+
+  .landing-showcase {
+    padding-block: 50px 58px;
+  }
+
+  .landing-showcase__grid {
+    row-gap: 34px;
+  }
+
+  .landing-showcase__intro,
+  .landing-showcase__stage {
+    grid-column: 1 / -1;
+  }
+
+  .landing-showcase__intro {
+    text-align: center;
+  }
+
+  .landing-showcase__intro > .landing-body,
+  .landing-showcase__caption {
+    margin-inline: auto;
+  }
+
+  .landing-showcase__phone {
+    width: min(300px, 82vw);
   }
 
   .landing-platforms {
@@ -1131,3 +1318,56 @@
     transform: translateY(0);
   }
 }
+
+/* Warm, low-contrast atmosphere behind a ritual — depth instead of a flat page.
+   A soft ember glow up top, a quiet grounding wash at the base. */
+.ritual-atmosphere {
+  position: relative;
+  isolation: isolate;
+}
+
+.ritual-atmosphere::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      125% 80% at 50% -12%,
+      color-mix(in oklab, var(--accent) 13%, transparent),
+      transparent 58%
+    ),
+    radial-gradient(
+      95% 60% at 50% 118%,
+      color-mix(in oklab, var(--primary) 9%, transparent),
+      transparent 55%
+    );
+}
+
+/* Slow, meditative "breath" for the anchor motif — a quiet sign of life. */
+@keyframes anchor-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.72;
+  }
+  50% {
+    transform: scale(1.045);
+    opacity: 1;
+  }
+}
+
+.anchor-motif--breathing {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: anchor-breathe 7s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anchor-motif--breathing {
+    animation: none;
+  }
+}
+

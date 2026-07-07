@@ -47,3 +47,6 @@ next-env.d.ts
 
 # local-only Claude settings
 .claude/settings.local.json
+
+# local Anchor MVP check-in storage
+/data/anchor-checkins

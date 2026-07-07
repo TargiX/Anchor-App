@@ -36,7 +36,7 @@ export function AppScreenShell({
       <div className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-md flex-col lg:grid lg:max-w-6xl lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-12 xl:grid-cols-[340px_minmax(0,1fr)]">
         <aside className="hidden border-r border-border/70 pr-10 lg:flex lg:flex-col lg:justify-between">
           <div>
-            <AnchorMotif size={188} className="-ml-6 text-primary opacity-75" />
+            <AnchorMotif size={188} animate className="-ml-6 text-primary opacity-75" />
             <p className="mt-8 text-xs font-medium tracking-widest text-muted-foreground uppercase">
               {eyebrow}
             </p>
