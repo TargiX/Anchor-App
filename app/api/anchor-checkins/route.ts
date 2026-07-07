@@ -10,6 +10,8 @@ import { appendCheckIn, listCheckIns } from "@/lib/anchor-checkin/storage"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
+const AUTH_CHECK_TIMEOUT_MS = 5000
+
 type CheckInRequest = {
   transcript?: unknown
   kind?: unknown
@@ -60,13 +62,19 @@ async function requireSession(request: Request): Promise<SessionAccess> {
     return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) }
   }
 
-  const response = await fetch(new URL("/auth/v1/user", url), {
-    cache: "no-store",
-    headers: {
-      apikey: publishableKey,
-      Authorization: authHeader,
-    },
-  })
+  let response: Response
+  try {
+    response = await fetch(new URL("/auth/v1/user", url), {
+      cache: "no-store",
+      signal: AbortSignal.timeout(AUTH_CHECK_TIMEOUT_MS),
+      headers: {
+        apikey: publishableKey,
+        Authorization: authHeader,
+      },
+    })
+  } catch {
+    return { error: NextResponse.json({ error: "Auth check failed" }, { status: 502 }) }
+  }
 
   if (response.status === 401 || response.status === 403) {
     return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) }

@@ -56,4 +56,9 @@ describe("parseEntryDate", () => {
   it("fails fast for malformed keys", () => {
     expect(() => parseEntryDate("2026-7-20")).toThrow("Invalid day key")
   })
+
+  it("fails fast for impossible calendar dates", () => {
+    expect(() => parseEntryDate("2026-02-30")).toThrow("Invalid day key")
+    expect(() => shiftKey("2026-13-45", 1)).toThrow("Invalid day key")
+  })
 })
