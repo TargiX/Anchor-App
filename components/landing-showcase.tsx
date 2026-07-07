@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { useCallback, useEffect, useState } from "react"
+import { KeyboardEvent, useCallback, useEffect, useRef, useState } from "react"
 
 /**
  * "Product in a phone" showcase for the landing. Auto-rotates through a few
@@ -35,22 +35,60 @@ const ROTATE_MS = 4200
 export function LandingShowcase() {
   const [index, setIndex] = useState(0)
   const [paused, setPaused] = useState(false)
-  const [locked, setLocked] = useState(false)
+  const [reduceMotion, setReduceMotion] = useState(false)
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
   const active = SCREENS[index] ?? SCREENS[0]
 
   useEffect(() => {
-    if (paused || locked) return
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)")
+    const update = () => setReduceMotion(query.matches)
+    update()
+    query.addEventListener("change", update)
+    return () => query.removeEventListener("change", update)
+  }, [])
+
+  useEffect(() => {
+    if (paused || reduceMotion) return
     const id = setInterval(
       () => setIndex((i) => (i + 1) % SCREENS.length),
       ROTATE_MS
     )
     return () => clearInterval(id)
-  }, [paused, locked])
+  }, [paused, reduceMotion])
 
   const pick = useCallback((i: number) => {
-    setLocked(true)
     setIndex(i)
   }, [])
+
+  const focusTab = useCallback(
+    (i: number) => {
+      pick(i)
+      tabRefs.current[i]?.focus()
+    },
+    [pick]
+  )
+
+  const onTabsKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === "ArrowRight") {
+        event.preventDefault()
+        focusTab((index + 1) % SCREENS.length)
+      }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault()
+        focusTab((index - 1 + SCREENS.length) % SCREENS.length)
+      }
+      if (event.key === "Home") {
+        event.preventDefault()
+        focusTab(0)
+      }
+      if (event.key === "End") {
+        event.preventDefault()
+        focusTab(SCREENS.length - 1)
+      }
+    },
+    [focusTab, index]
+  )
 
   return (
     <section className="landing-showcase" aria-labelledby="showcase-title">
@@ -68,14 +106,27 @@ export function LandingShowcase() {
             weeks.
           </p>
 
-          <div className="landing-showcase__tabs" role="tablist" aria-label="App screens">
+          <div
+            className="landing-showcase__tabs"
+            role="tablist"
+            aria-label="App screens"
+            onFocus={() => setPaused(true)}
+            onBlur={() => setPaused(false)}
+            onKeyDown={onTabsKeyDown}
+          >
             {SCREENS.map((screen, i) => (
               <button
                 key={screen.id}
+                ref={(node) => {
+                  tabRefs.current[i] = node
+                }}
+                id={`showcase-tab-${screen.id}`}
                 role="tab"
                 aria-selected={i === index}
+                aria-controls={`showcase-panel-${screen.id}`}
+                tabIndex={i === index ? 0 : -1}
                 className="landing-showcase__tab"
-                data-active={i === index ? "" : undefined}
+                data-state={i === index ? "active" : "inactive"}
                 onClick={() => pick(i)}
               >
                 {screen.label}
@@ -92,27 +143,37 @@ export function LandingShowcase() {
           className="landing-showcase__stage"
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
+          onFocus={() => setPaused(true)}
+          onBlur={() => setPaused(false)}
         >
           <div className="landing-showcase__phone">
             <span className="landing-showcase__notch" aria-hidden="true" />
             <div className="landing-showcase__screen">
               {SCREENS.map((screen, i) => (
-                <Image
+                <div
                   key={screen.id}
-                  src={screen.src}
-                  alt={`Anchor — ${screen.label}`}
-                  fill
-                  sizes="(max-width: 900px) 80vw, 300px"
-                  priority={i === 0}
-                  className="landing-showcase__shot"
-                  data-active={i === index ? "" : undefined}
-                />
+                  id={`showcase-panel-${screen.id}`}
+                  role="tabpanel"
+                  aria-labelledby={`showcase-tab-${screen.id}`}
+                  className="landing-showcase__panel"
+                  data-state={i === index ? "active" : "inactive"}
+                  aria-hidden={i !== index}
+                >
+                  <Image
+                    src={screen.src}
+                    alt={`Anchor — ${screen.label}`}
+                    fill
+                    sizes="(max-width: 900px) 80vw, 300px"
+                    priority={i === 0}
+                    className="landing-showcase__shot"
+                  />
+                </div>
               ))}
               <div className="landing-showcase__dots" aria-hidden="true">
                 {SCREENS.map((screen, i) => (
                   <span
                     key={screen.id}
-                    data-active={i === index ? "" : undefined}
+                    data-state={i === index ? "active" : "inactive"}
                   />
                 ))}
               </div>

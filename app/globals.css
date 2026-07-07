@@ -591,7 +591,7 @@
   color: var(--landing-ink);
 }
 
-.landing-showcase__tab[data-active] {
+.landing-showcase__tab[data-state="active"] {
   background: var(--landing-clay);
   color: #fdf7ef;
 }
@@ -645,15 +645,26 @@
   background: var(--landing-cream);
 }
 
-.landing-showcase__shot {
-  object-fit: cover;
-  object-position: top center;
+.landing-showcase__panel {
+  position: absolute;
+  inset: 0;
   opacity: 0;
   transition: opacity 700ms ease;
 }
 
-.landing-showcase__shot[data-active] {
+.landing-showcase__panel[data-state="active"] {
   opacity: 1;
+}
+
+.landing-showcase__shot {
+  object-fit: cover;
+  object-position: top center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-showcase__panel {
+    transition: none;
+  }
 }
 
 .landing-showcase__dots {
@@ -675,7 +686,7 @@
     background-color 300ms ease;
 }
 
-.landing-showcase__dots span[data-active] {
+.landing-showcase__dots span[data-state="active"] {
   width: 18px;
   background: var(--landing-clay);
 }

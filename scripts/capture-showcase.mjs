@@ -11,15 +11,15 @@
 // screens look lived-in instead of empty. It never touches real user data —
 // it only runs in this throwaway browser context.
 
+import { existsSync } from "node:fs"
 import { mkdir } from "node:fs/promises"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
+import { getTodayKey, shiftKey } from "../lib/time/today.shared.js"
 import puppeteer from "puppeteer-core"
 
 const BASE = process.env.SHOWCASE_URL ?? "http://localhost:3088"
-const CHROME =
-  process.env.CHROME_PATH ??
-  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+const CHROME = resolveChromeExecutable()
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const OUT_DIR = resolve(__dirname, "../public/showcase")
@@ -30,10 +30,33 @@ const SETTLE_CSS = `*{animation-duration:0s !important;transition:none !importan
 [style*="opacity"]{opacity:1 !important;transform:none !important;filter:none !important}
 nextjs-portal,[data-next-badge-root],[data-nextjs-toast],#__next-build-watcher{display:none !important}`
 
+function resolveChromeExecutable() {
+  if (process.env.CHROME_PATH) return process.env.CHROME_PATH
+
+  const candidatesByPlatform = {
+    darwin: [
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+      "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    ],
+    linux: [
+      "/usr/bin/google-chrome",
+      "/usr/bin/google-chrome-stable",
+      "/usr/bin/chromium",
+      "/usr/bin/chromium-browser",
+    ],
+    win32: [
+      "C:/Program Files/Google/Chrome/Application/chrome.exe",
+      "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+    ],
+  }
+
+  return (candidatesByPlatform[process.platform] ?? []).find((candidate) =>
+    existsSync(candidate)
+  )
+}
+
 function buildSeed() {
-  const pad = (n) => String(n).padStart(2, "0")
-  const key = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-  const today = new Date()
+  const todayKey = getTodayKey()
   const quals = ["good", "great", "okay", "good", "great", "good", "okay", "great", "good", "good", "great", "okay", "good", "great"]
   const intentions = [
     "Move through the day without rushing",
@@ -54,9 +77,7 @@ function buildSeed() {
   const habits = ["Move", "Read", "Water", "No screens"]
   const entries = {}
   for (let i = 13; i >= 0; i--) {
-    const d = new Date(today)
-    d.setDate(today.getDate() - i)
-    const k = key(d)
+    const k = shiftKey(todayKey, -i)
     const t = (13 - i) / 13
     const energy = Math.min(0.95, Math.max(0.25, 0.45 + 0.4 * Math.sin(i / 2) + 0.15 * t))
     const valence = Math.min(0.95, Math.max(0.3, 0.5 + 0.35 * Math.cos(i / 3) + 0.15 * t))
@@ -77,10 +98,17 @@ function buildSeed() {
 }
 
 async function main() {
+  if (!CHROME) {
+    throw new Error(
+      "Could not find a Chrome/Chromium executable for showcase capture. " +
+        "Set CHROME_PATH to your browser executable path."
+    )
+  }
+
   await mkdir(OUT_DIR, { recursive: true })
   const browser = await puppeteer.launch({
     executablePath: CHROME,
-    headless: "new",
+    headless: true,
     defaultViewport: { width: 390, height: 844, deviceScaleFactor: 2, isMobile: true },
   })
   const page = await browser.newPage()
