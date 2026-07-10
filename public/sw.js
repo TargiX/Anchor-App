@@ -1,7 +1,7 @@
-const CACHE_VERSION = "anchor-release-v1"
-const APP_SHELL = [
-  "/",
-  "/app",
+const CACHE_VERSION = "anchor-release-v2"
+const OFFLINE_URL = "/offline"
+const CORE_APP_SHELL = ["/", "/app", OFFLINE_URL]
+const OPTIONAL_APP_SHELL = [
   "/morning",
   "/evening",
   "/timeline",
@@ -15,13 +15,36 @@ const APP_SHELL = [
   "/pwa-icon/512-maskable",
 ]
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE_VERSION)
-      .then((cache) => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
+function reloadRequest(url) {
+  return new Request(url, { cache: "reload" })
+}
+
+async function precacheAppShell() {
+  const cache = await caches.open(CACHE_VERSION)
+
+  // Keep install strict for the real fallback chain. If these miss, the old
+  // worker/cache should stay active instead of replacing a working offline shell.
+  await cache.addAll(CORE_APP_SHELL.map(reloadRequest))
+
+  await Promise.all(
+    OPTIONAL_APP_SHELL.map((url) =>
+      cache.add(reloadRequest(url)).catch(() => undefined)
+    )
   )
+}
+
+function shouldCacheRequest(request) {
+  const url = new URL(request.url)
+
+  return (
+    url.origin === self.location.origin &&
+    request.method === "GET" &&
+    !url.pathname.startsWith("/api/")
+  )
+}
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(precacheAppShell().then(() => self.skipWaiting()))
 })
 
 self.addEventListener("activate", (event) => {
@@ -41,7 +64,7 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const request = event.request
-  if (request.method !== "GET") return
+  if (!shouldCacheRequest(request)) return
 
   if (request.mode === "navigate") {
     event.respondWith(
@@ -54,6 +77,7 @@ self.addEventListener("fetch", (event) => {
         .catch(async () => {
           return (
             (await caches.match(request)) ??
+            (await caches.match(OFFLINE_URL)) ??
             (await caches.match("/app")) ??
             (await caches.match("/"))
           )
