@@ -32,7 +32,7 @@ Web: deployed on Vercel · Mobile: iOS/Android via Capacitor · Desktop: macOS/W
 
 ```bash
 npm install
-npm run dev          # http://localhost:3000
+npm run dev          # http://localhost:3088 (PORT is pinned in package.json)
 ```
 
 ## Build for Vercel

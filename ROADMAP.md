@@ -18,7 +18,8 @@ one Next.js codebase.
    npm install
    npm run typecheck && npm run lint && npm run test && npm run build
    ```
-3. Preview locally: `npm run dev` → http://localhost:3000
+3. Preview locally: `npm run dev` → http://localhost:3088
+   (`package.json` pins `PORT=3088` so it does not collide with other local apps)
    (prod: `npm start`; native static export: `npm run build:native`).
 
 ## Architecture (the conventions that must hold)
@@ -139,7 +140,7 @@ Auth → URL Configuration:
 
 - Site URL: `https://anchorapp.cc`
 - Redirect URLs: `https://anchorapp.cc/**`, `https://www.anchorapp.cc/**`,
-  `http://localhost:3000/**`
+  `http://localhost:3088/**`, `http://localhost:3000/**`
 
 Google/Gmail sign-in is a separate provider setup. Create a Google Cloud OAuth
 web client, add `https://anchorapp.cc` as an authorized JavaScript origin, add
