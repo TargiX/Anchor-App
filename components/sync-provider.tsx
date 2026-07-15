@@ -3,7 +3,15 @@
 import { useEffect, useRef } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { supabase } from "@/lib/supabase/client"
-import { loadCloudState, mergeCloudState, saveCloudState } from "@/lib/store/cloud"
+import {
+  loadCloudState,
+  mergeCloudState,
+  saveCloudState,
+} from "@/lib/store/cloud"
+import {
+  cloudSyncStatus,
+  createCloudSaveCoordinator,
+} from "@/lib/store/sync-status"
 import {
   clearAllAuthedSlots,
   clearAuthedSlot,
@@ -40,6 +48,7 @@ export function SyncProvider() {
       timeoutRef.current = null
     }
     clearCloudPersistence()
+    cloudSyncStatus.end()
 
     // Unconfigured (no Supabase env) is a fully-supported local-only mode:
     // local persistence must work even though there is no cloud to sync to.
@@ -88,6 +97,12 @@ export function SyncProvider() {
 
     if (status !== "authed" || !userId) return
 
+    if (!client) return
+    const configuredClient = client
+    const authenticatedUserId = userId
+
+    const syncSession = cloudSyncStatus.begin(authenticatedUserId)
+
     // Cross-account guard: if a different authed user was previously
     // active in this tab/session, wipe their local slot before we touch
     // any state. Without this an authed -> authed (A -> B) transition
@@ -114,14 +129,45 @@ export function SyncProvider() {
     previousAuthedUserIdRef.current = userId
 
     let cancelled = false
+    const saveCoordinator = createCloudSaveCoordinator<AppState>({
+      session: syncSession,
+      status: cloudSyncStatus,
+      save: (nextState) =>
+        saveCloudState(configuredClient, authenticatedUserId, nextState),
+      onError: (error) => {
+        console.error("Anchor cloud persistence failed", error)
+      },
+    })
+
+    function installCloudPersistence() {
+      if (cancelled || !cloudSyncStatus.isCurrent(syncSession)) return
+
+      setCloudPersistence((nextState) => {
+        if (!saveCoordinator.schedule(nextState)) return
+        if (timeoutRef.current) clearTimeout(timeoutRef.current)
+        timeoutRef.current = setTimeout(() => {
+          timeoutRef.current = null
+          void saveCoordinator.flush()
+        }, SAVE_DELAY_MS)
+      })
+    }
 
     async function syncInitialState() {
-      if (!userId) return
-
-      const remoteState = client
-        ? await loadCloudState(client, userId)
-        : null
-      if (cancelled) return
+      let remoteState: AppState | null
+      try {
+        remoteState = await loadCloudState(
+          configuredClient,
+          authenticatedUserId
+        )
+      } catch (error) {
+        if (!cancelled && cloudSyncStatus.isCurrent(syncSession)) {
+          console.error("Anchor cloud sync failed", error)
+          cloudSyncStatus.update(syncSession, "error")
+          installCloudPersistence()
+        }
+        return
+      }
+      if (cancelled || !cloudSyncStatus.isCurrent(syncSession)) return
 
       // Re-read after the async cloud load so local edits made while the
       // request was in flight are not overwritten by a stale pre-await snapshot.
@@ -144,38 +190,49 @@ export function SyncProvider() {
       }
 
       replaceState(syncedState, { persistCloud: false })
-      if (client) {
-        try {
-          await saveCloudState(client, userId, syncedState)
-        } catch (error) {
+      try {
+        await saveCloudState(configuredClient, authenticatedUserId, syncedState)
+      } catch (error) {
+        if (!cancelled && cloudSyncStatus.isCurrent(syncSession)) {
           console.error("Anchor initial cloud persistence failed", error)
+          cloudSyncStatus.update(syncSession, "error")
+          installCloudPersistence()
         }
+        return
       }
-      if (cancelled) return
+      if (cancelled || !cloudSyncStatus.isCurrent(syncSession)) return
 
-      setCloudPersistence((nextState) => {
-        if (timeoutRef.current) clearTimeout(timeoutRef.current)
-        timeoutRef.current = setTimeout(() => {
-          if (client) {
-            void saveCloudState(client, userId, nextState).catch((error) => {
-              console.error("Anchor cloud persistence failed", error)
-            })
-          }
-        }, SAVE_DELAY_MS)
-      })
+      installCloudPersistence()
+
+      // A local edit can land while the initial cloud write is in flight,
+      // before cloud persistence has been installed. Queue that fresher
+      // snapshot now so "saved" never describes an older cloud value.
+      const latestLocalState = getSnapshot()
+      if (latestLocalState !== syncedState) {
+        saveCoordinator.schedule(latestLocalState)
+        void saveCoordinator.flush()
+      } else {
+        cloudSyncStatus.update(syncSession, "saved")
+      }
     }
 
     void syncInitialState().catch((error) => {
-      console.error("Anchor cloud sync failed", error)
+      if (!cancelled && cloudSyncStatus.isCurrent(syncSession)) {
+        console.error("Anchor cloud sync failed", error)
+        cloudSyncStatus.update(syncSession, "error")
+        installCloudPersistence()
+      }
     })
 
     return () => {
       cancelled = true
+      saveCoordinator.dispose()
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
         timeoutRef.current = null
       }
       clearCloudPersistence()
+      cloudSyncStatus.end(syncSession)
     }
   }, [status, userId])
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useTodayEntry, useStreak } from "@/hooks/use-store"
 import { useAuth } from "@/components/auth-provider"
+import { SyncStatusIndicator } from "@/components/sync-status-indicator"
 import { AnchorMotif } from "@/components/anchor-motif"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -113,6 +114,7 @@ export default function Home() {
               <h1 className="mt-0.5 font-[family-name:var(--font-display)] text-2xl font-semibold text-foreground lg:mt-3 lg:max-w-xl lg:text-6xl lg:leading-[1.05]">
                 {greeting}.
               </h1>
+              {isAuthed && <SyncStatusIndicator className="mt-2 lg:mt-3" />}
             </div>
             {isAuthed && (
               <button
@@ -131,7 +133,11 @@ export default function Home() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="flex flex-col items-center gap-3 py-8 lg:items-start lg:gap-5 lg:py-12"
           >
-            <AnchorMotif size={120} animate className="text-primary lg:hidden" />
+            <AnchorMotif
+              size={120}
+              animate
+              className="text-primary lg:hidden"
+            />
             <AnchorMotif
               size={240}
               animate
