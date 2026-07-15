@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { HabitIcon } from "@/components/habit-icon"
 import { useAuth } from "@/components/auth-provider"
+import { SyncStatusIndicator } from "@/components/sync-status-indicator"
 import { useAppState } from "@/hooks/use-store"
 import { addHabit, removeHabit, setNotificationTime } from "@/lib/store/actions"
 import { LIMITS } from "@/lib/domain/validation"
@@ -287,6 +288,7 @@ export default function SettingsPage() {
             <span className="truncate text-sm font-medium text-foreground">
               {user?.email}
             </span>
+            <SyncStatusIndicator className="mt-1" />
           </div>
           <Button
             variant="outline"
