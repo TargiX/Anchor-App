@@ -197,6 +197,9 @@ export function SyncProvider() {
           console.error("Anchor initial cloud persistence failed", error)
           cloudSyncStatus.update(syncSession, "error")
           installCloudPersistence()
+          if (saveCoordinator.schedule(getSnapshot())) {
+            void saveCoordinator.flush()
+          }
         }
         return
       }
