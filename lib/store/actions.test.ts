@@ -1,11 +1,39 @@
-import { describe, it, expect, beforeEach } from "vitest"
-import { getSnapshot, setState } from "./store"
-import { addHabit, removeHabit, updateTodayEntry, setNotificationTime } from "./actions"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+import {
+  clearCloudPersistence,
+  getSnapshot,
+  setCloudPersistence,
+  setState,
+} from "./store"
+import {
+  addHabit,
+  applyInboundCloudState,
+  removeHabit,
+  setNotificationTime,
+  updateTodayEntry,
+} from "./actions"
 import { INITIAL_STATE } from "./state"
 import { getTodayKey } from "@/lib/time/today"
 
 beforeEach(() => {
+  clearCloudPersistence()
   setState(() => INITIAL_STATE)
+})
+
+describe("applyInboundCloudState", () => {
+  it("updates local state without invoking cloud persistence", () => {
+    const persistCloud = vi.fn()
+    const inboundState = {
+      ...INITIAL_STATE,
+      notificationMorning: "07:15",
+    }
+    setCloudPersistence(persistCloud)
+
+    applyInboundCloudState(inboundState)
+
+    expect(getSnapshot()).toBe(inboundState)
+    expect(persistCloud).not.toHaveBeenCalled()
+  })
 })
 
 describe("updateTodayEntry", () => {

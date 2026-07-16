@@ -132,6 +132,18 @@ export function createCloudSaveCoordinator<State>({
       status.update(session, "saving")
       return true
     },
+    rebasePending(state: State) {
+      if (
+        disposed ||
+        !status.isCurrent(session) ||
+        (!inFlight && pending === undefined)
+      ) {
+        return false
+      }
+
+      pending = state
+      return true
+    },
     flush,
     dispose() {
       disposed = true

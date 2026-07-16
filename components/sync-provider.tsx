@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { supabase } from "@/lib/supabase/client"
 import {
+  createCloudInboundSync,
   loadCloudState,
   mergeCloudState,
   saveCloudState,
@@ -12,6 +13,7 @@ import {
   cloudSyncStatus,
   createCloudSaveCoordinator,
 } from "@/lib/store/sync-status"
+import { applyInboundCloudState } from "@/lib/store/actions"
 import {
   clearAllAuthedSlots,
   clearAuthedSlot,
@@ -129,6 +131,7 @@ export function SyncProvider() {
     previousAuthedUserIdRef.current = userId
 
     let cancelled = false
+    let inboundSync: ReturnType<typeof createCloudInboundSync> | null = null
     const saveCoordinator = createCloudSaveCoordinator<AppState>({
       session: syncSession,
       status: cloudSyncStatus,
@@ -152,6 +155,40 @@ export function SyncProvider() {
       })
     }
 
+    function installInboundSync(initialBaselineState: AppState | null) {
+      if (
+        inboundSync ||
+        cancelled ||
+        !cloudSyncStatus.isCurrent(syncSession)
+      ) {
+        return
+      }
+
+      inboundSync = createCloudInboundSync({
+        client: configuredClient,
+        userId: authenticatedUserId,
+        initialBaselineState,
+        getLocalState: getSnapshot,
+        replaceLocalState: applyInboundCloudState,
+        isActive: () =>
+          !cancelled && cloudSyncStatus.isCurrent(syncSession),
+        onError: (error) => {
+          // Realtime is an optional freshness layer. Keep its failures out of
+          // the visible save status; ordinary load/save continues to work.
+          console.error("Anchor realtime sync failed", error)
+        },
+        onStateApplied: (reconciledState) => {
+          saveCoordinator.rebasePending(reconciledState)
+        },
+        onRecoverySaveNeeded: (reconciledState) => {
+          if (saveCoordinator.schedule(reconciledState)) {
+            void saveCoordinator.flush()
+          }
+        },
+      })
+      inboundSync.start()
+    }
+
     async function syncInitialState() {
       let remoteState: AppState | null
       try {
@@ -164,6 +201,7 @@ export function SyncProvider() {
           console.error("Anchor cloud sync failed", error)
           cloudSyncStatus.update(syncSession, "error")
           installCloudPersistence()
+          installInboundSync(null)
         }
         return
       }
@@ -197,6 +235,7 @@ export function SyncProvider() {
           console.error("Anchor initial cloud persistence failed", error)
           cloudSyncStatus.update(syncSession, "error")
           installCloudPersistence()
+          installInboundSync(remoteState)
           if (saveCoordinator.schedule(getSnapshot())) {
             void saveCoordinator.flush()
           }
@@ -206,6 +245,7 @@ export function SyncProvider() {
       if (cancelled || !cloudSyncStatus.isCurrent(syncSession)) return
 
       installCloudPersistence()
+      installInboundSync(syncedState)
 
       // A local edit can land while the initial cloud write is in flight,
       // before cloud persistence has been installed. Queue that fresher
@@ -229,6 +269,7 @@ export function SyncProvider() {
 
     return () => {
       cancelled = true
+      inboundSync?.dispose()
       saveCoordinator.dispose()
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)

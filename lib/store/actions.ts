@@ -1,6 +1,7 @@
 "use client"
 
-import { getSnapshot, setState } from "./store"
+import { getSnapshot, replaceState, setState } from "./store"
+import type { AppState } from "./state"
 import { getTodayKey } from "@/lib/time/today"
 import { emptyEntry, TimeOfDaySchema, type DayEntry } from "@/lib/domain/entry"
 import type { Habit } from "@/lib/domain/habit"
@@ -10,6 +11,11 @@ import { validateHabitName, type ValidationResult } from "@/lib/domain/validatio
  * The only sanctioned way to mutate state. Components call these, never
  * `setState` directly — so every mutation has a name and lives in one place.
  */
+
+/** Apply a cloud refetch locally without echoing it back to cloud persistence. */
+export function applyInboundCloudState(state: AppState): void {
+  replaceState(state, { persistCloud: false })
+}
 
 /** Merge a patch into today's entry, creating it if needed. */
 export function updateTodayEntry(patch: Partial<DayEntry>): void {
