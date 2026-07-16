@@ -131,17 +131,23 @@ export function createCloudInboundSync({
               observedRemoteState
             )
           : mergeCloudState(currentLocalState, observedRemoteState)
-        const recoveryAlreadyPersisted =
-          baselineWasUnknown &&
-          structurallyEqual(observedRemoteState, reconciledState)
-        if (!baselineWasUnknown || recoveryAlreadyPersisted) {
-          cloudBaseline = observedRemoteState
-        }
+        const recoverySaveNeeded = !structurallyEqual(
+          observedRemoteState,
+          reconciledState
+        )
+        // Even while the merged recovery state is still being persisted, the
+        // observed row is the comparison baseline. Otherwise a missed self-echo
+        // would make a later remote update look like another first recovery and
+        // allow inherited local values to overwrite it.
+        cloudBaseline = observedRemoteState
         if (!structurallyEqual(currentLocalState, reconciledState)) {
           replaceLocalState(reconciledState, { persistCloud: false })
           onStateApplied?.(reconciledState)
         }
-        if (baselineWasUnknown && !recoveryAlreadyPersisted) {
+        // Keep retrying protected local work until a refetch confirms that the
+        // reconciled state reached the row. The save callback may fail without
+        // rejecting, so cloud observation is the durable acknowledgement.
+        if (recoverySaveNeeded) {
           onRecoverySaveNeeded?.(reconciledState)
         }
       }

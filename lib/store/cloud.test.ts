@@ -191,7 +191,7 @@ describe("cloud inbound sync", () => {
       },
       notificationEvening: "21:30",
     }
-    const selfEcho: AppState = {
+    const mergedRecovery: AppState = {
       ...offlineLocal,
       entries: {
         ...olderRemote.entries,
@@ -199,12 +199,14 @@ describe("cloud inbound sync", () => {
       },
       notificationEvening: "21:30",
     }
-    const newerRemote: AppState = {
-      ...selfEcho,
+    const concurrentRemote: AppState = {
+      ...olderRemote,
       entries: {
-        ...selfEcho.entries,
+        ...olderRemote.entries,
+        "2026-07-15": { date: "2026-07-15", journal: "newer remote-only entry" },
         "2026-07-16": { date: "2026-07-16", journal: "newer remote edit" },
       },
+      notificationEvening: "22:00",
     }
     let local = structuredClone(offlineLocal)
     const replaceLocalState = vi.fn((state: AppState) => {
@@ -214,8 +216,7 @@ describe("cloud inbound sync", () => {
     const loadState = vi
       .fn()
       .mockResolvedValueOnce(olderRemote)
-      .mockResolvedValueOnce(selfEcho)
-      .mockResolvedValueOnce(newerRemote)
+      .mockResolvedValueOnce(concurrentRemote)
     const inbound = createCloudInboundSync({
       client: realtime.client,
       userId: "user-a",
@@ -228,26 +229,27 @@ describe("cloud inbound sync", () => {
     })
 
     await inbound.refresh()
-    expect(local).toEqual(selfEcho)
+    expect(local).toEqual(mergedRecovery)
     expect(local.entries["2026-07-16"]?.journal).toBe("pending offline edit")
     expect(local.entries["2026-07-15"]?.journal).toBe("remote-only entry")
     expect(local.habits).toEqual([pendingHabit])
     expect(local.notificationMorning).toBe("06:30")
     expect(local.notificationEvening).toBe("21:30")
     expect(onRecoverySaveNeeded).toHaveBeenCalledOnce()
-    expect(onRecoverySaveNeeded).toHaveBeenCalledWith(selfEcho)
+    expect(onRecoverySaveNeeded).toHaveBeenCalledWith(mergedRecovery)
 
-    // A successful save can echo the merged local state without rerendering.
-    // Observing it still advances the confirmed baseline.
-    await inbound.refresh()
-    expect(replaceLocalState).toHaveBeenCalledTimes(1)
-    expect(onRecoverySaveNeeded).toHaveBeenCalledOnce()
-
+    // A newer remote row can arrive before the recovery save echoes back. Only
+    // the true offline edits stay protected; values inherited from the first
+    // observed row must continue following the cloud baseline.
     await inbound.refresh()
     expect(replaceLocalState).toHaveBeenCalledTimes(2)
-    expect(onRecoverySaveNeeded).toHaveBeenCalledOnce()
-    expect(local).toEqual(newerRemote)
-    expect(local.entries["2026-07-16"]?.journal).toBe("newer remote edit")
+    expect(onRecoverySaveNeeded).toHaveBeenCalledTimes(2)
+    expect(onRecoverySaveNeeded).toHaveBeenLastCalledWith(local)
+    expect(local.entries["2026-07-15"]?.journal).toBe("newer remote-only entry")
+    expect(local.entries["2026-07-16"]?.journal).toBe("pending offline edit")
+    expect(local.habits).toEqual([pendingHabit])
+    expect(local.notificationMorning).toBe("06:30")
+    expect(local.notificationEvening).toBe("22:00")
   })
 
   it("hands protected local work off when an unknown baseline recovers to an empty row", async () => {
