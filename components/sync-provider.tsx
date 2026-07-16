@@ -13,6 +13,7 @@ import {
   cloudSyncStatus,
   createCloudSaveCoordinator,
 } from "@/lib/store/sync-status"
+import { applyInboundCloudState } from "@/lib/store/actions"
 import {
   clearAllAuthedSlots,
   clearAuthedSlot,
@@ -154,7 +155,7 @@ export function SyncProvider() {
       })
     }
 
-    function installInboundSync(initialCloudState: AppState) {
+    function installInboundSync(initialBaselineState: AppState | null) {
       if (
         inboundSync ||
         cancelled ||
@@ -166,9 +167,9 @@ export function SyncProvider() {
       inboundSync = createCloudInboundSync({
         client: configuredClient,
         userId: authenticatedUserId,
-        initialCloudState,
+        initialBaselineState,
         getLocalState: getSnapshot,
-        replaceLocalState: replaceState,
+        replaceLocalState: applyInboundCloudState,
         isActive: () =>
           !cancelled && cloudSyncStatus.isCurrent(syncSession),
         onError: (error) => {
@@ -178,6 +179,11 @@ export function SyncProvider() {
         },
         onStateApplied: (reconciledState) => {
           saveCoordinator.rebasePending(reconciledState)
+        },
+        onRecoverySaveNeeded: (reconciledState) => {
+          if (saveCoordinator.schedule(reconciledState)) {
+            void saveCoordinator.flush()
+          }
         },
       })
       inboundSync.start()
@@ -195,7 +201,7 @@ export function SyncProvider() {
           console.error("Anchor cloud sync failed", error)
           cloudSyncStatus.update(syncSession, "error")
           installCloudPersistence()
-          installInboundSync(INITIAL_STATE)
+          installInboundSync(null)
         }
         return
       }
@@ -229,7 +235,7 @@ export function SyncProvider() {
           console.error("Anchor initial cloud persistence failed", error)
           cloudSyncStatus.update(syncSession, "error")
           installCloudPersistence()
-          installInboundSync(remoteState ?? INITIAL_STATE)
+          installInboundSync(remoteState)
           if (saveCoordinator.schedule(getSnapshot())) {
             void saveCoordinator.flush()
           }

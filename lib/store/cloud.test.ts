@@ -80,7 +80,7 @@ describe("cloud inbound sync", () => {
     const inbound = createCloudInboundSync({
       client: realtime.client,
       userId: "user-a",
-      initialCloudState: INITIAL_STATE,
+      initialBaselineState: INITIAL_STATE,
       getLocalState: () => INITIAL_STATE,
       replaceLocalState: vi.fn(),
       isActive: () => true,
@@ -144,7 +144,7 @@ describe("cloud inbound sync", () => {
     const inbound = createCloudInboundSync({
       client: realtime.client,
       userId: "user-a",
-      initialCloudState: baseline,
+      initialBaselineState: baseline,
       getLocalState: () => local,
       replaceLocalState,
       isActive: () => true,
@@ -170,6 +170,123 @@ describe("cloud inbound sync", () => {
     expect(onStateApplied).toHaveBeenCalledOnce()
     const appliedState = replaceLocalState.mock.calls[0]![0]
     expect(onStateApplied.mock.calls[0]![0]).toBe(appliedState)
+  })
+
+  it("hands merged offline and remote work off when an unknown baseline recovers", async () => {
+    const realtime = createRealtimeClient()
+    const pendingHabit = { id: "write", name: "Write", icon: "pencil" }
+    const offlineLocal: AppState = {
+      ...INITIAL_STATE,
+      entries: {
+        "2026-07-16": { date: "2026-07-16", journal: "pending offline edit" },
+      },
+      habits: [pendingHabit],
+      notificationMorning: "06:30",
+    }
+    const olderRemote: AppState = {
+      ...INITIAL_STATE,
+      entries: {
+        "2026-07-15": { date: "2026-07-15", journal: "remote-only entry" },
+        "2026-07-16": { date: "2026-07-16", journal: "older cloud value" },
+      },
+      notificationEvening: "21:30",
+    }
+    const selfEcho: AppState = {
+      ...offlineLocal,
+      entries: {
+        ...olderRemote.entries,
+        ...offlineLocal.entries,
+      },
+      notificationEvening: "21:30",
+    }
+    const newerRemote: AppState = {
+      ...selfEcho,
+      entries: {
+        ...selfEcho.entries,
+        "2026-07-16": { date: "2026-07-16", journal: "newer remote edit" },
+      },
+    }
+    let local = structuredClone(offlineLocal)
+    const replaceLocalState = vi.fn((state: AppState) => {
+      local = state
+    })
+    const onRecoverySaveNeeded = vi.fn()
+    const loadState = vi
+      .fn()
+      .mockResolvedValueOnce(olderRemote)
+      .mockResolvedValueOnce(selfEcho)
+      .mockResolvedValueOnce(newerRemote)
+    const inbound = createCloudInboundSync({
+      client: realtime.client,
+      userId: "user-a",
+      initialBaselineState: null,
+      getLocalState: () => local,
+      replaceLocalState,
+      isActive: () => true,
+      loadState,
+      onRecoverySaveNeeded,
+    })
+
+    await inbound.refresh()
+    expect(local).toEqual(selfEcho)
+    expect(local.entries["2026-07-16"]?.journal).toBe("pending offline edit")
+    expect(local.entries["2026-07-15"]?.journal).toBe("remote-only entry")
+    expect(local.habits).toEqual([pendingHabit])
+    expect(local.notificationMorning).toBe("06:30")
+    expect(local.notificationEvening).toBe("21:30")
+    expect(onRecoverySaveNeeded).toHaveBeenCalledOnce()
+    expect(onRecoverySaveNeeded).toHaveBeenCalledWith(selfEcho)
+
+    // A successful save can echo the merged local state without rerendering.
+    // Observing it still advances the confirmed baseline.
+    await inbound.refresh()
+    expect(replaceLocalState).toHaveBeenCalledTimes(1)
+    expect(onRecoverySaveNeeded).toHaveBeenCalledOnce()
+
+    await inbound.refresh()
+    expect(replaceLocalState).toHaveBeenCalledTimes(2)
+    expect(onRecoverySaveNeeded).toHaveBeenCalledOnce()
+    expect(local).toEqual(newerRemote)
+    expect(local.entries["2026-07-16"]?.journal).toBe("newer remote edit")
+  })
+
+  it("hands protected local work off when an unknown baseline recovers to an empty row", async () => {
+    const realtime = createRealtimeClient()
+    const local: AppState = {
+      ...INITIAL_STATE,
+      entries: {
+        "2026-07-16": { date: "2026-07-16", journal: "offline edit" },
+      },
+      notificationMorning: "06:30",
+    }
+    const replaceLocalState = vi.fn()
+    const onStateApplied = vi.fn()
+    const onRecoverySaveNeeded = vi.fn()
+    const loadState = vi
+      .fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(local)
+    const inbound = createCloudInboundSync({
+      client: realtime.client,
+      userId: "user-a",
+      initialBaselineState: null,
+      getLocalState: () => local,
+      replaceLocalState,
+      isActive: () => true,
+      loadState,
+      onStateApplied,
+      onRecoverySaveNeeded,
+    })
+
+    await inbound.refresh()
+
+    expect(replaceLocalState).not.toHaveBeenCalled()
+    expect(onStateApplied).not.toHaveBeenCalled()
+    expect(onRecoverySaveNeeded).toHaveBeenCalledOnce()
+    expect(onRecoverySaveNeeded).toHaveBeenCalledWith(local)
+
+    await inbound.refresh()
+    expect(onRecoverySaveNeeded).toHaveBeenCalledOnce()
   })
 
   it("preserves pending local dates and whole fields that diverged from baseline", async () => {
@@ -202,7 +319,7 @@ describe("cloud inbound sync", () => {
     const inbound = createCloudInboundSync({
       client: realtime.client,
       userId: "user-a",
-      initialCloudState: baseline,
+      initialBaselineState: baseline,
       getLocalState: () => local,
       replaceLocalState,
       isActive: () => true,
@@ -244,7 +361,7 @@ describe("cloud inbound sync", () => {
     const inbound = createCloudInboundSync({
       client: realtime.client,
       userId: "user-a",
-      initialCloudState: baseline,
+      initialBaselineState: baseline,
       getLocalState: () => local,
       replaceLocalState,
       isActive: () => true,
@@ -278,7 +395,7 @@ describe("cloud inbound sync", () => {
     const inbound = createCloudInboundSync({
       client: realtime.client,
       userId: "user-a",
-      initialCloudState: INITIAL_STATE,
+      initialBaselineState: INITIAL_STATE,
       getLocalState: () => INITIAL_STATE,
       replaceLocalState,
       isActive: () => active,

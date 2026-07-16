@@ -15,7 +15,7 @@ interface AnchorStateRow {
 interface CloudInboundSyncOptions {
   client: SupabaseClient
   userId: string
-  initialCloudState: AppState
+  initialBaselineState: AppState | null
   getLocalState: () => AppState
   replaceLocalState: (
     state: AppState,
@@ -25,6 +25,7 @@ interface CloudInboundSyncOptions {
   loadState?: typeof loadCloudState
   onError?: (error: unknown) => void
   onStateApplied?: (state: AppState) => void
+  onRecoverySaveNeeded?: (state: AppState) => void
 }
 
 export async function loadCloudState(
@@ -77,25 +78,28 @@ export function mergeCloudState(local: AppState, remote: AppState): AppState {
  * Treats Realtime messages as invalidation notifications. The row is always
  * reloaded through loadCloudState's migration boundary, then reconciled
  * against the last observed cloud baseline and a post-await local snapshot.
- * Local values that diverged from the baseline remain pending work.
+ * Until a cloud-confirmed baseline exists, the initial local-wins merge keeps
+ * potentially unsynced hydrated work. Local values that later diverge from a
+ * known baseline remain pending work.
  */
 export function createCloudInboundSync({
   client,
   userId,
-  initialCloudState,
+  initialBaselineState,
   getLocalState,
   replaceLocalState,
   isActive,
   loadState = loadCloudState,
   onError,
   onStateApplied,
+  onRecoverySaveNeeded,
 }: CloudInboundSyncOptions) {
   let channel: ReturnType<SupabaseClient["channel"]> | null = null
   let disposed = false
   let started = false
   let refreshRequested = false
   let refreshPromise: Promise<void> | null = null
-  let cloudBaseline = initialCloudState
+  let cloudBaseline = initialBaselineState
 
   function refresh(): Promise<void> {
     if (disposed || !isActive()) return Promise.resolve()
@@ -114,18 +118,31 @@ export function createCloudInboundSync({
           if (!disposed && isActive()) onError?.(error)
           continue
         }
-        if (disposed || !isActive() || !remoteState) continue
+        if (disposed || !isActive()) continue
 
         const currentLocalState = getLocalState()
-        const reconciledState = reconcileInboundCloudState(
-          currentLocalState,
-          cloudBaseline,
-          remoteState
-        )
-        cloudBaseline = remoteState
+        const previousBaseline = cloudBaseline
+        const baselineWasUnknown = previousBaseline === null
+        const observedRemoteState = remoteState ?? INITIAL_STATE
+        const reconciledState = !baselineWasUnknown
+          ? reconcileInboundCloudState(
+              currentLocalState,
+              previousBaseline,
+              observedRemoteState
+            )
+          : mergeCloudState(currentLocalState, observedRemoteState)
+        const recoveryAlreadyPersisted =
+          baselineWasUnknown &&
+          structurallyEqual(observedRemoteState, reconciledState)
+        if (!baselineWasUnknown || recoveryAlreadyPersisted) {
+          cloudBaseline = observedRemoteState
+        }
         if (!structurallyEqual(currentLocalState, reconciledState)) {
           replaceLocalState(reconciledState, { persistCloud: false })
           onStateApplied?.(reconciledState)
+        }
+        if (baselineWasUnknown && !recoveryAlreadyPersisted) {
+          onRecoverySaveNeeded?.(reconciledState)
         }
       }
     })().finally(() => {
