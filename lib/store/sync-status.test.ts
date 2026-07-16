@@ -55,6 +55,84 @@ describe("cloud sync lifecycle", () => {
 })
 
 describe("cloud save coordinator", () => {
+  it("rebases a delayed pending save without creating an extra write", async () => {
+    const status = createCloudSyncStatusController()
+    const session = status.begin("user-a")
+    const save = vi.fn<(state: string) => Promise<void>>().mockResolvedValue()
+    const coordinator = createCloudSaveCoordinator({ session, status, save })
+
+    coordinator.schedule("stale local state")
+    expect(coordinator.rebasePending("local plus remote state")).toBe(true)
+    await coordinator.flush()
+
+    expect(save).toHaveBeenCalledOnce()
+    expect(save).toHaveBeenCalledWith("local plus remote state")
+  })
+
+  it("writes a rebased state immediately after an in-flight stale save", async () => {
+    const status = createCloudSyncStatusController()
+    const session = status.begin("user-a")
+    const staleSave = deferred()
+    const rebasedSave = deferred()
+    const save = vi
+      .fn<(state: string) => Promise<void>>()
+      .mockReturnValueOnce(staleSave.promise)
+      .mockReturnValueOnce(rebasedSave.promise)
+    const coordinator = createCloudSaveCoordinator({ session, status, save })
+
+    coordinator.schedule("stale local state")
+    const flushing = coordinator.flush()
+    expect(coordinator.rebasePending("local plus remote state")).toBe(true)
+    expect(save).toHaveBeenCalledTimes(1)
+
+    staleSave.resolve()
+    await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(2))
+    expect(save).toHaveBeenNthCalledWith(2, "local plus remote state")
+
+    rebasedSave.resolve()
+    await flushing
+    expect(status.getSnapshot().phase).toBe("saved")
+  })
+
+  it("does not create or report outbound work when rebasing while idle", async () => {
+    const status = createCloudSyncStatusController()
+    const session = status.begin("user-a")
+    status.update(session, "saved")
+    const save = vi.fn<(state: string) => Promise<void>>().mockResolvedValue()
+    const coordinator = createCloudSaveCoordinator({ session, status, save })
+
+    expect(coordinator.rebasePending("inbound-only state")).toBe(false)
+    await coordinator.flush()
+
+    expect(save).not.toHaveBeenCalled()
+    expect(status.getSnapshot().phase).toBe("saved")
+  })
+
+  it("rejects rebases for stale or disposed coordinators", () => {
+    const status = createCloudSyncStatusController()
+    const staleSession = status.begin("user-a")
+    const staleCoordinator = createCloudSaveCoordinator({
+      session: staleSession,
+      status,
+      save: vi.fn(),
+    })
+    staleCoordinator.schedule("user-a state")
+    status.begin("user-b")
+
+    expect(staleCoordinator.rebasePending("wrong account state")).toBe(false)
+
+    const currentSession = status.begin("user-c")
+    const disposedCoordinator = createCloudSaveCoordinator({
+      session: currentSession,
+      status,
+      save: vi.fn(),
+    })
+    disposedCoordinator.schedule("user-c state")
+    disposedCoordinator.dispose()
+
+    expect(disposedCoordinator.rebasePending("disposed state")).toBe(false)
+  })
+
   it("serializes writes and saves the latest edit before reporting saved", async () => {
     const status = createCloudSyncStatusController()
     const session = status.begin("user-a")
