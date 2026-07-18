@@ -1,4 +1,5 @@
 import type { DayEntry, MoodPoint } from "./entry"
+import type { Habit } from "./habit"
 import { getTodayKey, shiftKey } from "@/lib/time/today"
 
 /**
@@ -153,4 +154,34 @@ export function habitCounts(
     }
   }
   return counts
+}
+
+export interface CompletedHabitLeader {
+  id: string
+  name: string
+  count: number
+}
+
+/**
+ * Most-completed habit that is still configured, with ties resolved by the
+ * configured habit order. Removed habit ids stay in historical entries but do
+ * not become an unnamed reflection.
+ */
+export function topCompletedHabit(
+  entries: Record<string, DayEntry>,
+  habits: Habit[],
+  todayKey: string = getTodayKey(),
+  days = 7
+): CompletedHabitLeader | null {
+  const counts = habitCounts(entries, todayKey, days)
+  let leader: CompletedHabitLeader | null = null
+
+  for (const habit of habits) {
+    const count = counts[habit.id] ?? 0
+    if (count > (leader?.count ?? 0)) {
+      leader = { id: habit.id, name: habit.name, count }
+    }
+  }
+
+  return leader
 }
