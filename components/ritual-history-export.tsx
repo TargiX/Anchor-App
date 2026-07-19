@@ -1,17 +1,27 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useSyncExternalStore } from "react"
 import { Capacitor } from "@capacitor/core"
-import { Download, HardDrive } from "lucide-react"
+import { Copy, Download, HardDrive } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAppState } from "@/hooks/use-store"
 import { createRitualHistoryExport } from "@/lib/domain/ritual-history-export"
 import { getTodayKey } from "@/lib/time/today"
 
+const subscribeToNativePlatform = () => () => undefined
+
 export function RitualHistoryExport() {
   const { entries, habits } = useAppState()
   const [exportedArtifact, setExportedArtifact] = useState<string | null>(null)
+  const [exportMethod, setExportMethod] = useState<"copy" | "download" | null>(
+    null
+  )
   const [exportError, setExportError] = useState<string | null>(null)
+  const isNativePlatform = useSyncExternalStore(
+    subscribeToNativePlatform,
+    Capacitor.isNativePlatform,
+    () => false
+  )
   const artifact = createRitualHistoryExport({
     entries,
     habits,
@@ -28,39 +38,21 @@ export function RitualHistoryExport() {
 
     setExportError(null)
 
-    const platform = Capacitor.getPlatform()
-    if (platform === "ios" || platform === "android") {
-      if (typeof navigator.share !== "function") {
+    if (isNativePlatform) {
+      if (typeof navigator.clipboard?.writeText !== "function") {
         setExportError(
-          "Markdown export is unavailable on this device. Your history stayed private."
+          "Could not access the clipboard. Your history stayed private."
         )
         return
       }
 
-      const file = new File([artifact.markdown], artifact.filename, {
-        type: "text/markdown;charset=utf-8",
-      })
-
       try {
-        if (
-          typeof navigator.canShare === "function" &&
-          navigator.canShare({ files: [file] })
-        ) {
-          await navigator.share({
-            files: [file],
-            title: artifact.filename,
-          })
-        } else {
-          await navigator.share({
-            title: artifact.filename,
-            text: artifact.markdown,
-          })
-        }
+        await navigator.clipboard.writeText(artifact.markdown)
         setExportedArtifact(artifactKey)
-      } catch (error) {
-        if (error instanceof Error && error.name === "AbortError") return
+        setExportMethod("copy")
+      } catch {
         setExportError(
-          "Could not open the system share sheet. Your history stayed private."
+          "Could not copy the Markdown. Your history stayed private."
         )
       }
       return
@@ -78,6 +70,7 @@ export function RitualHistoryExport() {
     link.remove()
     window.setTimeout(() => URL.revokeObjectURL(url), 0)
     setExportedArtifact(artifactKey)
+    setExportMethod("download")
   }
 
   return (
@@ -96,8 +89,9 @@ export function RitualHistoryExport() {
           </h2>
         </div>
         <p className="mt-2 max-w-xl text-xs leading-5 text-muted-foreground lg:text-sm lg:leading-6">
-          Export your recorded ritual fields and current habit names as
-          Markdown. The file is created on this device; nothing is uploaded.
+          {isNativePlatform
+            ? "Copy your recorded ritual fields and current habit names as Markdown, then paste them into a file or notes app. Nothing is uploaded."
+            : "Download your recorded ritual fields and current habit names as Markdown. The file is created on this device; nothing is uploaded."}
         </p>
         <p
           role="status"
@@ -110,8 +104,8 @@ export function RitualHistoryExport() {
             : !artifact
               ? "No recorded ritual entries to export yet."
               : isCurrentArtifactExported
-                ? `Exported ${artifact.entryCount} ${artifact.entryCount === 1 ? "entry" : "entries"} as Markdown.`
-                : `${artifact.entryCount} ${artifact.entryCount === 1 ? "entry" : "entries"} ready to export.`}
+                ? `${exportMethod === "copy" ? "Copied" : "Downloaded"} ${artifact.entryCount} ${artifact.entryCount === 1 ? "entry" : "entries"} as Markdown.${exportMethod === "copy" ? " Paste it into a file or notes app." : ""}`
+                : `${artifact.entryCount} ${artifact.entryCount === 1 ? "entry" : "entries"} ready to ${isNativePlatform ? "copy" : "download"}.`}
         </p>
       </div>
 
@@ -122,8 +116,16 @@ export function RitualHistoryExport() {
         disabled={!artifact}
         onClick={() => void exportMarkdown()}
       >
-        <Download className="size-4" data-icon="inline-start" />
-        {artifact ? "Export Markdown" : "Nothing to export"}
+        {isNativePlatform ? (
+          <Copy className="size-4" data-icon="inline-start" />
+        ) : (
+          <Download className="size-4" data-icon="inline-start" />
+        )}
+        {artifact
+          ? isNativePlatform
+            ? "Copy Markdown"
+            : "Download Markdown"
+          : "Nothing to export"}
       </Button>
     </section>
   )
