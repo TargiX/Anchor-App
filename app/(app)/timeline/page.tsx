@@ -2,6 +2,7 @@
 
 import { CalendarDays } from "lucide-react"
 import { AppScreenShell } from "@/components/app-screen-shell"
+import { RitualHistoryExport } from "@/components/ritual-history-export"
 import { TimelineView } from "@/components/timeline-view"
 
 export default function TimelinePage() {
@@ -21,6 +22,7 @@ export default function TimelinePage() {
       }
       contentClassName="lg:max-w-4xl"
     >
+      <RitualHistoryExport />
       <TimelineView />
     </AppScreenShell>
   )
