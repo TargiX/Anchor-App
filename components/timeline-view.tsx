@@ -87,7 +87,7 @@ function WeeklyReflection({
         </div>
 
         {hasSupportingMetrics ? (
-          <dl className="grid border-t border-border pt-2 md:border-t-0 md:border-l md:pt-0 md:pl-8 lg:grid-cols-3 lg:divide-x lg:divide-border lg:pl-0">
+          <dl className="grid min-w-0 border-t border-border pt-2 md:border-t-0 md:border-l md:pt-0 md:pl-8 lg:grid-cols-3 lg:divide-x lg:divide-border lg:pl-0">
             {mood !== null ? (
               <div className="border-t border-border py-4 first:border-t-0 first:pt-0 lg:border-t-0 lg:px-6 lg:py-0 lg:first:pl-8">
                 <dt className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
@@ -109,11 +109,11 @@ function WeeklyReflection({
               </div>
             ) : null}
             {topHabit !== null ? (
-              <div className="border-t border-border py-4 first:border-t-0 first:pt-0 last:pb-0 lg:border-t-0 lg:px-6 lg:py-0 lg:first:pl-8 lg:last:pr-0">
+              <div className="min-w-0 border-t border-border py-4 first:border-t-0 first:pt-0 last:pb-0 lg:border-t-0 lg:px-6 lg:py-0 lg:first:pl-8 lg:last:pr-0">
                 <dt className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
                   Most repeated
                 </dt>
-                <dd className="mt-2 font-[family-name:var(--font-display)] text-lg leading-6 text-foreground">
+                <dd className="mt-2 font-[family-name:var(--font-display)] text-lg leading-6 [overflow-wrap:anywhere] text-foreground">
                   {topHabit.name}
                 </dd>
                 <dd className="mt-1 text-sm text-muted-foreground">
