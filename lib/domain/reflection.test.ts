@@ -9,6 +9,7 @@ import {
   averageSleepHours,
   consecutiveLowSleepNights,
   habitCounts,
+  topCompletedHabit,
 } from "./reflection"
 import type { DayEntry, MoodPoint } from "./entry"
 
@@ -194,5 +195,38 @@ describe("habitCounts", () => {
       entry("2026-05-18", { habitsCompleted: [] })
     )
     expect(habitCounts(entries, today)).toEqual({ move: 2, water: 1 })
+  })
+})
+
+describe("topCompletedHabit", () => {
+  it("returns the first configured leader and ignores removed habit ids", () => {
+    const entries = map(
+      entry("2026-05-20", { habitsCompleted: ["removed", "read", "move"] }),
+      entry("2026-05-19", { habitsCompleted: ["removed", "read", "move"] }),
+      entry("2026-05-18", { habitsCompleted: ["removed"] })
+    )
+    const habits = [
+      { id: "move", name: "Move my body", icon: "footprints" },
+      { id: "read", name: "Read", icon: "book-open" },
+    ]
+
+    expect(topCompletedHabit(entries, habits, today)).toEqual({
+      id: "move",
+      name: "Move my body",
+      count: 2,
+    })
+  })
+
+  it("returns null until a configured habit has been completed", () => {
+    const habits = [{ id: "move", name: "Move my body", icon: "footprints" }]
+
+    expect(topCompletedHabit({}, habits, today)).toBeNull()
+    expect(
+      topCompletedHabit(
+        map(entry("2026-05-20", { habitsCompleted: ["removed"] })),
+        habits,
+        today
+      )
+    ).toBeNull()
   })
 })

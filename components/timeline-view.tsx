@@ -4,9 +4,134 @@ import { useState } from "react"
 import { useAppState } from "@/hooks/use-store"
 import { cn } from "@/lib/utils"
 import { type DayEntry, type MoodPoint } from "@/lib/domain/entry"
+import type { Habit } from "@/lib/domain/habit"
+import {
+  activeDays,
+  averageSleepHours,
+  moodDirection,
+  topCompletedHabit,
+  type MoodDirection,
+} from "@/lib/domain/reflection"
 import { getTodayKey, parseEntryDate } from "@/lib/time/today"
 import { ChevronDown, ChevronUp } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
+
+const MOOD_DIRECTION_COPY: Record<MoodDirection, string> = {
+  rising: "Lifting",
+  steady: "Holding steady",
+  falling: "Trending lower",
+}
+
+function WeeklyReflection({
+  entries,
+  habits,
+  todayKey,
+}: {
+  entries: Record<string, DayEntry>
+  habits: Habit[]
+  todayKey: string
+}) {
+  const activity = activeDays(entries, todayKey)
+  const mood = moodDirection(entries, todayKey)
+  const sleep = averageSleepHours(entries, todayKey)
+  const topHabit = topCompletedHabit(entries, habits, todayKey)
+  const hasSupportingMetrics =
+    mood !== null || sleep !== null || topHabit !== null
+
+  return (
+    <section
+      aria-labelledby="weekly-reflection-title"
+      className="overflow-hidden rounded-[2rem] border border-border bg-card"
+    >
+      <div className="border-b border-border px-5 py-5 sm:px-7 lg:flex lg:items-end lg:justify-between lg:gap-6 lg:px-8">
+        <div>
+          <p className="text-xs font-medium tracking-widest text-accent uppercase">
+            Last seven days
+          </p>
+          <h2
+            id="weekly-reflection-title"
+            className="mt-2 font-[family-name:var(--font-display)] text-2xl font-medium tracking-tight text-foreground sm:text-3xl"
+          >
+            Weekly reflection
+          </h2>
+        </div>
+        <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground lg:mt-0 lg:text-right">
+          A factual mirror from the rituals you recorded — no score attached.
+        </p>
+      </div>
+
+      <div className="grid gap-7 px-5 py-6 sm:px-7 md:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)] md:gap-0 lg:px-8 lg:py-8">
+        <div className="md:pr-8">
+          <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+            Active days
+          </p>
+          {activity.count > 0 ? (
+            <p className="mt-2 flex items-baseline gap-2 text-foreground">
+              <span className="font-[family-name:var(--font-display)] text-6xl leading-none font-medium tracking-[-0.06em] sm:text-7xl">
+                {activity.count}
+              </span>
+              <span className="text-base text-muted-foreground">
+                of {activity.of}
+              </span>
+            </p>
+          ) : (
+            <p className="mt-3 font-[family-name:var(--font-display)] text-xl leading-7 text-foreground">
+              Still gathering
+            </p>
+          )}
+          <p className="mt-3 max-w-xs text-sm leading-6 text-muted-foreground">
+            {activity.count > 0
+              ? "Days with a completed morning or evening ritual."
+              : "Complete a morning or evening ritual to add an active day."}
+          </p>
+        </div>
+
+        {hasSupportingMetrics ? (
+          <dl className="grid min-w-0 border-t border-border pt-2 md:border-t-0 md:border-l md:pt-0 md:pl-8 lg:grid-cols-3 lg:divide-x lg:divide-border lg:pl-0">
+            {mood !== null ? (
+              <div className="border-t border-border py-4 first:border-t-0 first:pt-0 lg:border-t-0 lg:px-6 lg:py-0 lg:first:pl-8">
+                <dt className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+                  Mood direction
+                </dt>
+                <dd className="mt-2 font-[family-name:var(--font-display)] text-lg leading-6 text-foreground">
+                  {MOOD_DIRECTION_COPY[mood]}
+                </dd>
+              </div>
+            ) : null}
+            {sleep !== null ? (
+              <div className="border-t border-border py-4 first:border-t-0 first:pt-0 lg:border-t-0 lg:px-6 lg:py-0 lg:first:pl-8">
+                <dt className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+                  Average sleep
+                </dt>
+                <dd className="mt-2 font-[family-name:var(--font-display)] text-lg leading-6 text-foreground">
+                  {sleep.toFixed(1)} hours
+                </dd>
+              </div>
+            ) : null}
+            {topHabit !== null ? (
+              <div className="min-w-0 border-t border-border py-4 first:border-t-0 first:pt-0 last:pb-0 lg:border-t-0 lg:px-6 lg:py-0 lg:first:pl-8 lg:last:pr-0">
+                <dt className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+                  Most repeated
+                </dt>
+                <dd className="mt-2 font-[family-name:var(--font-display)] text-lg leading-6 [overflow-wrap:anywhere] text-foreground">
+                  {topHabit.name}
+                </dd>
+                <dd className="mt-1 text-sm text-muted-foreground">
+                  {topHabit.count} {topHabit.count === 1 ? "time" : "times"}
+                </dd>
+              </div>
+            ) : null}
+          </dl>
+        ) : (
+          <p className="border-t border-border pt-5 text-sm leading-6 text-muted-foreground md:border-t-0 md:border-l md:pt-2 md:pl-8">
+            Mood, sleep, and habit patterns will appear here when they have
+            recorded data.
+          </p>
+        )}
+      </div>
+    </section>
+  )
+}
 
 function MoodMiniChart({
   morning,
@@ -55,8 +180,16 @@ function MoodMiniChart({
 
 function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
   const [expanded, setExpanded] = useState(false)
+  const shouldReduceMotion = useReducedMotion()
   const date = parseEntryDate(entry.date)
   const weekday = date.toLocaleDateString("en-US", { weekday: "short" })
+  const detailsId = `timeline-day-${entry.date}`
+  const dateLabel = date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  })
 
   return (
     <div
@@ -66,8 +199,12 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
       )}
     >
       <button
+        type="button"
         onClick={() => setExpanded((e) => !e)}
-        className="flex w-full items-center gap-4 px-5 py-4 text-left lg:gap-6 lg:px-6 lg:py-5"
+        aria-expanded={expanded}
+        aria-controls={detailsId}
+        aria-label={`${expanded ? "Hide" : "Show"} details for ${dateLabel}`}
+        className="flex w-full items-center gap-4 rounded-2xl px-5 py-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:gap-6 lg:rounded-3xl lg:px-6 lg:py-5"
       >
         {/* Date */}
         <div className="flex w-10 flex-none flex-col items-center lg:w-14">
@@ -122,10 +259,14 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
       <AnimatePresence>
         {expanded && (
           <motion.div
+            id={detailsId}
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
+            transition={{
+              duration: shouldReduceMotion ? 0 : 0.3,
+              ease: "easeInOut",
+            }}
             className="overflow-hidden"
           >
             <div className="flex flex-col gap-4 border-t border-border px-5 pt-4 pb-5 lg:grid lg:grid-cols-2 lg:px-6 lg:pb-6">
@@ -218,6 +359,11 @@ export function TimelineView() {
 
   return (
     <div className="flex flex-col gap-6 pb-8">
+      <WeeklyReflection
+        entries={state.entries}
+        habits={state.habits}
+        todayKey={todayKey}
+      />
       {weeks.map((week, wi) => (
         <div key={wi} className="flex flex-col gap-2">
           <p className="px-1 text-xs font-medium tracking-widest text-muted-foreground uppercase">
