@@ -62,11 +62,6 @@ export default function Home() {
   const streak = useStreak()
   const { mounted, timeContext, greeting, timeLabel, dateStr } = useTimeInfo()
 
-  // Settings is still under the (protected) layout and bounces anon users to
-  // /login, so hide the shortcut for guests — they have no settings to tweak
-  // until they sign in (the post-ritual save-prompt already covers that).
-  const isAuthed = authStatus === "authed"
-
   const morningDone = isMorningComplete(today)
   const eveningDone = isEveningComplete(today)
 
@@ -114,9 +109,11 @@ export default function Home() {
               <h1 className="mt-0.5 font-[family-name:var(--font-display)] text-2xl font-semibold text-foreground lg:mt-3 lg:max-w-xl lg:text-6xl lg:leading-[1.05]">
                 {greeting}.
               </h1>
-              {isAuthed && <SyncStatusIndicator className="mt-2 lg:mt-3" />}
+              {authStatus === "authed" && (
+                <SyncStatusIndicator className="mt-2 lg:mt-3" />
+              )}
             </div>
-            {isAuthed && (
+            {authStatus === "authed" && (
               <button
                 onClick={() => router.push("/settings")}
                 className="flex size-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:hidden"
@@ -167,7 +164,7 @@ export default function Home() {
                 {timeLabel}
               </h2>
             </div>
-            {isAuthed && (
+            {authStatus === "authed" && (
               <Button
                 variant="ghost"
                 size="icon-lg"
@@ -301,7 +298,14 @@ export default function Home() {
             </motion.p>
           )}
 
-          <div className="mt-3 grid gap-3 lg:mt-4 lg:grid-cols-3">
+          <div
+            className={cn(
+              "mt-3 grid gap-3 lg:mt-4",
+              authStatus === "loading" || authStatus === "unconfigured"
+                ? "lg:grid-cols-2"
+                : "lg:grid-cols-3"
+            )}
+          >
             <Button
               variant="outline"
               className="h-12 rounded-xl text-sm"
@@ -318,7 +322,7 @@ export default function Home() {
               <BookOpen className="size-4" data-icon="inline-start" />
               Timeline
             </Button>
-            {isAuthed ? (
+            {authStatus === "authed" && (
               <Button
                 variant="outline"
                 className="h-12 flex-1 rounded-xl text-sm"
@@ -327,7 +331,8 @@ export default function Home() {
                 <Settings className="size-4" data-icon="inline-start" />
                 Settings
               </Button>
-            ) : (
+            )}
+            {authStatus === "anon" && (
               <Button
                 variant="outline"
                 className="h-12 flex-1 rounded-xl text-sm"
