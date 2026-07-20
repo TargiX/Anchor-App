@@ -35,21 +35,39 @@ function quantity(value: number, unit: string): string {
   return `${value} ${unit}${value === 1 ? "" : "s"}`
 }
 
+/**
+ * Strip user-controlled C0/C1 control bytes before Markdown emission.
+ *
+ * All C0 bytes (0x00–0x1F) are removed except TAB (0x09) and LF (0x0A),
+ * which carry intentional formatting. DEL (0x7F) and the entire C1 range
+ * (0x80–0x9F) are also removed. CR (0x0D) is normalized to LF so fenced
+ * blocks keep a single, predictable newline convention. Other characters,
+ * including printable Unicode above 0x9F, pass through untouched.
+ *
+ * Applied at the pure formatter boundary before both inline and fenced
+ * emission; never mutates stored entry data.
+ */
+export function sanitizeMarkdownText(value: string): string {
+  return value.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, "")
+}
+
 function escapeMarkdownInline(value: string): string {
   const markdownCharacters = new Set("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~")
-  const singleLineValue = value.replace(/[\r\n]+/g, " ")
+  const sanitized = sanitizeMarkdownText(value)
+  const singleLineValue = sanitized.replace(/[\r\n]+/g, " ")
   return Array.from(singleLineValue, (character) =>
     markdownCharacters.has(character) ? `\\${character}` : character
   ).join("")
 }
 
 function textSection(title: string, value: string): string {
+  const sanitized = sanitizeMarkdownText(value).replace(/\r\n?/g, "\n")
   const longestBacktickRun = Math.max(
     0,
-    ...(value.match(/`+/g) ?? []).map((run) => run.length)
+    ...(sanitized.match(/`+/g) ?? []).map((run) => run.length)
   )
   const fence = "`".repeat(Math.max(3, longestBacktickRun + 1))
-  return `### ${title}\n\n${fence}text\n${value}\n${fence}`
+  return `### ${title}\n\n${fence}text\n${sanitized}\n${fence}`
 }
 
 function entryMarkdown(entry: DayEntry, habits: Habit[]): string {

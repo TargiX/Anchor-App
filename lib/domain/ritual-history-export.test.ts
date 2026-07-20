@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest"
-import { createRitualHistoryExport } from "./ritual-history-export"
+import {
+  createRitualHistoryExport,
+  sanitizeMarkdownText,
+} from "./ritual-history-export"
 import type { DayEntry } from "./entry"
 import type { Habit } from "./habit"
+
+const FORBIDDEN_CODE_POINTS = [0x00, 0x07, 0x1b, 0x7f, 0x80, 0x9f] as const
 
 const habits: Habit[] = [
   { id: "read", name: "Read", icon: "book-open" },
@@ -154,5 +159,100 @@ describe("createRitualHistoryExport", () => {
       "### Journal\n\n````text\nFirst line\n```md\n# not a heading\n```\nLast line\n````"
     )
     expect(result?.markdown).not.toContain("removed-habit")
+  })
+})
+
+describe("sanitizeMarkdownText", () => {
+  it("removes NUL/BEL/ESC/DEL and the C1 range while keeping printable text", () => {
+    const dirty =
+      "before\u0000after\u0007bell\u001bESC[\u007fDEL\u0080C1\u009fend"
+    const cleaned = sanitizeMarkdownText(dirty)
+    expect(cleaned).toBe("beforeafterbellESC[DELC1end")
+    for (const codePoint of FORBIDDEN_CODE_POINTS) {
+      expect(cleaned).not.toContain(String.fromCharCode(codePoint))
+    }
+  })
+
+  it("preserves TAB and LF and strips every other C0 control byte", () => {
+    const input = "line1\twith tab\nline2\u0001\u0002\u0003still line2"
+    const cleaned = sanitizeMarkdownText(input)
+    expect(cleaned).toBe("line1\twith tab\nline2still line2")
+    expect(cleaned).toContain("\t")
+    expect(cleaned).toContain("\n")
+  })
+
+  it("strips ANSI ESC bytes and terminal bell while preserving printable tails", () => {
+    const input = "\u001b[31mred\u001b[0m \u001b]0;title\u0007plain"
+    const cleaned = sanitizeMarkdownText(input)
+    // The ESC (0x1B) and BEL (0x07) bytes are removed; printable bracket
+    // tails remain (we do not parse full ANSI parameter grammars here).
+    expect(cleaned).toBe("[31mred[0m ]0;titleplain")
+    expect(cleaned).not.toContain("\u001b")
+    expect(cleaned).not.toContain("\u0007")
+  })
+})
+
+describe("createRitualHistoryExport control-byte sanitization", () => {
+  function exportWith(polluter: { habit?: string; journal?: string }) {
+    const entry: DayEntry = {
+      date: "2026-07-19",
+      habitsCompleted: ["read"],
+    }
+    if (polluter.journal !== undefined) entry.journal = polluter.journal
+    return createRitualHistoryExport({
+      entries: { "2026-07-19": entry },
+      habits: [
+        {
+          id: "read",
+          name: polluter.habit ?? "Read",
+          icon: "book-open",
+        },
+      ],
+      exportedOn: "2026-07-19",
+    })
+  }
+
+  it("never emits forbidden control code points from inline habit names", () => {
+    const dirtyName =
+      "Read\u0000null\u0007bell\u001b[31mesc\u007fdel\u0080c1\u009fend"
+    const result = exportWith({ habit: dirtyName })
+    expect(result).not.toBeNull()
+    const codes = FORBIDDEN_CODE_POINTS.map((cp) => String.fromCharCode(cp))
+    for (const code of codes) {
+      expect(result!.markdown).not.toContain(code)
+    }
+    expect(result!.markdown).toContain("Readnullbell\\[31mescdelc1end")
+  })
+
+  it("never emits forbidden control code points from fenced journal text", () => {
+    const dirtyJournal =
+      "open\u0000mid\u0007ESC\u001b[2J\u007fDEL\u0080CSI\u009fclose"
+    const result = exportWith({ journal: dirtyJournal })
+    expect(result).not.toBeNull()
+    const codes = FORBIDDEN_CODE_POINTS.map((cp) => String.fromCharCode(cp))
+    for (const code of codes) {
+      expect(result!.markdown).not.toContain(code)
+    }
+    expect(result!.markdown).toContain("openmidESC[2JDELCSIclose")
+  })
+
+  it("normalizes CR to LF inside fenced blocks so fences stay parseable", () => {
+    const journal = "first\rsecond\r\nthird"
+    const result = exportWith({ journal: journal })
+    expect(result).not.toBeNull()
+    expect(result!.markdown).not.toContain("\r")
+    expect(result!.markdown).toContain("first\nsecond\nthird")
+    // Sanity: the trailing fence still closes the block.
+    expect(result!.markdown).toMatch(/third\n```+$/m)
+  })
+
+  it("preserves intentional TAB and LF inside fenced journal text", () => {
+    const journal = "col1\tcol2\nrow2\tdata"
+    const result = exportWith({ journal })
+    expect(result).not.toBeNull()
+    expect(result!.markdown).toContain("col1\tcol2")
+    expect(result!.markdown).toContain("row2\tdata")
+    // The embedded newline must not break out of the fence.
+    expect(result!.markdown).toContain("```text\ncol1\tcol2\nrow2\tdata\n```")
   })
 })
