@@ -7,6 +7,7 @@ import {
   DayKeySchema,
   emptyEntry,
   TimeOfDaySchema,
+  type DayKey,
   type DayEntry,
 } from "@/lib/domain/entry"
 import type { Habit } from "@/lib/domain/habit"
@@ -27,7 +28,7 @@ export function applyInboundCloudState(state: AppState): void {
 }
 
 /** Merge a patch into one local-day entry, creating it if needed. */
-export function updateEntry(key: string, patch: Partial<DayEntry>): void {
+export function updateEntry(key: DayKey, patch: Partial<DayEntry>): void {
   if (!DayKeySchema.safeParse(key).success) return
   const safePatch = { ...patch }
   delete safePatch.date
@@ -66,7 +67,7 @@ function isValidRitualStep(kind: RitualKind, step: number): boolean {
 export function setRitualCursor(
   kind: RitualKind,
   step: number,
-  entryKey = getTodayKey()
+  entryKey: DayKey = getTodayKey()
 ): void {
   if (!isValidRitualStep(kind, step)) return
   updateEntry(entryKey, { [cursorFieldByKind[kind]]: step })
@@ -75,7 +76,7 @@ export function setRitualCursor(
 /** Remove an unfinished cursor after the ritual reaches its completion screen. */
 export function clearRitualCursor(
   kind: RitualKind,
-  entryKey = getTodayKey()
+  entryKey: DayKey = getTodayKey()
 ): void {
   if (!DayKeySchema.safeParse(entryKey).success) return
   const field = cursorFieldByKind[kind]

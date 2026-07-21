@@ -28,6 +28,7 @@ export type MoodPoint = z.infer<typeof MoodPointSchema>
 export const TimeOfDaySchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)
 
 export const DayKeySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+export type DayKey = z.infer<typeof DayKeySchema>
 
 function ritualCursorSchema(totalSteps: number) {
   return z
@@ -70,6 +71,6 @@ export const DayEntrySchema = z.object({
 export type DayEntry = z.infer<typeof DayEntrySchema>
 
 /** An empty entry for a given day key. */
-export function emptyEntry(dateKey: string): DayEntry {
+export function emptyEntry(dateKey: DayKey): DayEntry {
   return { date: dateKey }
 }
