@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { updateEntry } from "@/lib/store/actions"
@@ -32,6 +32,12 @@ export function StepJournal({ entryKey, onNext, onBack }: StepJournalProps) {
     ? `You started the day wanting to ${intention.toLowerCase()}. How did that land?`
     : FALLBACK_PROMPTS[promptIndex]
   const [text, setText] = useState(today?.journal ?? "")
+
+  /* eslint-disable react-hooks/set-state-in-effect -- sync from external store */
+  useEffect(() => {
+    setText(today.journal ?? "")
+  }, [entryKey, today.journal])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function handleNext() {
     updateEntry(entryKey, { journal: text.trim() })
