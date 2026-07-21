@@ -44,6 +44,11 @@ export function StepJournal({ entryKey, onNext, onBack }: StepJournalProps) {
     onNext()
   }
 
+  function handleBack() {
+    updateEntry(entryKey, { journal: text.trim() })
+    onBack()
+  }
+
   return (
     <div className="flex flex-col flex-1 gap-8">
       <div className="flex flex-col gap-2 pt-4">
@@ -78,7 +83,7 @@ export function StepJournal({ entryKey, onNext, onBack }: StepJournalProps) {
 
       {/* Nav */}
       <div className="mt-auto pb-10 flex gap-3">
-        <Button variant="outline" onClick={onBack} className="flex-none rounded-2xl h-14 px-6">
+        <Button variant="outline" onClick={handleBack} className="flex-none rounded-2xl h-14 px-6">
           Back
         </Button>
         <Button
