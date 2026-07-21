@@ -15,6 +15,7 @@ import {
   authedStorageKey,
   type AppState,
 } from "./state"
+import { setRitualCursor } from "./actions"
 
 const memStorage = new Map<string, string>()
 let failWrites = false
@@ -67,9 +68,7 @@ describe("storage scope isolation", () => {
     }
     replaceState(aState)
     hydrateFromStorage()
-    expect(getSnapshot().entries["2026-06-21"]?.journal).toBe(
-      "user A journal"
-    )
+    expect(getSnapshot().entries["2026-06-21"]?.journal).toBe("user A journal")
 
     // Switch to a different authed user — must NOT see A's data.
     setStorageScope("authed", USER_B)
@@ -85,18 +84,27 @@ describe("storage scope isolation", () => {
     }
     replaceState(bState)
     hydrateFromStorage()
-    expect(getSnapshot().entries["2026-06-22"]?.journal).toBe(
-      "user B journal"
-    )
+    expect(getSnapshot().entries["2026-06-22"]?.journal).toBe("user B journal")
     expect(getSnapshot().entries["2026-06-21"]).toBeUndefined()
 
     // Returning to A reveals only A's data.
     setStorageScope("authed", USER_A)
     hydrateFromStorage()
-    expect(getSnapshot().entries["2026-06-21"]?.journal).toBe(
-      "user A journal"
-    )
+    expect(getSnapshot().entries["2026-06-21"]?.journal).toBe("user A journal")
     expect(getSnapshot().entries["2026-06-22"]).toBeUndefined()
+  })
+
+  it("rehydrates an unfinished ritual cursor from the active storage scope", () => {
+    setStorageScope("authed", USER_A)
+    setRitualCursor("morning", 3)
+
+    setStorageScope("anon")
+    setStorageScope("authed", USER_A)
+    hydrateFromStorage()
+
+    expect(Object.values(getSnapshot().entries)).toContainEqual(
+      expect.objectContaining({ morningRitualStep: 3 })
+    )
   })
 
   it("authed and anon state live in separate slots", () => {
@@ -109,9 +117,7 @@ describe("storage scope isolation", () => {
     }
     replaceState(authed)
     hydrateFromStorage()
-    expect(getSnapshot().entries["2026-06-21"]?.journal).toBe(
-      "private journal"
-    )
+    expect(getSnapshot().entries["2026-06-21"]?.journal).toBe("private journal")
 
     // Switch to anon — must NOT expose the authed entry.
     setStorageScope("anon")
@@ -134,9 +140,7 @@ describe("storage scope isolation", () => {
     // Switching back to authed (same user) reveals only the authed data.
     setStorageScope("authed", USER_A)
     hydrateFromStorage()
-    expect(getSnapshot().entries["2026-06-21"]?.journal).toBe(
-      "private journal"
-    )
+    expect(getSnapshot().entries["2026-06-21"]?.journal).toBe("private journal")
     expect(getSnapshot().entries["2026-06-22"]).toBeUndefined()
   })
 

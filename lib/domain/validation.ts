@@ -9,6 +9,8 @@ export const LIMITS = {
   journalMax: 2000,
   habitNameMax: 40,
   habitsMax: 12,
+  morningRitualSteps: 6,
+  eveningRitualSteps: 5,
 } as const
 
 export type ValidationResult = { ok: true } | { ok: false; error: string }
@@ -20,14 +22,23 @@ export function countWords(text: string): number {
 }
 
 /** Validate a new habit name against the existing list. */
-export function validateHabitName(name: string, existing: Habit[]): ValidationResult {
+export function validateHabitName(
+  name: string,
+  existing: Habit[]
+): ValidationResult {
   const trimmed = name.trim()
   if (!trimmed) return { ok: false, error: "Enter a habit name." }
   if (trimmed.length > LIMITS.habitNameMax) {
-    return { ok: false, error: `Keep it under ${LIMITS.habitNameMax} characters.` }
+    return {
+      ok: false,
+      error: `Keep it under ${LIMITS.habitNameMax} characters.`,
+    }
   }
   if (existing.length >= LIMITS.habitsMax) {
-    return { ok: false, error: `You can track up to ${LIMITS.habitsMax} habits.` }
+    return {
+      ok: false,
+      error: `You can track up to ${LIMITS.habitsMax} habits.`,
+    }
   }
   if (existing.some((h) => h.name.toLowerCase() === trimmed.toLowerCase())) {
     return { ok: false, error: "That habit already exists." }

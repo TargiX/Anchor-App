@@ -8,12 +8,14 @@ import {
 import {
   addHabit,
   applyInboundCloudState,
+  clearRitualCursor,
   removeHabit,
+  setRitualCursor,
   setNotificationTime,
   updateTodayEntry,
 } from "./actions"
 import { INITIAL_STATE } from "./state"
-import { getTodayKey } from "@/lib/time/today"
+import { getTodayKey, shiftKey } from "@/lib/time/today"
 
 beforeEach(() => {
   clearCloudPersistence()
@@ -53,6 +55,51 @@ describe("updateTodayEntry", () => {
     expect(entry).toBeDefined()
     expect(entry?.intention).toBe("A")
     expect(entry?.journal).toBe("Went well")
+  })
+})
+
+describe("ritual cursors", () => {
+  it("persists meaningful forward and backward navigation on today's entry", () => {
+    setRitualCursor("morning", 3)
+    setRitualCursor("morning", 2)
+
+    expect(getSnapshot().entries[getTodayKey()]?.morningRitualStep).toBe(2)
+  })
+
+  it("ignores invalid cursor values", () => {
+    setRitualCursor("evening", -1)
+    setRitualCursor("evening", 5)
+    setRitualCursor("evening", 1.5)
+
+    expect(getSnapshot().entries[getTodayKey()]).toBeUndefined()
+  })
+
+  it("writes the cursor only to today's local calendar entry", () => {
+    const yesterday = shiftKey(getTodayKey(), -1)
+    setState((state) => ({
+      ...state,
+      entries: { [yesterday]: { date: yesterday, journal: "keep this" } },
+    }))
+
+    setRitualCursor("evening", 3)
+
+    expect(getSnapshot().entries[yesterday]?.eveningRitualStep).toBeUndefined()
+    expect(getSnapshot().entries[getTodayKey()]?.eveningRitualStep).toBe(3)
+  })
+
+  it("clears the cursor without changing completed ritual data", () => {
+    updateTodayEntry({
+      morningMood: { energy: 0.6, valence: 0.7 },
+      intention: "Keep the meaningful data",
+    })
+    setRitualCursor("morning", 5)
+    clearRitualCursor("morning")
+
+    expect(getSnapshot().entries[getTodayKey()]).toEqual({
+      date: getTodayKey(),
+      morningMood: { energy: 0.6, valence: 0.7 },
+      intention: "Keep the meaningful data",
+    })
   })
 })
 

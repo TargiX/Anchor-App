@@ -9,21 +9,28 @@ import { StepJournal } from "@/components/evening/step-journal"
 import { StepHabits } from "@/components/evening/step-habits"
 import { StepSleepTarget } from "@/components/evening/step-sleep-target"
 import { StepComplete } from "@/components/ritual/step-complete"
+import { useTodayEntry } from "@/hooks/use-store"
+import { clearRitualCursor, setRitualCursor } from "@/lib/store/actions"
+import { LIMITS } from "@/lib/domain/validation"
 
-const TOTAL_STEPS = 5
+const TOTAL_STEPS = LIMITS.eveningRitualSteps
 
 export default function EveningRitual() {
-  const [step, setStep] = useState(0)
+  const today = useTodayEntry()
   const [done, setDone] = useState(false)
   const router = useRouter()
+  const step = today.eveningRitualStep ?? 0
 
   function next() {
-    if (step < TOTAL_STEPS - 1) setStep((s) => s + 1)
-    else setDone(true)
+    if (step < TOTAL_STEPS - 1) setRitualCursor("evening", step + 1)
+    else {
+      clearRitualCursor("evening")
+      setDone(true)
+    }
   }
 
   function back() {
-    if (step > 0) setStep((s) => s - 1)
+    if (step > 0) setRitualCursor("evening", step - 1)
     else router.push("/app")
   }
 
