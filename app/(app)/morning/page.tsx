@@ -10,21 +10,28 @@ import { StepMood } from "@/components/morning/step-mood"
 import { StepIntention } from "@/components/morning/step-intention"
 import { StepMeditation } from "@/components/morning/step-meditation"
 import { StepComplete } from "@/components/ritual/step-complete"
+import { useTodayEntry } from "@/hooks/use-store"
+import { clearRitualCursor, setRitualCursor } from "@/lib/store/actions"
+import { LIMITS } from "@/lib/domain/validation"
 
-const TOTAL_STEPS = 6
+const TOTAL_STEPS = LIMITS.morningRitualSteps
 
 export default function MorningRitual() {
-  const [step, setStep] = useState(0)
+  const today = useTodayEntry()
   const [done, setDone] = useState(false)
   const router = useRouter()
+  const step = today.morningRitualStep ?? 0
 
   function next() {
-    if (step < TOTAL_STEPS - 1) setStep((s) => s + 1)
-    else setDone(true)
+    if (step < TOTAL_STEPS - 1) setRitualCursor("morning", step + 1)
+    else {
+      clearRitualCursor("morning")
+      setDone(true)
+    }
   }
 
   function back() {
-    if (step > 0) setStep((s) => s - 1)
+    if (step > 0) setRitualCursor("morning", step - 1)
     else router.push("/app")
   }
 
