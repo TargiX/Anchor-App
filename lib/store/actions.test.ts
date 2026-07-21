@@ -106,11 +106,11 @@ describe("ritual cursors", () => {
   it("keeps a morning ritual on its entry across local midnight", () => {
     vi.useFakeTimers()
     try {
-      vi.setSystemTime(new Date("2026-07-21T16:59:00.000Z"))
+      vi.setSystemTime(new Date(2026, 6, 21, 23, 59))
       const entryKey = getTodayKey()
       setRitualCursor("morning", 3, entryKey)
 
-      vi.setSystemTime(new Date("2026-07-21T17:01:00.000Z"))
+      vi.setSystemTime(new Date(2026, 6, 22, 0, 1))
       expect(getTodayKey()).not.toBe(entryKey)
 
       updateEntry(entryKey, { intention: "Finish the ritual I started" })
@@ -130,11 +130,11 @@ describe("ritual cursors", () => {
   it("keeps an evening ritual on its entry across local midnight", () => {
     vi.useFakeTimers()
     try {
-      vi.setSystemTime(new Date("2026-07-21T16:59:00.000Z"))
+      vi.setSystemTime(new Date(2026, 6, 21, 23, 59))
       const entryKey = getTodayKey()
       setRitualCursor("evening", 2, entryKey)
 
-      vi.setSystemTime(new Date("2026-07-21T17:01:00.000Z"))
+      vi.setSystemTime(new Date(2026, 6, 22, 0, 1))
       expect(getTodayKey()).not.toBe(entryKey)
 
       updateEntry(entryKey, { journal: "Close the loop I started" })
