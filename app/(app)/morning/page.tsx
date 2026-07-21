@@ -10,28 +10,30 @@ import { StepMood } from "@/components/morning/step-mood"
 import { StepIntention } from "@/components/morning/step-intention"
 import { StepMeditation } from "@/components/morning/step-meditation"
 import { StepComplete } from "@/components/ritual/step-complete"
-import { useTodayEntry } from "@/hooks/use-store"
+import { useEntry } from "@/hooks/use-store"
 import { clearRitualCursor, setRitualCursor } from "@/lib/store/actions"
 import { LIMITS } from "@/lib/domain/validation"
+import { getTodayKey } from "@/lib/time/today"
 
 const TOTAL_STEPS = LIMITS.morningRitualSteps
 
 export default function MorningRitual() {
-  const today = useTodayEntry()
+  const [entryKey] = useState(getTodayKey)
+  const entry = useEntry(entryKey)
   const [done, setDone] = useState(false)
   const router = useRouter()
-  const step = today.morningRitualStep ?? 0
+  const step = entry.morningRitualStep ?? 0
 
   function next() {
-    if (step < TOTAL_STEPS - 1) setRitualCursor("morning", step + 1)
+    if (step < TOTAL_STEPS - 1) setRitualCursor("morning", step + 1, entryKey)
     else {
-      clearRitualCursor("morning")
+      clearRitualCursor("morning", entryKey)
       setDone(true)
     }
   }
 
   function back() {
-    if (step > 0) setRitualCursor("morning", step - 1)
+    if (step > 0) setRitualCursor("morning", step - 1, entryKey)
     else router.push("/app")
   }
 
@@ -47,10 +49,10 @@ export default function MorningRitual() {
       description="Start with sleep, mood, intention, and a short stillness practice before the day gets loud."
     >
       {step === 0 && <StepAffirmation onNext={next} />}
-      {step === 1 && <StepSleep onNext={next} onBack={back} />}
-      {step === 2 && <StepMood onNext={next} onBack={back} isMorning />}
-      {step === 3 && <StepIntention onNext={next} onBack={back} />}
-      {step === 4 && <StepMeditation onNext={next} onBack={back} />}
+      {step === 1 && <StepSleep entryKey={entryKey} onNext={next} onBack={back} />}
+      {step === 2 && <StepMood entryKey={entryKey} onNext={next} onBack={back} isMorning />}
+      {step === 3 && <StepIntention entryKey={entryKey} onNext={next} onBack={back} />}
+      {step === 4 && <StepMeditation entryKey={entryKey} onNext={next} onBack={back} />}
       {step === 5 && (
         <StepComplete variant="morning" onNext={next} onBack={back} />
       )}

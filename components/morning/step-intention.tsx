@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { updateTodayEntry } from "@/lib/store/actions"
-import { useTodayEntry } from "@/hooks/use-store"
+import { updateEntry } from "@/lib/store/actions"
+import { useEntry } from "@/hooks/use-store"
 import { LIMITS } from "@/lib/domain/validation"
 
 const PROMPTS = [
@@ -17,12 +17,13 @@ const PROMPTS = [
 ]
 
 interface StepIntentionProps {
+  entryKey: string
   onNext: () => void
   onBack: () => void
 }
 
-export function StepIntention({ onNext, onBack }: StepIntentionProps) {
-  const today = useTodayEntry()
+export function StepIntention({ entryKey, onNext, onBack }: StepIntentionProps) {
+  const today = useEntry(entryKey)
   // Default empty for first render; effect syncs the hydrated intention
   // once useAppState finishes loading from storage. See step-sleep for the
   // set-state-in-effect rationale.
@@ -40,7 +41,7 @@ export function StepIntention({ onNext, onBack }: StepIntentionProps) {
 
   function handleNext() {
     if (!text.trim()) return
-    updateTodayEntry({ intention: text.trim() })
+    updateEntry(entryKey, { intention: text.trim() })
     onNext()
   }
 

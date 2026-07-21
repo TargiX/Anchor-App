@@ -4,8 +4,8 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
-import { updateTodayEntry } from "@/lib/store/actions"
-import { useTodayEntry } from "@/hooks/use-store"
+import { updateEntry } from "@/lib/store/actions"
+import { useEntry } from "@/hooks/use-store"
 import { type SleepQuality } from "@/lib/domain/entry"
 
 const SLEEP_OPTIONS: { value: SleepQuality; label: string; glyph: string }[] = [
@@ -17,12 +17,13 @@ const SLEEP_OPTIONS: { value: SleepQuality; label: string; glyph: string }[] = [
 ]
 
 interface StepSleepProps {
+  entryKey: string
   onNext: () => void
   onBack: () => void
 }
 
-export function StepSleep({ onNext, onBack }: StepSleepProps) {
-  const today = useTodayEntry()
+export function StepSleep({ entryKey, onNext, onBack }: StepSleepProps) {
+  const today = useEntry(entryKey)
   // Defaults for first render; effect below syncs the hydrated entry after
   // useAppState finishes loading from storage. Initializing via useState(saved)
   // only would freeze the pre-hydration (empty) values and miss the persisted
@@ -41,7 +42,7 @@ export function StepSleep({ onNext, onBack }: StepSleepProps) {
 
   function handleNext() {
     if (!quality) return
-    updateTodayEntry({ sleepQuality: quality, sleepHours: hours })
+    updateEntry(entryKey, { sleepQuality: quality, sleepHours: hours })
     onNext()
   }
 

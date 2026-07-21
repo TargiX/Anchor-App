@@ -1,20 +1,28 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { updateTodayEntry } from "@/lib/store/actions"
-import { useAppState } from "@/hooks/use-store"
+import { updateEntry } from "@/lib/store/actions"
+import { useAppState, useEntry } from "@/hooks/use-store"
 import { Check } from "lucide-react"
 
 interface StepHabitsProps {
+  entryKey: string
   onNext: () => void
   onBack: () => void
 }
 
-export function StepHabits({ onNext, onBack }: StepHabitsProps) {
+export function StepHabits({ entryKey, onNext, onBack }: StepHabitsProps) {
   const state = useAppState()
+  const entry = useEntry(entryKey)
   const [checked, setChecked] = useState<string[]>([])
+
+  /* eslint-disable react-hooks/set-state-in-effect -- sync from external store */
+  useEffect(() => {
+    setChecked(entry.habitsCompleted ?? [])
+  }, [entryKey, entry.habitsCompleted])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function toggle(id: string) {
     setChecked((prev) =>
@@ -23,7 +31,7 @@ export function StepHabits({ onNext, onBack }: StepHabitsProps) {
   }
 
   function handleNext() {
-    updateTodayEntry({ habitsCompleted: checked })
+    updateEntry(entryKey, { habitsCompleted: checked })
     onNext()
   }
 
