@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { updateEntry } from "@/lib/store/actions"
 import { AnchorMotif } from "@/components/anchor-motif"
+import { useEntry } from "@/hooks/use-store"
 
 interface StepSleepTargetProps {
   entryKey: string
@@ -24,8 +25,16 @@ function formatTime(t: string) {
 }
 
 export function StepSleepTarget({ entryKey, onNext, onBack }: StepSleepTargetProps) {
+  const entry = useEntry(entryKey)
   const [bedtime, setBedtime] = useState("22:30")
   const [hours, setHours] = useState(8)
+
+  /* eslint-disable react-hooks/set-state-in-effect -- sync from external store */
+  useEffect(() => {
+    setBedtime(entry.tomorrowBedtime ?? "22:30")
+    setHours(entry.tomorrowSleepHours ?? 8)
+  }, [entryKey, entry.tomorrowBedtime, entry.tomorrowSleepHours])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function handleNext() {
     updateEntry(entryKey, { tomorrowBedtime: bedtime, tomorrowSleepHours: hours })
