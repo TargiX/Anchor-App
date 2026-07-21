@@ -3,16 +3,17 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { updateTodayEntry } from "@/lib/store/actions"
+import { updateEntry } from "@/lib/store/actions"
 import { useAppState } from "@/hooks/use-store"
 import { Check } from "lucide-react"
 
 interface StepHabitsProps {
+  entryKey: string
   onNext: () => void
   onBack: () => void
 }
 
-export function StepHabits({ onNext, onBack }: StepHabitsProps) {
+export function StepHabits({ entryKey, onNext, onBack }: StepHabitsProps) {
   const state = useAppState()
   const [checked, setChecked] = useState<string[]>([])
 
@@ -23,7 +24,7 @@ export function StepHabits({ onNext, onBack }: StepHabitsProps) {
   }
 
   function handleNext() {
-    updateTodayEntry({ habitsCompleted: checked })
+    updateEntry(entryKey, { habitsCompleted: checked })
     onNext()
   }
 

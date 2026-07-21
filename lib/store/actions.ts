@@ -3,7 +3,12 @@
 import { getSnapshot, replaceState, setState } from "./store"
 import type { AppState } from "./state"
 import { getTodayKey } from "@/lib/time/today"
-import { emptyEntry, TimeOfDaySchema, type DayEntry } from "@/lib/domain/entry"
+import {
+  DayKeySchema,
+  emptyEntry,
+  TimeOfDaySchema,
+  type DayEntry,
+} from "@/lib/domain/entry"
 import type { Habit } from "@/lib/domain/habit"
 import {
   LIMITS,
@@ -21,9 +26,9 @@ export function applyInboundCloudState(state: AppState): void {
   replaceState(state, { persistCloud: false })
 }
 
-/** Merge a patch into today's entry, creating it if needed. */
-export function updateTodayEntry(patch: Partial<DayEntry>): void {
-  const key = getTodayKey()
+/** Merge a patch into one local-day entry, creating it if needed. */
+export function updateEntry(key: string, patch: Partial<DayEntry>): void {
+  if (!DayKeySchema.safeParse(key).success) return
   const safePatch = { ...patch }
   delete safePatch.date
   setState((prev) => ({
@@ -39,6 +44,11 @@ export function updateTodayEntry(patch: Partial<DayEntry>): void {
   }))
 }
 
+/** Merge a patch into today's entry, creating it if needed. */
+export function updateTodayEntry(patch: Partial<DayEntry>): void {
+  updateEntry(getTodayKey(), patch)
+}
+
 type RitualKind = "morning" | "evening"
 
 const cursorFieldByKind = {
@@ -52,24 +62,31 @@ function isValidRitualStep(kind: RitualKind, step: number): boolean {
   return Number.isInteger(step) && step >= 0 && step < totalSteps
 }
 
-/** Persist an unfinished ritual screen for today's local calendar entry. */
-export function setRitualCursor(kind: RitualKind, step: number): void {
+/** Persist an unfinished ritual screen for the selected local calendar entry. */
+export function setRitualCursor(
+  kind: RitualKind,
+  step: number,
+  entryKey = getTodayKey()
+): void {
   if (!isValidRitualStep(kind, step)) return
-  updateTodayEntry({ [cursorFieldByKind[kind]]: step })
+  updateEntry(entryKey, { [cursorFieldByKind[kind]]: step })
 }
 
 /** Remove an unfinished cursor after the ritual reaches its completion screen. */
-export function clearRitualCursor(kind: RitualKind): void {
-  const key = getTodayKey()
+export function clearRitualCursor(
+  kind: RitualKind,
+  entryKey = getTodayKey()
+): void {
+  if (!DayKeySchema.safeParse(entryKey).success) return
   const field = cursorFieldByKind[kind]
   setState((prev) => {
-    const entry = prev.entries[key]
+    const entry = prev.entries[entryKey]
     if (!entry || !(field in entry)) return prev
     const withoutCursor = { ...entry }
     delete withoutCursor[field]
     return {
       ...prev,
-      entries: { ...prev.entries, [key]: withoutCursor },
+      entries: { ...prev.entries, [entryKey]: withoutCursor },
     }
   })
 }

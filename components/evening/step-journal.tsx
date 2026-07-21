@@ -3,9 +3,8 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { updateTodayEntry } from "@/lib/store/actions"
-import { useAppState } from "@/hooks/use-store"
-import { getTodayKey } from "@/lib/time/today"
+import { updateEntry } from "@/lib/store/actions"
+import { useEntry } from "@/hooks/use-store"
 import { LIMITS, countWords } from "@/lib/domain/validation"
 
 const FALLBACK_PROMPTS = [
@@ -16,13 +15,13 @@ const FALLBACK_PROMPTS = [
 ]
 
 interface StepJournalProps {
+  entryKey: string
   onNext: () => void
   onBack: () => void
 }
 
-export function StepJournal({ onNext, onBack }: StepJournalProps) {
-  const state = useAppState()
-  const today = state.entries[getTodayKey()]
+export function StepJournal({ entryKey, onNext, onBack }: StepJournalProps) {
+  const today = useEntry(entryKey)
   const intention = today?.intention
 
   const [promptIndex] = useState(() =>
@@ -35,7 +34,7 @@ export function StepJournal({ onNext, onBack }: StepJournalProps) {
   const [text, setText] = useState(today?.journal ?? "")
 
   function handleNext() {
-    updateTodayEntry({ journal: text.trim() })
+    updateEntry(entryKey, { journal: text.trim() })
     onNext()
   }
 
@@ -78,7 +77,7 @@ export function StepJournal({ onNext, onBack }: StepJournalProps) {
         </Button>
         <Button
           variant="outline"
-          onClick={() => { updateTodayEntry({ journal: "" }); onNext() }}
+          onClick={() => { updateEntry(entryKey, { journal: "" }); onNext() }}
           className="flex-none rounded-2xl h-14 px-5"
         >
           Skip

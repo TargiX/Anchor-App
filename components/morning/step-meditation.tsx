@@ -3,20 +3,21 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { updateTodayEntry } from "@/lib/store/actions"
-import { useTodayEntry } from "@/hooks/use-store"
+import { updateEntry } from "@/lib/store/actions"
+import { useEntry } from "@/hooks/use-store"
 import { motion } from "framer-motion"
 import { Pause, Play } from "lucide-react"
 
 const DURATIONS = [2, 5, 10]
 
 interface StepMeditationProps {
+  entryKey: string
   onNext: () => void
   onBack: () => void
 }
 
-export function StepMeditation({ onNext, onBack }: StepMeditationProps) {
-  const today = useTodayEntry()
+export function StepMeditation({ entryKey, onNext, onBack }: StepMeditationProps) {
+  const today = useEntry(entryKey)
   // Defaults for first render; effect syncs the hydrated meditationMinutes
   // once useAppState finishes loading from storage. See step-sleep for the
   // set-state-in-effect rationale.
@@ -58,12 +59,12 @@ export function StepMeditation({ onNext, onBack }: StepMeditationProps) {
   }, [running, totalSeconds])
 
   function handleSkip() {
-    updateTodayEntry({ meditationMinutes: 0 })
+    updateEntry(entryKey, { meditationMinutes: 0 })
     onNext()
   }
 
   function handleDone() {
-    if (selected) updateTodayEntry({ meditationMinutes: elapsed > 0 ? Math.ceil(elapsed / 60) : selected })
+    if (selected) updateEntry(entryKey, { meditationMinutes: elapsed > 0 ? Math.ceil(elapsed / 60) : selected })
     onNext()
   }
 

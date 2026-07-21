@@ -4,6 +4,7 @@
  * only by the hooks layer (`hooks/use-store.ts`) via `./store` directly.
  */
 export {
+  updateEntry,
   updateTodayEntry,
   addHabit,
   removeHabit,

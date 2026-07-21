@@ -23,8 +23,12 @@ export function useAppState(): AppState {
 
 /** Today's entry (or an empty one for today if none exists yet). */
 export function useTodayEntry(): DayEntry {
+  return useEntry(getTodayKey())
+}
+
+/** One selected local-day entry (or an empty entry if none exists yet). */
+export function useEntry(key: string): DayEntry {
   const state = useAppState()
-  const key = getTodayKey()
   return state.entries[key] ?? emptyEntry(key)
 }
 

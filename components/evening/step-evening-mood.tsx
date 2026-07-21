@@ -1,11 +1,11 @@
 "use client"
 
 import { StepMood } from "@/components/morning/step-mood"
-import { useAppState } from "@/hooks/use-store"
-import { getTodayKey } from "@/lib/time/today"
+import { useEntry } from "@/hooks/use-store"
 import { type MoodPoint } from "@/lib/domain/entry"
 
 interface StepEveningMoodProps {
+  entryKey: string
   onNext: () => void
   onBack: () => void
 }
@@ -23,10 +23,8 @@ function MoodDot({ point, label }: { point?: MoodPoint; label: string }) {
   )
 }
 
-export function StepEveningMood({ onNext, onBack }: StepEveningMoodProps) {
-  const state = useAppState()
-  const todayKey = getTodayKey()
-  const today = state.entries[todayKey]
+export function StepEveningMood({ entryKey, onNext, onBack }: StepEveningMoodProps) {
+  const today = useEntry(entryKey)
   const morningMood = today?.morningMood
 
   return (
@@ -43,7 +41,7 @@ export function StepEveningMood({ onNext, onBack }: StepEveningMoodProps) {
           <MoodDot point={morningMood} label="" />
         </div>
       )}
-      <StepMood onNext={onNext} onBack={onBack} isMorning={false} />
+      <StepMood entryKey={entryKey} onNext={onNext} onBack={onBack} isMorning={false} />
     </div>
   )
 }

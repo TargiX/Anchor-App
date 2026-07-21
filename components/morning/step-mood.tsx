@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { updateTodayEntry } from "@/lib/store/actions"
-import { useTodayEntry } from "@/hooks/use-store"
+import { updateEntry } from "@/lib/store/actions"
+import { useEntry } from "@/hooks/use-store"
 import { type MoodPoint } from "@/lib/domain/entry"
 import {
   applyKeyboardStep,
@@ -14,6 +14,7 @@ import {
 } from "@/lib/mood/a11y"
 
 interface StepMoodProps {
+  entryKey: string
   onNext: () => void
   onBack: () => void
   isMorning?: boolean
@@ -74,8 +75,8 @@ function quadrantBoosts(point: MoodPoint) {
   }
 }
 
-export function StepMood({ onNext, onBack, isMorning = true }: StepMoodProps) {
-  const today = useTodayEntry()
+export function StepMood({ entryKey, onNext, onBack, isMorning = true }: StepMoodProps) {
+  const today = useEntry(entryKey)
   // Default to grid center; effect syncs the hydrated mood point after
   // useAppState finishes loading from storage. See step-sleep for the
   // set-state-in-effect rationale.
@@ -148,9 +149,9 @@ export function StepMood({ onNext, onBack, isMorning = true }: StepMoodProps) {
   function handleNext() {
     if (!point) return
     if (isMorning) {
-      updateTodayEntry({ morningMood: point })
+      updateEntry(entryKey, { morningMood: point })
     } else {
-      updateTodayEntry({ eveningMood: point })
+      updateEntry(entryKey, { eveningMood: point })
     }
     onNext()
   }
