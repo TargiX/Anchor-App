@@ -22,7 +22,11 @@ interface StepIntentionProps {
   onBack: () => void
 }
 
-export function StepIntention({ entryKey, onNext, onBack }: StepIntentionProps) {
+export function StepIntention({
+  entryKey,
+  onNext,
+  onBack,
+}: StepIntentionProps) {
   const today = useEntry(entryKey)
   // Default empty for first render; effect syncs the hydrated intention
   // once useAppState finishes loading from storage. See step-sleep for the
@@ -45,13 +49,18 @@ export function StepIntention({ entryKey, onNext, onBack }: StepIntentionProps) 
     onNext()
   }
 
+  function handleBack() {
+    if (text.trim()) updateEntry(entryKey, { intention: text.trim() })
+    onBack()
+  }
+
   return (
-    <div className="flex flex-col flex-1 gap-8">
+    <div className="flex flex-1 flex-col gap-8">
       <div className="flex flex-col gap-2 pt-4">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
+        <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
           Intention
         </p>
-        <h2 className="font-[family-name:var(--font-display)] text-3xl font-medium text-foreground text-balance leading-tight lg:text-4xl">
+        <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight font-medium text-balance text-foreground lg:text-4xl">
           Today I want to&hellip;
         </h2>
       </div>
@@ -66,19 +75,19 @@ export function StepIntention({ entryKey, onNext, onBack }: StepIntentionProps) 
           className={cn(
             "w-full resize-none rounded-2xl border border-border bg-card",
             "px-5 py-4 text-base text-foreground placeholder:text-muted-foreground",
-            "focus:outline-none focus:ring-2 focus:ring-ring transition-shadow",
+            "transition-shadow focus:ring-2 focus:ring-ring focus:outline-none",
             "font-[family-name:var(--font-display)] leading-relaxed"
           )}
           maxLength={LIMITS.intentionMax}
         />
-        <span className="absolute bottom-3 right-4 text-xs text-muted-foreground">
+        <span className="absolute right-4 bottom-3 text-xs text-muted-foreground">
           {text.length}/{LIMITS.intentionMax}
         </span>
       </div>
 
       {/* AI-style suggestions */}
       <div className="flex flex-col gap-2">
-        <p className="text-xs text-muted-foreground font-medium tracking-wide uppercase">
+        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
           Or try one of these
         </p>
         {suggestions.map((s) => (
@@ -86,7 +95,7 @@ export function StepIntention({ entryKey, onNext, onBack }: StepIntentionProps) 
             key={s}
             onClick={() => setText(s)}
             className={cn(
-              "text-left px-4 py-3.5 rounded-xl border text-sm text-foreground transition-all duration-200",
+              "rounded-xl border px-4 py-3.5 text-left text-sm text-foreground transition-all duration-200",
               text === s
                 ? "border-accent bg-accent/10"
                 : "border-border bg-card hover:border-primary/40 hover:bg-muted/50"
@@ -98,14 +107,18 @@ export function StepIntention({ entryKey, onNext, onBack }: StepIntentionProps) 
       </div>
 
       {/* Nav */}
-      <div className="mt-auto pb-10 flex gap-3">
-        <Button variant="outline" onClick={onBack} className="flex-none rounded-2xl h-14 px-6">
+      <div className="mt-auto flex gap-3 pb-10">
+        <Button
+          variant="outline"
+          onClick={handleBack}
+          className="h-14 flex-none rounded-2xl px-6"
+        >
           Back
         </Button>
         <Button
           onClick={handleNext}
           disabled={!text.trim()}
-          className="flex-1 rounded-2xl h-14 text-base font-medium"
+          className="h-14 flex-1 rounded-2xl text-base font-medium"
         >
           Continue
         </Button>
