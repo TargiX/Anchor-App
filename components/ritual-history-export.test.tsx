@@ -31,6 +31,10 @@ const hooks = vi.hoisted(() => {
 })
 
 const browser = vi.hoisted(() => ({ shouldFail: true }))
+const createdLinks: Array<{
+  click: ReturnType<typeof vi.fn>
+  remove: ReturnType<typeof vi.fn>
+}> = []
 
 vi.mock("react", () => ({
   useState: hooks.useState,
@@ -112,22 +116,29 @@ describe("RitualHistoryExport web download dispatch", () => {
   beforeEach(() => {
     hooks.reset()
     browser.shouldFail = true
+    createdLinks.length = 0
 
     vi.stubGlobal("URL", {
-      createObjectURL: () => {
-        if (browser.shouldFail) {
-          throw new DOMException(
-            "forced export dispatch failure",
-            "NotSupportedError"
-          )
-        }
-        return "blob:anchor-history"
-      },
+      createObjectURL: () => "blob:anchor-history",
       revokeObjectURL: vi.fn(),
     })
     vi.stubGlobal("document", {
       body: { append: vi.fn() },
-      createElement: vi.fn(() => ({ click: vi.fn(), remove: vi.fn() })),
+      createElement: vi.fn(() => {
+        const link = {
+          click: vi.fn(() => {
+            if (browser.shouldFail) {
+              throw new DOMException(
+                "forced export dispatch failure",
+                "NotSupportedError"
+              )
+            }
+          }),
+          remove: vi.fn(),
+        }
+        createdLinks.push(link)
+        return link
+      }),
     })
     vi.stubGlobal("window", {
       setTimeout: (callback: () => void) => callback(),
@@ -161,6 +172,11 @@ describe("RitualHistoryExport web download dispatch", () => {
       "Could not start the Markdown download"
     )
     expect(retryButton?.props?.disabled).toBe(false)
+    expect(createdLinks).toHaveLength(1)
+    expect(document.body.append).toHaveBeenCalledWith(createdLinks[0])
+    expect(createdLinks[0]?.click).toHaveBeenCalledTimes(1)
+    expect(createdLinks[0]?.remove).toHaveBeenCalledTimes(1)
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:anchor-history")
 
     browser.shouldFail = false
     ;(retryButton?.props?.onClick as () => void)()
@@ -175,5 +191,9 @@ describe("RitualHistoryExport web download dispatch", () => {
     expect(textContent(successfulStatus)).not.toContain(
       "Could not start the Markdown download"
     )
+    expect(createdLinks).toHaveLength(2)
+    expect(createdLinks[1]?.click).toHaveBeenCalledTimes(1)
+    expect(createdLinks[1]?.remove).toHaveBeenCalledTimes(1)
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(2)
   })
 })

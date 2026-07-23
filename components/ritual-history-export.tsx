@@ -59,18 +59,18 @@ export function RitualHistoryExport() {
     }
 
     let url: string | null = null
+    let link: HTMLAnchorElement | null = null
 
     try {
       const blob = new Blob([artifact.markdown], {
         type: "text/markdown;charset=utf-8",
       })
       url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
+      link = document.createElement("a")
       link.href = url
       link.download = artifact.filename
       document.body.append(link)
       link.click()
-      link.remove()
       setExportedArtifact(artifactKey)
       setExportMethod("download")
     } catch {
@@ -78,6 +78,7 @@ export function RitualHistoryExport() {
         "Could not start the Markdown download. Your history stayed private."
       )
     } finally {
+      link?.remove()
       const urlToRevoke = url
       if (urlToRevoke) {
         window.setTimeout(() => URL.revokeObjectURL(urlToRevoke), 0)
