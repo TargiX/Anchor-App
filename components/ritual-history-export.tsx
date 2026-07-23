@@ -58,19 +58,31 @@ export function RitualHistoryExport() {
       return
     }
 
-    const blob = new Blob([artifact.markdown], {
-      type: "text/markdown;charset=utf-8",
-    })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = artifact.filename
-    document.body.append(link)
-    link.click()
-    link.remove()
-    window.setTimeout(() => URL.revokeObjectURL(url), 0)
-    setExportedArtifact(artifactKey)
-    setExportMethod("download")
+    let url: string | null = null
+
+    try {
+      const blob = new Blob([artifact.markdown], {
+        type: "text/markdown;charset=utf-8",
+      })
+      url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = artifact.filename
+      document.body.append(link)
+      link.click()
+      link.remove()
+      setExportedArtifact(artifactKey)
+      setExportMethod("download")
+    } catch {
+      setExportError(
+        "Could not start the Markdown download. Your history stayed private."
+      )
+    } finally {
+      const urlToRevoke = url
+      if (urlToRevoke) {
+        window.setTimeout(() => URL.revokeObjectURL(urlToRevoke), 0)
+      }
+    }
   }
 
   return (
@@ -104,7 +116,7 @@ export function RitualHistoryExport() {
             : !artifact
               ? "No recorded ritual entries to export yet."
               : isCurrentArtifactExported
-                ? `${exportMethod === "copy" ? "Copied" : "Downloaded"} ${artifact.entryCount} ${artifact.entryCount === 1 ? "entry" : "entries"} as Markdown.${exportMethod === "copy" ? " Paste it into a file or notes app." : ""}`
+                ? `${exportMethod === "copy" ? "Copied" : "Download requested for"} ${artifact.entryCount} ${artifact.entryCount === 1 ? "entry" : "entries"} as Markdown.${exportMethod === "copy" ? " Paste it into a file or notes app." : ""}`
                 : `${artifact.entryCount} ${artifact.entryCount === 1 ? "entry" : "entries"} ready to ${isNativePlatform ? "copy" : "download"}.`}
         </p>
       </div>
