@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useSyncExternalStore } from "react"
+import { useRef, useState, useSyncExternalStore } from "react"
 import { Capacitor } from "@capacitor/core"
 import { Copy, Download, HardDrive } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -17,6 +17,7 @@ export function RitualHistoryExport() {
     null
   )
   const [exportError, setExportError] = useState<string | null>(null)
+  const activeExportAttemptRef = useRef<symbol | null>(null)
   const isNativePlatform = useSyncExternalStore(
     subscribeToNativePlatform,
     Capacitor.isNativePlatform,
@@ -36,6 +37,8 @@ export function RitualHistoryExport() {
   async function exportMarkdown() {
     if (!artifact || !artifactKey) return
 
+    if (isNativePlatform && activeExportAttemptRef.current) return
+
     setExportError(null)
 
     if (isNativePlatform) {
@@ -46,14 +49,25 @@ export function RitualHistoryExport() {
         return
       }
 
+      const attempt = Symbol("ritual-history-export")
+      activeExportAttemptRef.current = attempt
+
       try {
         await navigator.clipboard.writeText(artifact.markdown)
-        setExportedArtifact(artifactKey)
-        setExportMethod("copy")
+        if (activeExportAttemptRef.current === attempt) {
+          setExportedArtifact(artifactKey)
+          setExportMethod("copy")
+        }
       } catch {
-        setExportError(
-          "Could not copy the Markdown. Your history stayed private."
-        )
+        if (activeExportAttemptRef.current === attempt) {
+          setExportError(
+            "Could not copy the Markdown. Your history stayed private."
+          )
+        }
+      } finally {
+        if (activeExportAttemptRef.current === attempt) {
+          activeExportAttemptRef.current = null
+        }
       }
       return
     }

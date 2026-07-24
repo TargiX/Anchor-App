@@ -27,16 +27,24 @@ const hooks = vi.hoisted(() => {
         },
       ] as const
     },
+    useRef<T>(initialValue: T) {
+      const index = cursor++
+      if (values[index] === undefined) values[index] = { current: initialValue }
+
+      return values[index] as { current: T }
+    },
   }
 })
 
 const browser = vi.hoisted(() => ({ shouldFail: true }))
+const nativePlatform = vi.hoisted(() => ({ isNative: false }))
 const createdLinks: Array<{
   click: ReturnType<typeof vi.fn>
   remove: ReturnType<typeof vi.fn>
 }> = []
 
 vi.mock("react", () => ({
+  useRef: hooks.useRef,
   useState: hooks.useState,
   useSyncExternalStore: <T,>(
     _subscribe: () => () => void,
@@ -45,7 +53,7 @@ vi.mock("react", () => ({
 }))
 
 vi.mock("@capacitor/core", () => ({
-  Capacitor: { isNativePlatform: () => false },
+  Capacitor: { isNativePlatform: () => nativePlatform.isNative },
 }))
 
 vi.mock("lucide-react", () => ({
@@ -112,10 +120,22 @@ function renderExport() {
   return RitualHistoryExport()
 }
 
+function createDeferred() {
+  let resolve!: () => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<void>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise
+    reject = rejectPromise
+  })
+
+  return { promise, reject, resolve }
+}
+
 describe("RitualHistoryExport web download dispatch", () => {
   beforeEach(() => {
     hooks.reset()
     browser.shouldFail = true
+    nativePlatform.isNative = false
     createdLinks.length = 0
 
     vi.stubGlobal("URL", {
@@ -195,5 +215,96 @@ describe("RitualHistoryExport web download dispatch", () => {
     expect(createdLinks[1]?.click).toHaveBeenCalledTimes(1)
     expect(createdLinks[1]?.remove).toHaveBeenCalledTimes(1)
     expect(URL.revokeObjectURL).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe("RitualHistoryExport native clipboard dispatch", () => {
+  beforeEach(() => {
+    hooks.reset()
+    nativePlatform.isNative = true
+  })
+
+  it("accepts one pending copy intent and ignores rapid repeats", async () => {
+    const pendingCopy = createDeferred()
+    const writeText = vi.fn(() => pendingCopy.promise)
+    vi.stubGlobal("navigator", { clipboard: { writeText } })
+
+    const initialTree = renderExport()
+    const button = findElement(
+      initialTree,
+      (element) => element.props?.type === "button"
+    )
+    const onClick = button?.props?.onClick
+
+    expect(typeof onClick).toBe("function")
+    ;(onClick as () => void)()
+    ;(onClick as () => void)()
+    expect(writeText).toHaveBeenCalledTimes(1)
+
+    pendingCopy.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+
+    const settledTree = renderExport()
+    const status = findElement(
+      settledTree,
+      (element) => element.props?.role === "status"
+    )
+    const settledButton = findElement(
+      settledTree,
+      (element) => element.props?.type === "button"
+    )
+
+    expect(textContent(status)).toContain("Copied")
+    expect(settledButton?.props?.disabled).toBe(false)
+  })
+
+  it("keeps settlement with the active copy attempt and enables a truthful retry after failure", async () => {
+    const failedCopy = createDeferred()
+    const writeText = vi
+      .fn<() => Promise<void>>()
+      .mockReturnValueOnce(failedCopy.promise)
+      .mockResolvedValueOnce(undefined)
+    vi.stubGlobal("navigator", { clipboard: { writeText } })
+
+    const initialTree = renderExport()
+    const initialButton = findElement(
+      initialTree,
+      (element) => element.props?.type === "button"
+    )
+    const firstClick = initialButton?.props?.onClick
+
+    expect(typeof firstClick).toBe("function")
+    ;(firstClick as () => void)()
+    failedCopy.reject(new DOMException("clipboard unavailable", "NotAllowedError"))
+    await Promise.resolve()
+    await Promise.resolve()
+
+    const failedTree = renderExport()
+    const statusAfterFailure = findElement(
+      failedTree,
+      (element) => element.props?.role === "status"
+    )
+    const retryButton = findElement(
+      failedTree,
+      (element) => element.props?.type === "button"
+    )
+
+    expect(textContent(statusAfterFailure)).toContain("Could not copy the Markdown")
+    expect(retryButton?.props?.disabled).toBe(false)
+
+    ;(retryButton?.props?.onClick as () => void)()
+    await Promise.resolve()
+    await Promise.resolve()
+
+    const succeededTree = renderExport()
+    const finalStatus = findElement(
+      succeededTree,
+      (element) => element.props?.role === "status"
+    )
+
+    expect(writeText).toHaveBeenCalledTimes(2)
+    expect(textContent(finalStatus)).toContain("Copied")
+    expect(textContent(finalStatus)).not.toContain("Could not copy the Markdown")
   })
 })
