@@ -11,6 +11,7 @@ import {
   moodDirection,
   topCompletedHabit,
   type MoodDirection,
+  weeklyTrendSeries,
 } from "@/lib/domain/reflection"
 import { getTodayKey, parseEntryDate } from "@/lib/time/today"
 import { ChevronDown, ChevronUp } from "lucide-react"
@@ -35,6 +36,7 @@ function WeeklyReflection({
   const mood = moodDirection(entries, todayKey)
   const sleep = averageSleepHours(entries, todayKey)
   const topHabit = topCompletedHabit(entries, habits, todayKey)
+  const trend = weeklyTrendSeries(entries, todayKey)
   const hasSupportingMetrics =
     mood !== null || sleep !== null || topHabit !== null
 
@@ -129,7 +131,179 @@ function WeeklyReflection({
           </p>
         )}
       </div>
+      {trend.some((point) => point.mood || point.sleepHours !== undefined) ? (
+        <WeeklyTrendChart trend={trend} />
+      ) : null}
     </section>
+  )
+}
+
+type ChartCoordinate = { x: number; y: number }
+
+function chartSegments(points: Array<ChartCoordinate | null>): string[] {
+  const segments: string[] = []
+  let segment: ChartCoordinate[] = []
+
+  for (const point of points) {
+    if (point) {
+      segment.push(point)
+      continue
+    }
+    if (segment.length > 1) {
+      segments.push(segment.map(({ x, y }) => `${x},${y}`).join(" "))
+    }
+    segment = []
+  }
+
+  if (segment.length > 1) {
+    segments.push(segment.map(({ x, y }) => `${x},${y}`).join(" "))
+  }
+  return segments
+}
+
+function WeeklyTrendChart({
+  trend,
+}: {
+  trend: ReturnType<typeof weeklyTrendSeries>
+}) {
+  const chartHeight = 84
+  const chartTop = 18
+  const chartLeft = 24
+  const chartWidth = 272
+  const moodPoints = trend.map((point, index) =>
+    point.mood
+      ? {
+          x: chartLeft + (index * chartWidth) / (trend.length - 1),
+          y: chartTop + (1 - point.mood.valence) * chartHeight,
+        }
+      : null
+  )
+  const sleepValues = trend.flatMap((point) =>
+    typeof point.sleepHours === "number" ? [point.sleepHours] : []
+  )
+  const sleepCeiling = Math.max(8, ...sleepValues)
+  const sleepPoints = trend.map((point, index) =>
+    typeof point.sleepHours === "number"
+      ? {
+          x: chartLeft + (index * chartWidth) / (trend.length - 1),
+          y: chartTop + (1 - point.sleepHours / sleepCeiling) * chartHeight,
+        }
+      : null
+  )
+  const moodCount = moodPoints.filter(Boolean).length
+  const sleepCount = sleepPoints.filter(Boolean).length
+
+  if (moodCount === 0 && sleepCount === 0) return null
+
+  return (
+    <div className="border-t border-border px-5 py-6 sm:px-7 lg:px-8">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+            Seven-day signal
+          </p>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+            Your recorded mood and sleep, with gaps left honest.
+          </p>
+        </div>
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <span className="flex items-center gap-2">
+            <span className="size-2 rounded-full bg-[var(--chart-1)]" />
+            Mood
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="size-2 rounded-full bg-[var(--chart-3)]" />
+            Sleep
+          </span>
+        </div>
+      </div>
+      <svg
+        className="mt-5 h-auto w-full"
+        viewBox="0 0 320 132"
+        role="img"
+        aria-labelledby="weekly-trend-title weekly-trend-description"
+      >
+        <title id="weekly-trend-title">Mood and sleep over the last seven days</title>
+        <desc id="weekly-trend-description">
+          Mood uses a solid line and sleep uses a dashed line. Missing daily
+          recordings appear as gaps rather than connected data.
+        </desc>
+        {[0, 1, 2].map((row) => (
+          <line
+            key={row}
+            x1={chartLeft}
+            x2={chartLeft + chartWidth}
+            y1={chartTop + (row * chartHeight) / 2}
+            y2={chartTop + (row * chartHeight) / 2}
+            stroke="var(--border)"
+            strokeWidth="1"
+          />
+        ))}
+        {chartSegments(moodPoints).map((points) => (
+          <polyline
+            key={points}
+            points={points}
+            fill="none"
+            stroke="var(--chart-1)"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        ))}
+        {chartSegments(sleepPoints).map((points) => (
+          <polyline
+            key={points}
+            points={points}
+            fill="none"
+            stroke="var(--chart-3)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray="4 5"
+          />
+        ))}
+        {moodPoints.map(
+          (point, index) =>
+            point && (
+              <circle
+                key={`mood-${index}`}
+                cx={point.x}
+                cy={point.y}
+                r="3.5"
+                fill="var(--chart-1)"
+              />
+            )
+        )}
+        {sleepPoints.map(
+          (point, index) =>
+            point && (
+              <circle
+                key={`sleep-${index}`}
+                cx={point.x}
+                cy={point.y}
+                r="3"
+                fill="var(--card)"
+                stroke="var(--chart-3)"
+                strokeWidth="2"
+              />
+            )
+        )}
+        {trend.map((point, index) => (
+          <text
+            key={point.date}
+            x={chartLeft + (index * chartWidth) / (trend.length - 1)}
+            y="122"
+            textAnchor="middle"
+            fill="var(--muted-foreground)"
+            fontSize="10"
+          >
+            {parseEntryDate(point.date).toLocaleDateString("en-US", {
+              weekday: "narrow",
+            })}
+          </text>
+        ))}
+      </svg>
+    </div>
   )
 }
 

@@ -38,6 +38,35 @@ export function entriesInWindow(
   return out
 }
 
+export interface WeeklyTrendPoint {
+  date: string
+  mood: MoodPoint | undefined
+  sleepHours: number | undefined
+}
+
+/**
+ * One slot per local calendar day for a compact weekly trend. Unlike
+ * `entriesInWindow`, missing days stay in the result so a chart cannot make
+ * separate recordings look consecutive.
+ */
+export function weeklyTrendSeries(
+  entries: Record<string, DayEntry>,
+  todayKey: string = getTodayKey(),
+  days = 7
+): WeeklyTrendPoint[] {
+  const out: WeeklyTrendPoint[] = []
+  for (let i = days - 1; i >= 0; i--) {
+    const date = shiftKey(todayKey, -i)
+    const entry = entries[date]
+    out.push({
+      date,
+      mood: moodOf(entry),
+      sleepHours: entry?.sleepHours,
+    })
+  }
+  return out
+}
+
 /**
  * How a single day's mood moved from morning to evening. Positive valence
  * means the day lifted; positive energy means it built. `null` unless both
