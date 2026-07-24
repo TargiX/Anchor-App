@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest"
 import {
   moodOf,
   entriesInWindow,
+  weeklyTrendSeries,
   moodShift,
   averageValence,
   moodDirection,
@@ -49,6 +50,37 @@ describe("entriesInWindow", () => {
     )
     const got = entriesInWindow(entries, today, 7).map((e) => e.date)
     expect(got).toEqual(["2026-05-18", "2026-05-20"])
+  })
+})
+
+describe("weeklyTrendSeries", () => {
+  it("keeps every local day slot so missing recordings remain visible gaps", () => {
+    const entries = map(
+      entry("2026-05-20", { eveningMood: mood(0.8), sleepHours: 7 }),
+      entry("2026-05-18", { morningMood: mood(0.4) })
+    )
+
+    expect(weeklyTrendSeries(entries, today, 4)).toEqual([
+      { date: "2026-05-17", mood: undefined, sleepHours: undefined },
+      { date: "2026-05-18", mood: mood(0.4), sleepHours: undefined },
+      { date: "2026-05-19", mood: undefined, sleepHours: undefined },
+      { date: "2026-05-20", mood: mood(0.8), sleepHours: 7 },
+    ])
+  })
+
+  it("prefers an evening mood and supports a sparse sleep-only day", () => {
+    const entries = map(
+      entry("2026-05-20", {
+        morningMood: mood(0.3),
+        eveningMood: mood(0.7),
+      }),
+      entry("2026-05-19", { sleepHours: 8 })
+    )
+
+    expect(weeklyTrendSeries(entries, today, 2)).toEqual([
+      { date: "2026-05-19", mood: undefined, sleepHours: 8 },
+      { date: "2026-05-20", mood: mood(0.7), sleepHours: undefined },
+    ])
   })
 })
 
