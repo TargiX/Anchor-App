@@ -75,6 +75,21 @@ describe("Anchor voice check-in MVP", () => {
     expect(reflection).toContain("частично")
   })
 
+  it("turns a spontaneous check-in into one bounded next step instead of morning copy", () => {
+    const reset = createCheckInFromTranscript({
+      transcript: "голова тяжёлая, надо закрыть один комментарий",
+      now: new Date("2026-07-05T14:10:00+07:00"),
+      kind: "spontaneous",
+    })
+
+    const reflection = createImmediateReflection(reset)
+
+    expect(reflection).toContain("⏸ Пауза зафиксирована.")
+    expect(reflection).toContain("Один следующий шаг: закрыть один комментарий")
+    expect(reflection).not.toContain("🌅")
+    expect(reflection).not.toContain("🌙")
+  })
+
   it("uses the shared local-time helper for Saigon day keys and timestamps", () => {
     const checkIn = createCheckInFromTranscript({
       transcript: "вечером надо закрыть заметки",

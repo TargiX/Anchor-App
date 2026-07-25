@@ -312,6 +312,14 @@ export function createImmediateReflection(checkIn: AnchorCheckIn, morning?: Anch
     return lines.slice(0, 6).join("\n")
   }
 
+  if (checkIn.kind === "spontaneous") {
+    const nextStep = checkIn.mentions.find((mention) => mention.kind === "task")?.text
+    const lines = ["⏸ Пауза зафиксирована.", `Сейчас: ${moodLine(checkIn)}`]
+    if (nextStep) lines.push(`Один следующий шаг: ${nextStep}`)
+    else lines.push("Не нужно раскладывать всё. Дай себе десять минут и вернись к одному простому делу.")
+    return lines.slice(0, 4).join("\n")
+  }
+
   const lines = ["🌅 Записал.", `Состояние: ${moodLine(checkIn)}`]
   const sleep = sleepLine(checkIn)
   if (sleep) lines.push(`Сон: ${sleep}`)
