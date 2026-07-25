@@ -16,14 +16,21 @@ const PROMPTS = [
   "Take one meaningful step forward",
 ]
 
+export function getIntentionSuggestions() {
+  const shuffled = [...PROMPTS].sort(() => Math.random() - 0.5)
+  return shuffled.slice(0, 3)
+}
+
 interface StepIntentionProps {
   entryKey: string
+  suggestions: string[]
   onNext: () => void
   onBack: () => void
 }
 
 export function StepIntention({
   entryKey,
+  suggestions,
   onNext,
   onBack,
 }: StepIntentionProps) {
@@ -32,10 +39,6 @@ export function StepIntention({
   // once useAppState finishes loading from storage. See step-sleep for the
   // set-state-in-effect rationale.
   const [text, setText] = useState("")
-  const [suggestions] = useState(() => {
-    const shuffled = [...PROMPTS].sort(() => Math.random() - 0.5)
-    return shuffled.slice(0, 3)
-  })
 
   /* eslint-disable react-hooks/set-state-in-effect -- sync from external store */
   useEffect(() => {
