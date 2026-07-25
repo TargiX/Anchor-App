@@ -6,6 +6,9 @@ import { INITIAL_STATE } from "@/lib/store/state"
 const componentMocks = vi.hoisted(() => ({
   updateEntry: vi.fn(),
   useEntry: vi.fn(),
+  setRitualCursor: vi.fn(),
+  clearRitualCursor: vi.fn(),
+  push: vi.fn(),
 }))
 const reactMocks = vi.hoisted(() => ({
   useEffect: vi.fn(),
@@ -14,8 +17,14 @@ const reactMocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/store/actions", () => ({
   updateEntry: componentMocks.updateEntry,
+  setRitualCursor: componentMocks.setRitualCursor,
+  clearRitualCursor: componentMocks.clearRitualCursor,
 }))
 vi.mock("@/hooks/use-store", () => ({ useEntry: componentMocks.useEntry }))
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: componentMocks.push }),
+}))
+vi.mock("@/lib/time/today", () => ({ getTodayKey: () => ENTRY_KEY }))
 vi.mock("react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react")>()),
   useEffect: reactMocks.useEffect,
@@ -23,6 +32,7 @@ vi.mock("react", async (importOriginal) => ({
 }))
 
 import { StepIntention } from "@/components/morning/step-intention"
+import MorningRitual from "@/app/(app)/morning/page"
 
 const { updateEntry: persistEntry } = await vi.importActual<
   typeof import("@/lib/store/actions")
@@ -34,18 +44,28 @@ beforeEach(() => {
   clearCloudPersistence()
   setState(() => INITIAL_STATE)
   componentMocks.updateEntry.mockReset()
+  componentMocks.setRitualCursor.mockReset()
+  componentMocks.clearRitualCursor.mockReset()
+  componentMocks.push.mockReset()
   componentMocks.useEntry.mockReturnValue({})
   reactMocks.useEffect.mockReset()
   reactMocks.useState.mockReset()
 })
 
-function renderWithText(text: string, onBack = vi.fn()) {
-  reactMocks.useState
-    .mockImplementationOnce(() => [text, vi.fn()])
-    .mockImplementationOnce(() => [[], vi.fn()])
+function renderWithText(
+  text: string,
+  onBack = vi.fn(),
+  suggestions = ["Suggestion one", "Suggestion two", "Suggestion three"]
+) {
+  reactMocks.useState.mockImplementationOnce(() => [text, vi.fn()])
 
   return {
-    tree: StepIntention({ entryKey: ENTRY_KEY, onBack, onNext: vi.fn() }),
+    tree: StepIntention({
+      entryKey: ENTRY_KEY,
+      suggestions,
+      onBack,
+      onNext: vi.fn(),
+    }),
     onBack,
   }
 }
@@ -66,6 +86,35 @@ function findButton(node: unknown, text: string): { onClick: () => void } {
   }
 
   throw new Error(`Could not find ${text} button`)
+}
+
+function stepChild(tree: unknown) {
+  if (!isValidElement(tree)) throw new Error("Could not find ritual shell")
+
+  const child = Children.toArray(
+    (tree.props as { children?: ReactNode }).children
+  ).find(isValidElement)
+  if (!isValidElement(child)) throw new Error("Could not find ritual step")
+
+  return child
+}
+
+function installPersistentPageState() {
+  const slots: unknown[] = []
+  let cursor = 0
+
+  reactMocks.useState.mockImplementation((initial: unknown) => {
+    const slot = cursor++
+    if (!(slot in slots)) {
+      slots[slot] = typeof initial === "function" ? initial() : initial
+    }
+
+    return [slots[slot], vi.fn()]
+  })
+
+  return () => {
+    cursor = 0
+  }
 }
 
 describe("Morning intention Back → Continue component/store contract", () => {
@@ -95,5 +144,44 @@ describe("Morning intention Back → Continue component/store contract", () => {
     expect(componentMocks.updateEntry).not.toHaveBeenCalled()
     expect(getSnapshot().entries[ENTRY_KEY]).toBeUndefined()
     expect(onBack).toHaveBeenCalledOnce()
+  })
+
+  it("keeps the parent-held suggestion subset and order through Intention → Stillness → Back", () => {
+    let step = 3
+    componentMocks.useEntry.mockImplementation(() => ({
+      morningRitualStep: step,
+    }))
+    const restartRender = installPersistentPageState()
+
+    const intention = stepChild(MorningRitual())
+    const initialSuggestions = (
+      intention.props as { suggestions: string[]; onNext: () => void }
+    ).suggestions
+
+    expect(initialSuggestions).toHaveLength(3)
+    ;(intention.props as { onNext: () => void }).onNext()
+    expect(componentMocks.setRitualCursor).toHaveBeenLastCalledWith(
+      "morning",
+      4,
+      ENTRY_KEY
+    )
+
+    step = 4
+    restartRender()
+    const stillness = stepChild(MorningRitual())
+    ;(stillness.props as { onBack: () => void }).onBack()
+    expect(componentMocks.setRitualCursor).toHaveBeenLastCalledWith(
+      "morning",
+      3,
+      ENTRY_KEY
+    )
+
+    step = 3
+    restartRender()
+    const returnedIntention = stepChild(MorningRitual())
+
+    expect(
+      (returnedIntention.props as { suggestions: string[] }).suggestions
+    ).toEqual(initialSuggestions)
   })
 })

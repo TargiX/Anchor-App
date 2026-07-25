@@ -7,7 +7,10 @@ import { RitualComplete } from "@/components/ritual-complete"
 import { StepAffirmation } from "@/components/morning/step-affirmation"
 import { StepSleep } from "@/components/morning/step-sleep"
 import { StepMood } from "@/components/morning/step-mood"
-import { StepIntention } from "@/components/morning/step-intention"
+import {
+  getIntentionSuggestions,
+  StepIntention,
+} from "@/components/morning/step-intention"
 import { StepMeditation } from "@/components/morning/step-meditation"
 import { StepComplete } from "@/components/ritual/step-complete"
 import { useEntry } from "@/hooks/use-store"
@@ -21,6 +24,7 @@ export default function MorningRitual() {
   const [entryKey] = useState(getTodayKey)
   const entry = useEntry(entryKey)
   const [done, setDone] = useState(false)
+  const [intentionSuggestions] = useState(getIntentionSuggestions)
   const router = useRouter()
   const step = entry.morningRitualStep ?? 0
 
@@ -51,7 +55,14 @@ export default function MorningRitual() {
       {step === 0 && <StepAffirmation onNext={next} />}
       {step === 1 && <StepSleep entryKey={entryKey} onNext={next} onBack={back} />}
       {step === 2 && <StepMood entryKey={entryKey} onNext={next} onBack={back} isMorning />}
-      {step === 3 && <StepIntention entryKey={entryKey} onNext={next} onBack={back} />}
+      {step === 3 && (
+        <StepIntention
+          entryKey={entryKey}
+          suggestions={intentionSuggestions}
+          onNext={next}
+          onBack={back}
+        />
+      )}
       {step === 4 && <StepMeditation entryKey={entryKey} onNext={next} onBack={back} />}
       {step === 5 && (
         <StepComplete variant="morning" onNext={next} onBack={back} />
