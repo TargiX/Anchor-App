@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useReducer, useState } from "react"
+import { useRouter } from "next/navigation"
 import { AnchorMotif } from "@/components/anchor-motif"
 import { Button } from "@/components/ui/button"
 import { takeFocusResetContextFrom } from "@/lib/focus/reset-context"
@@ -69,6 +70,7 @@ function breathingReducer(
 }
 
 export function BoxBreathing() {
+  const router = useRouter()
   const [targetCycles, setTargetCycles] = useState(4)
   const [resetContext] = useState(() =>
     typeof window === "undefined" ? null : takeFocusResetContextFrom(() => window.sessionStorage)
@@ -180,15 +182,35 @@ export function BoxBreathing() {
               ? "Begin again"
               : `Start ${selectedLength.label.toLowerCase()} reset`}
         </Button>
-        <p className="mt-5 text-xs text-muted-foreground">
-          {isComplete
-            ? resetContext
-              ? `Your ${selectedLength.label.toLowerCase()} reset is complete. Return to: ${resetContext.nextStep}.`
-              : `Your ${selectedLength.label.toLowerCase()} reset is complete. Take your next smallest step.`
-            : breathing.completedCycles === 0
+        {isComplete ? (
+          <section
+            className="mt-5 w-full rounded-2xl border border-accent/30 bg-accent/5 px-4 py-4"
+            aria-label="Reset complete"
+          >
+            <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+              Ready to return
+            </p>
+            <p className="mt-2 text-sm leading-6 text-foreground">
+              {resetContext
+                ? `Your next small step: ${resetContext.nextStep}.`
+                : "You made space. Take your next smallest step."}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-4 w-full rounded-xl"
+              onClick={() => router.push("/app")}
+            >
+              Return to today
+            </Button>
+          </section>
+        ) : (
+          <p className="mt-5 text-xs text-muted-foreground">
+            {breathing.completedCycles === 0
               ? `Your ${selectedLength.label.toLowerCase()} reset begins when you are ready.`
               : `${breathing.completedCycles} ${breathing.completedCycles === 1 ? "round" : "rounds"} completed.`}
-        </p>
+          </p>
+        )}
       </div>
     </section>
   )
