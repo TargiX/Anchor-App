@@ -239,6 +239,7 @@ export default function Landing() {
               <span>App</span>
               <Link href="/morning">Morning</Link>
               <Link href="/evening">Evening</Link>
+              <Link href="/focus">Focus</Link>
               <Link href="/timeline">Timeline</Link>
             </div>
             <div>
