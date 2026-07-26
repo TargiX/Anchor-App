@@ -18,6 +18,7 @@ import {
   Mic,
   Sparkles,
   SunMedium,
+  Wind,
 } from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
@@ -305,6 +306,15 @@ export default function Home() {
                   : "You gave yourself permission to pivot."}
             </p>
           )}
+
+          <Button
+            variant="outline"
+            className="mt-3 h-12 w-full rounded-2xl text-sm lg:mt-4"
+            onClick={() => router.push("/focus")}
+          >
+            <Wind className="size-4" data-icon="inline-start" />
+            Take a guided focus reset
+          </Button>
 
           <div
             className={cn(
