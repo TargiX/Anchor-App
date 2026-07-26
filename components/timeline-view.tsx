@@ -454,6 +454,16 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
                   </p>
                 </div>
               )}
+              {entry.affirmation && (
+                <div>
+                  <p className="mb-1 text-xs font-medium tracking-widest text-muted-foreground uppercase">
+                    Morning affirmation
+                  </p>
+                  <p className="font-[family-name:var(--font-display)] text-sm leading-relaxed text-foreground italic">
+                    &ldquo;{entry.affirmation}&rdquo;
+                  </p>
+                </div>
+              )}
               {entry.journal && (
                 <div className="lg:col-span-2">
                   <p className="mb-1 text-xs font-medium tracking-widest text-muted-foreground uppercase">
