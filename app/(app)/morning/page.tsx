@@ -52,7 +52,7 @@ export default function MorningRitual() {
       title="Morning ritual"
       description="Start with sleep, mood, intention, and a short stillness practice before the day gets loud."
     >
-      {step === 0 && <StepAffirmation onNext={next} />}
+      {step === 0 && <StepAffirmation entryKey={entryKey} onNext={next} />}
       {step === 1 && <StepSleep entryKey={entryKey} onNext={next} onBack={back} />}
       {step === 2 && <StepMood entryKey={entryKey} onNext={next} onBack={back} isMorning />}
       {step === 3 && (

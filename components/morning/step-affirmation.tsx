@@ -7,6 +7,8 @@ import { AnchorMotif } from "@/components/anchor-motif"
 import { cn } from "@/lib/utils"
 import { motion } from "framer-motion"
 import { getGreeting } from "@/lib/time/context"
+import { updateEntry } from "@/lib/store/actions"
+import type { DayKey } from "@/lib/domain/entry"
 
 const AFFIRMATIONS = [
   "You are allowed to begin again, quietly and without apology.",
@@ -20,6 +22,7 @@ const AFFIRMATIONS = [
 ]
 
 interface StepAffirmationProps {
+  entryKey: DayKey
   onNext: () => void
   userName?: string
 }
@@ -32,7 +35,11 @@ function getDate() {
   })
 }
 
-export function StepAffirmation({ onNext, userName }: StepAffirmationProps) {
+export function StepAffirmation({
+  entryKey,
+  onNext,
+  userName,
+}: StepAffirmationProps) {
   const [index, setIndex] = useState(0)
   const [dateLabel, setDateLabel] = useState("Today")
   const [greeting, setGreeting] = useState(getGreeting(12))
@@ -52,6 +59,11 @@ export function StepAffirmation({ onNext, userName }: StepAffirmationProps) {
       setIndex((prev) => (prev + 1) % AFFIRMATIONS.length)
       setSpinning(false)
     }, 400)
+  }
+
+  function beginRitual() {
+    updateEntry(entryKey, { affirmation: AFFIRMATIONS[index] })
+    onNext()
   }
 
   return (
@@ -109,7 +121,7 @@ export function StepAffirmation({ onNext, userName }: StepAffirmationProps) {
       {/* CTA */}
       <div className="mt-auto pb-10">
         <Button
-          onClick={onNext}
+          onClick={beginRitual}
           className="h-14 w-full rounded-2xl text-base font-medium"
         >
           Begin the ritual
