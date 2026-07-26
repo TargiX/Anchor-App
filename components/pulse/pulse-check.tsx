@@ -51,8 +51,10 @@ export function PulseCheck() {
   function saveCheckIn() {
     if (!selected) return
     updateTodayEntry({ middayCheckIn: selected })
-    router.push("/app")
+    router.push(selected === "reset" ? "/focus" : "/app")
   }
+
+  const isReset = selected === "reset"
 
   return (
     <div className="flex flex-1 flex-col gap-8 pb-8 lg:pb-12">
@@ -117,12 +119,24 @@ export function PulseCheck() {
         })}
       </div>
 
+      {isReset ? (
+        <div
+          aria-live="polite"
+          className="rounded-2xl border border-primary/30 bg-primary/6 px-5 py-4"
+        >
+          <p className="text-sm font-medium text-foreground">Make a little room first.</p>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+            We&apos;ll save this check-in, then begin a short box-breathing cycle before you return to the day.
+          </p>
+        </div>
+      ) : null}
+
       <Button
         className="mt-auto h-14 w-full rounded-2xl text-base font-medium"
         disabled={!selected}
         onClick={saveCheckIn}
       >
-        Save this check-in
+        {isReset ? "Save and begin a breathing reset" : "Save this check-in"}
       </Button>
     </div>
   )
