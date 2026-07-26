@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { updateTodayEntry } from "@/lib/store/actions"
 import { type MiddayCheckIn } from "@/lib/domain/entry"
+import { saveFocusResetContextFrom } from "@/lib/focus/reset-context"
 
 const CHECK_INS: Array<{
   value: MiddayCheckIn
@@ -51,6 +52,12 @@ export function PulseCheck() {
   function saveCheckIn() {
     if (!selected) return
     updateTodayEntry({ middayCheckIn: selected })
+
+    const nextStep = today.intention?.trim()
+    if (selected === "reset" && nextStep) {
+      saveFocusResetContextFrom(() => window.sessionStorage, nextStep)
+    }
+
     router.push(selected === "reset" ? "/focus" : "/app")
   }
 
