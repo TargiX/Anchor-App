@@ -25,6 +25,10 @@ export const MoodPointSchema = z.object({
 })
 export type MoodPoint = z.infer<typeof MoodPointSchema>
 
+/** A short, deliberate midday read on how the day is landing. */
+export const MiddayCheckInSchema = z.enum(["on-track", "reset", "pivot"])
+export type MiddayCheckIn = z.infer<typeof MiddayCheckInSchema>
+
 export const TimeOfDaySchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)
 
 export const DayKeySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -54,6 +58,7 @@ export const DayEntrySchema = z.object({
   date: DayKeySchema,
   morningMood: MoodPointSchema.optional(),
   eveningMood: MoodPointSchema.optional(),
+  middayCheckIn: MiddayCheckInSchema.optional(),
   sleepQuality: SleepQualitySchema.optional(),
   sleepHours: z.number().optional(),
   intention: z.string().optional(),

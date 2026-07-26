@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Mic,
   Sparkles,
+  SunMedium,
 } from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
@@ -70,6 +71,10 @@ export default function Home() {
       ? morningDone
         ? "Review this morning"
         : "Start morning ritual"
+      : timeContext === "midday"
+        ? today.middayCheckIn
+          ? "Update your check-in"
+          : "Check in on your day"
       : timeContext === "evening"
         ? eveningDone
           ? "Review this evening"
@@ -77,9 +82,11 @@ export default function Home() {
         : null
 
   const ctaRoute =
-    timeContext === "morning" || timeContext === "midday"
+    timeContext === "morning"
       ? "/morning"
-      : "/evening"
+      : timeContext === "midday"
+        ? "/pulse"
+        : "/evening"
 
   // Avoid hydration mismatch by not rendering time-dependent content until mounted
   if (!mounted) {
@@ -271,31 +278,32 @@ export default function Home() {
             <Separator />
           </div>
 
-          {timeContext !== "midday" && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Button
+              className="h-14 w-full rounded-2xl text-base font-medium lg:h-16"
+              onClick={() => router.push(ctaRoute)}
             >
-              <Button
-                className="h-14 w-full rounded-2xl text-base font-medium lg:h-16"
-                onClick={() => router.push(ctaRoute)}
-              >
+              {timeContext === "midday" ? (
+                <SunMedium className="size-4" data-icon="inline-start" />
+              ) : (
                 <Clock className="size-4" data-icon="inline-start" />
-                {ctaLabel ?? timeLabel}
-              </Button>
-            </motion.div>
-          )}
+              )}
+              {ctaLabel ?? timeLabel}
+            </Button>
+          </motion.div>
 
-          {timeContext === "midday" && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="px-2 text-center font-[family-name:var(--font-display)] text-sm leading-relaxed text-muted-foreground italic"
-            >
-              The day is yours. Check in when you&apos;re ready.
-            </motion.p>
+          {timeContext === "midday" && today.middayCheckIn && (
+            <p className="mt-3 px-2 text-center text-sm text-muted-foreground">
+              {today.middayCheckIn === "on-track"
+                ? "You checked in and kept your direction."
+                : today.middayCheckIn === "reset"
+                  ? "You made space to reset the day."
+                  : "You gave yourself permission to pivot."}
+            </p>
           )}
 
           <div
