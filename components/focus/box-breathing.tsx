@@ -14,46 +14,91 @@ const PHASES = [
 
 const SECONDS_PER_PHASE = 4
 
+const RESET_LENGTHS = [
+  { cycles: 2, label: "2 rounds", duration: "32 sec" },
+  { cycles: 4, label: "4 rounds", duration: "about 1 min" },
+  { cycles: 6, label: "6 rounds", duration: "96 sec" },
+] as const
+
 type BreathingState = {
   phaseIndex: number
   secondsRemaining: number
   completedCycles: number
+  isRunning: boolean
 }
 
 const initialBreathingState: BreathingState = {
   phaseIndex: 0,
   secondsRemaining: SECONDS_PER_PHASE,
   completedCycles: 0,
+  isRunning: false,
 }
 
-function advanceBreathing(state: BreathingState): BreathingState {
+type BreathingAction =
+  | { type: "advance"; targetCycles: number }
+  | { type: "reset" }
+  | { type: "start"; targetCycles: number }
+  | { type: "pause" }
+
+function breathingReducer(
+  state: BreathingState,
+  action: BreathingAction
+): BreathingState {
+  if (action.type === "reset") return initialBreathingState
+  if (action.type === "pause") return { ...state, isRunning: false }
+  if (action.type === "start") {
+    return state.completedCycles >= action.targetCycles
+      ? { ...initialBreathingState, isRunning: true }
+      : { ...state, isRunning: true }
+  }
+
   if (state.secondsRemaining > 1) {
     return { ...state, secondsRemaining: state.secondsRemaining - 1 }
   }
 
   const phaseIndex = (state.phaseIndex + 1) % PHASES.length
+  const completedCycles = state.completedCycles + (phaseIndex === 0 ? 1 : 0)
 
   return {
     phaseIndex,
     secondsRemaining: SECONDS_PER_PHASE,
-    completedCycles: state.completedCycles + (phaseIndex === 0 ? 1 : 0),
+    completedCycles,
+    isRunning: completedCycles < action.targetCycles,
   }
 }
 
 export function BoxBreathing() {
-  const [isRunning, setIsRunning] = useState(false)
-  const [breathing, advance] = useReducer(advanceBreathing, initialBreathingState)
+  const [targetCycles, setTargetCycles] = useState(4)
+  const [breathing, dispatch] = useReducer(breathingReducer, initialBreathingState)
   const phase = PHASES[breathing.phaseIndex]!
+  const selectedLength = RESET_LENGTHS.find(
+    (length) => length.cycles === targetCycles
+  )!
+  const isComplete = breathing.completedCycles >= targetCycles
 
   useEffect(() => {
-    if (!isRunning) return
+    if (!breathing.isRunning) return
 
     const timer = window.setInterval(() => {
-      advance()
+      dispatch({ type: "advance", targetCycles })
     }, 1000)
 
     return () => window.clearInterval(timer)
-  }, [isRunning])
+  }, [breathing.isRunning, targetCycles])
+
+  function selectLength(cycles: number) {
+    setTargetCycles(cycles)
+    dispatch({ type: "reset" })
+  }
+
+  function toggleBreathing() {
+    if (breathing.isRunning) {
+      dispatch({ type: "pause" })
+      return
+    }
+
+    dispatch({ type: "start", targetCycles })
+  }
 
   return (
     <section className="flex flex-1 flex-col justify-center pb-8" aria-labelledby="box-breathing-title">
@@ -68,10 +113,38 @@ export function BoxBreathing() {
           Four steady sides.
         </h2>
         <p className="mt-3 max-w-sm text-sm leading-6 text-muted-foreground">
-          Follow the shape: inhale, hold, exhale, hold. Each side lasts four counts.
+          Choose a small container, then follow the shape: inhale, hold, exhale, hold. Each side lasts four counts.
         </p>
 
-        <div className="mt-10 flex h-52 w-52 items-center justify-center rounded-full border border-primary/20 bg-primary/5 sm:h-60 sm:w-60">
+        <div className="mt-7 w-full" aria-label="Focus reset length">
+          <p className="mb-3 text-xs font-medium tracking-widest text-muted-foreground uppercase">
+            Reset length
+          </p>
+          <div className="grid grid-cols-3 gap-2 rounded-2xl bg-muted/45 p-1">
+            {RESET_LENGTHS.map((length) => {
+              const isSelected = length.cycles === targetCycles
+              return (
+                <button
+                  key={length.cycles}
+                  type="button"
+                  onClick={() => selectLength(length.cycles)}
+                  aria-pressed={isSelected}
+                  className={cn(
+                    "rounded-xl px-2 py-2 text-center text-xs outline-none transition focus-visible:ring-2 focus-visible:ring-ring",
+                    isSelected
+                      ? "bg-background font-medium text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <span className="block">{length.label}</span>
+                  <span className="mt-0.5 block text-[11px] opacity-70">{length.duration}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="mt-8 flex h-52 w-52 items-center justify-center rounded-full border border-primary/20 bg-primary/5 sm:h-60 sm:w-60">
           <div
             className={cn(
               "flex h-40 w-40 items-center justify-center rounded-full bg-primary/10 transition-transform duration-1000 ease-in-out motion-reduce:transition-none sm:h-48 sm:w-48",
@@ -94,15 +167,21 @@ export function BoxBreathing() {
         <Button
           className="mt-7 min-w-40 rounded-2xl px-8"
           size="lg"
-          onClick={() => setIsRunning((running) => !running)}
-          aria-pressed={isRunning}
+          onClick={toggleBreathing}
+          aria-pressed={breathing.isRunning}
         >
-          {isRunning ? "Pause" : "Start breathing"}
+          {breathing.isRunning
+            ? "Pause"
+            : isComplete
+              ? "Begin again"
+              : `Start ${selectedLength.label.toLowerCase()} reset`}
         </Button>
         <p className="mt-5 text-xs text-muted-foreground">
-          {breathing.completedCycles === 0
-            ? "Your first cycle begins when you are ready."
-            : `${breathing.completedCycles} ${breathing.completedCycles === 1 ? "cycle" : "cycles"} completed.`}
+          {isComplete
+            ? `Your ${selectedLength.label.toLowerCase()} reset is complete. Take your next smallest step.`
+            : breathing.completedCycles === 0
+              ? `Your ${selectedLength.label.toLowerCase()} reset begins when you are ready.`
+              : `${breathing.completedCycles} ${breathing.completedCycles === 1 ? "round" : "rounds"} completed.`}
         </p>
       </div>
     </section>
