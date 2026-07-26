@@ -60,6 +60,7 @@ export function AnchorVoiceCheckInMvp() {
   const [transcript, setTranscript] = useState("")
   const [records, setRecords] = useState<AnchorCheckIn[]>([])
   const [reflection, setReflection] = useState("")
+  const [submittedKind, setSubmittedKind] = useState<CheckInKind | null>(null)
   const [digest, setDigest] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
@@ -124,6 +125,7 @@ export function AnchorVoiceCheckInMvp() {
       if (!response.ok) throw new Error(data.error ?? "Check-in failed")
       if (data.checkIn) setRecords((prev) => [...prev, data.checkIn as AnchorCheckIn])
       setReflection(data.reflection ?? "")
+      setSubmittedKind(data.checkIn?.kind ?? kind)
       setDigest(data.digest ?? "")
       setTranscript("")
     } catch (err) {
@@ -189,17 +191,31 @@ export function AnchorVoiceCheckInMvp() {
             {(["morning", "evening", "spontaneous"] as const).map((option) => (
               <button
                 key={option}
+                type="button"
                 onClick={() => setKind(option)}
-                className={`rounded-xl px-3 py-2 text-sm transition ${
+                aria-pressed={kind === option}
+                className={`rounded-xl px-3 py-2 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring ${
                   kind === option
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {option === "morning" ? "Утро" : option === "evening" ? "Вечер" : "Мысль"}
+                {option === "morning" ? "Утро" : option === "evening" ? "Вечер" : "Reset"}
               </button>
             ))}
           </div>
+
+          {kind === "spontaneous" ? (
+            <div
+              className="mb-4 rounded-2xl border border-primary/20 bg-primary/5 p-4"
+              aria-live="polite"
+            >
+              <p className="text-sm font-medium text-foreground">Быстрый reset</p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                Без отчёта. Назови, что сейчас громче всего, и один следующий шаг, к которому можно вернуться.
+              </p>
+            </div>
+          ) : null}
 
           {kind === "evening" && latestMain ? (
             <div className="mb-4 rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm text-muted-foreground">
@@ -210,7 +226,12 @@ export function AnchorVoiceCheckInMvp() {
           <textarea
             value={transcript}
             onChange={(event) => setTranscript(event.target.value)}
-            placeholder={EXAMPLE_TRANSCRIPT}
+            placeholder={
+              kind === "spontaneous"
+                ? "Голова гудит, надо ответить на один комментарий и потом выйти на воздух"
+                : EXAMPLE_TRANSCRIPT
+            }
+            aria-label={kind === "spontaneous" ? "Что сейчас громче всего и один следующий шаг" : "Текст чек-ина"}
             className="min-h-44 w-full resize-none rounded-2xl border border-border bg-background/70 p-4 text-base leading-7 text-foreground outline-none transition focus:border-primary/60 focus:ring-4 focus:ring-primary/10"
           />
 
@@ -234,7 +255,7 @@ export function AnchorVoiceCheckInMvp() {
               className="h-11 rounded-xl"
             >
               {loading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-              Разобрать чек-ин
+              {kind === "spontaneous" ? "Собрать reset" : "Разобрать чек-ин"}
             </Button>
             <Button
               type="button"
@@ -253,7 +274,7 @@ export function AnchorVoiceCheckInMvp() {
           {reflection ? (
             <section className="mt-7 rounded-2xl border border-border bg-background/80 p-5">
               <p className="mb-3 text-xs font-medium tracking-widest text-muted-foreground uppercase">
-                Immediate reflection
+                {submittedKind === "spontaneous" ? "Reset" : "Immediate reflection"}
               </p>
               <div className="space-y-1 text-base leading-7 text-foreground">
                 {lines(reflection).map((line) => (
