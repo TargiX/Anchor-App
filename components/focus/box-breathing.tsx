@@ -3,6 +3,7 @@
 import { useEffect, useReducer, useState } from "react"
 import { AnchorMotif } from "@/components/anchor-motif"
 import { Button } from "@/components/ui/button"
+import { takeFocusResetContextFrom } from "@/lib/focus/reset-context"
 import { cn } from "@/lib/utils"
 
 const PHASES = [
@@ -69,6 +70,9 @@ function breathingReducer(
 
 export function BoxBreathing() {
   const [targetCycles, setTargetCycles] = useState(4)
+  const [resetContext] = useState(() =>
+    typeof window === "undefined" ? null : takeFocusResetContextFrom(() => window.sessionStorage)
+  )
   const [breathing, dispatch] = useReducer(breathingReducer, initialBreathingState)
   const phase = PHASES[breathing.phaseIndex]!
   const selectedLength = RESET_LENGTHS.find(
@@ -178,7 +182,9 @@ export function BoxBreathing() {
         </Button>
         <p className="mt-5 text-xs text-muted-foreground">
           {isComplete
-            ? `Your ${selectedLength.label.toLowerCase()} reset is complete. Take your next smallest step.`
+            ? resetContext
+              ? `Your ${selectedLength.label.toLowerCase()} reset is complete. Return to: ${resetContext.nextStep}.`
+              : `Your ${selectedLength.label.toLowerCase()} reset is complete. Take your next smallest step.`
             : breathing.completedCycles === 0
               ? `Your ${selectedLength.label.toLowerCase()} reset begins when you are ready.`
               : `${breathing.completedCycles} ${breathing.completedCycles === 1 ? "round" : "rounds"} completed.`}

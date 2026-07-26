@@ -1,9 +1,11 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Mic, Send, Sparkles, BarChart3, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { AnchorCheckIn, CheckInKind } from "@/lib/anchor-checkin/checkin"
+import { saveFocusResetContextFrom } from "@/lib/focus/reset-context"
 import { isSupabaseConfigured, supabase } from "@/lib/supabase/client"
 
 type ApiResponse = {
@@ -56,11 +58,13 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 }
 
 export function AnchorVoiceCheckInMvp() {
+  const router = useRouter()
   const [kind, setKind] = useState<CheckInKind>("morning")
   const [transcript, setTranscript] = useState("")
   const [records, setRecords] = useState<AnchorCheckIn[]>([])
   const [reflection, setReflection] = useState("")
   const [submittedKind, setSubmittedKind] = useState<CheckInKind | null>(null)
+  const [resetStep, setResetStep] = useState<string | null>(null)
   const [digest, setDigest] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
@@ -126,6 +130,11 @@ export function AnchorVoiceCheckInMvp() {
       if (data.checkIn) setRecords((prev) => [...prev, data.checkIn as AnchorCheckIn])
       setReflection(data.reflection ?? "")
       setSubmittedKind(data.checkIn?.kind ?? kind)
+      setResetStep(
+        data.checkIn?.kind === "spontaneous"
+          ? data.checkIn.mentions.find((mention) => mention.kind === "task")?.text ?? null
+          : null
+      )
       setDigest(data.digest ?? "")
       setTranscript("")
     } catch (err) {
@@ -281,6 +290,19 @@ export function AnchorVoiceCheckInMvp() {
                   <p key={line}>{line}</p>
                 ))}
               </div>
+              {submittedKind === "spontaneous" && resetStep ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-5 rounded-xl"
+                  onClick={() => {
+                    saveFocusResetContextFrom(() => window.sessionStorage, resetStep)
+                    router.push("/focus")
+                  }}
+                >
+                  Begin a breathing reset
+                </Button>
+              ) : null}
             </section>
           ) : null}
         </section>
