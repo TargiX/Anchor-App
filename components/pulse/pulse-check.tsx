@@ -42,11 +42,18 @@ export function PulseCheck() {
   const [selected, setSelected] = useState<MiddayCheckIn | null>(
     today.middayCheckIn ?? null
   )
+  const [returnedFromFocus, setReturnedFromFocus] = useState(false)
 
   /* eslint-disable react-hooks/set-state-in-effect -- sync hydrated entry from external store */
   useEffect(() => {
     setSelected(today.middayCheckIn ?? null)
   }, [today.middayCheckIn])
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  /* eslint-disable react-hooks/set-state-in-effect -- read the one-shot Focus return marker after hydration */
+  useEffect(() => {
+    setReturnedFromFocus(new URLSearchParams(window.location.search).get("after") === "focus")
+  }, [])
   /* eslint-enable react-hooks/set-state-in-effect */
 
   function saveCheckIn() {
@@ -76,6 +83,18 @@ export function PulseCheck() {
           Choose the response that gives you the most honest next step. You can revise it later.
         </p>
       </div>
+
+      {returnedFromFocus ? (
+        <div
+          role="status"
+          className="rounded-2xl border border-accent/30 bg-accent/5 px-5 py-4"
+        >
+          <p className="text-sm font-medium text-foreground">You made some room.</p>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+            Notice what feels true now, then choose the response that fits this moment.
+          </p>
+        </div>
+      ) : null}
 
       {today.intention ? (
         <div className="rounded-2xl border border-border bg-card/60 px-5 py-4">

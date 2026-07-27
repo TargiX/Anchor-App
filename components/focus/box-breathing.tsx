@@ -195,14 +195,23 @@ export function BoxBreathing() {
                 ? `Your next small step: ${resetContext.nextStep}.`
                 : "You made space. Take your next smallest step."}
             </p>
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-4 w-full rounded-xl"
-              onClick={() => router.push("/app")}
-            >
-              Return to today
-            </Button>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <Button
+                type="button"
+                className="rounded-xl"
+                onClick={() => router.push("/pulse?after=focus")}
+              >
+                Check in again
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => router.push("/app")}
+              >
+                Return to today
+              </Button>
+            </div>
           </section>
         ) : (
           <p className="mt-5 text-xs text-muted-foreground">
