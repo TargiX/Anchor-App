@@ -37,6 +37,11 @@ const CHECK_INS: Array<{
   },
 ]
 
+/**
+ * Pulse midday check-in: lets the user report how the day is going and, on
+ * "reset", persist the next step and hand off to Focus. Highlights the
+ * post-reset check-in on the arrival that directly follows a Focus reset.
+ */
 export function PulseCheck() {
   const router = useRouter()
   const today = useTodayEntry()

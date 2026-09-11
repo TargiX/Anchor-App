@@ -1,4 +1,6 @@
+/** Query-string parameter that carries the one-shot Focus return marker. */
 export const FOCUS_RETURN_PARAM = "after"
+/** Exact parameter value marking an arrival straight from a completed Focus reset. */
 export const FOCUS_RETURN_VALUE = "focus"
 
 /**
