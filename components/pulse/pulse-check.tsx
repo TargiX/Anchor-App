@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 import { updateTodayEntry } from "@/lib/store/actions"
 import { type MiddayCheckIn } from "@/lib/domain/entry"
 import { saveFocusResetContextFrom } from "@/lib/focus/reset-context"
+import { readFocusReturnFrom } from "@/lib/focus/focus-return"
 
 const CHECK_INS: Array<{
   value: MiddayCheckIn
@@ -52,7 +53,7 @@ export function PulseCheck() {
 
   /* eslint-disable react-hooks/set-state-in-effect -- read the one-shot Focus return marker after hydration */
   useEffect(() => {
-    setReturnedFromFocus(new URLSearchParams(window.location.search).get("after") === "focus")
+    setReturnedFromFocus(readFocusReturnFrom(() => window.location.search))
   }, [])
   /* eslint-enable react-hooks/set-state-in-effect */
 
