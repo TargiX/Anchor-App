@@ -5,6 +5,7 @@ const config: CapacitorConfig = {
   appName: "Anchor",
   webDir: "out",
   backgroundColor: "#f8f3ec",
+  server: { appStartPath: "/app/" },
 }
 
 export default config

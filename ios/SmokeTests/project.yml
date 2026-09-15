@@ -1,0 +1,21 @@
+name: AnchorSmokeTests
+options:
+  deploymentTarget:
+    iOS: "15.0"
+targets:
+  AnchorSmokeTests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [CheckInTests.swift]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.anchor.smoketests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGNING_ALLOWED: NO
+schemes:
+  AnchorSmokeTests:
+    build:
+      targets:
+        AnchorSmokeTests: all
+    test:
+      targets: [AnchorSmokeTests]

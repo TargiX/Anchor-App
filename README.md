@@ -48,6 +48,32 @@ npm run build:native # next build with BUILD_TARGET=native -> ./out
 npm run cap:sync     # build + sync into Capacitor platforms
 ```
 
+Server-dependent routes use `route.server.ts` or `page.server.tsx`.
+`next.config.mjs` includes these extensions only in the web build. The voice
+prototype is web-only until a production mobile API is available. Both build
+commands verify the resulting route manifest; CI runs both targets.
+
+The iOS shell starts at `/app/`. `AnchorBridgeViewController` serves each
+extensionless path from its exported `index.html`; Capacitor's default SPA router
+would otherwise serve the marketing landing page for every route.
+
+### iOS simulator regression
+
+After building and installing the app on a simulator, run the native persistence
+test with XcodeGen and Xcode (replace `<simulator-id>` with that device's UUID):
+
+```bash
+xcodegen generate --spec ios/SmokeTests/project.yml
+xcodebuild -project ios/SmokeTests/AnchorSmokeTests.xcodeproj \
+  -scheme AnchorSmokeTests \
+  -destination 'platform=iOS Simulator,id=<simulator-id>' test
+```
+
+This test writes a uniquely named synthetic note through the real WKWebView UI,
+terminates the app, and checks History after relaunch. Use a guest test simulator;
+the note remains in its local history. It does not verify physical-device behavior
+or cloud sync.
+
 ## Desktop (Electron)
 
 ```bash
