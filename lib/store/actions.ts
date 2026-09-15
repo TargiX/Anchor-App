@@ -1,6 +1,7 @@
 "use client"
 
-import { getSnapshot, replaceState, setState } from "./store"
+import { commitLocalState, getSnapshot, replaceState, setState } from "./store"
+import { QuickCheckInSchema } from "@/lib/domain/quick-checkin"
 import type { AppState } from "./state"
 import { getTodayKey } from "@/lib/time/today"
 import {
@@ -48,6 +49,44 @@ export function updateEntry(key: DayKey, patch: Partial<DayEntry>): void {
 /** Merge a patch into today's entry, creating it if needed. */
 export function updateTodayEntry(patch: Partial<DayEntry>): void {
   updateEntry(getTodayKey(), patch)
+}
+
+/** Append a check-in without replacing journal text or earlier check-ins. */
+export function saveQuickCheckIn(
+  input: unknown,
+  key = getTodayKey()
+): ValidationResult {
+  const parsed = QuickCheckInSchema.safeParse(input)
+  if (!parsed.success || !DayKeySchema.safeParse(key).success) {
+    return {
+      ok: false,
+      error: "Add a short note and keep your next step under 200 characters.",
+    }
+  }
+  const checkIn = parsed.data
+  const saved = commitLocalState((previous) => {
+    const entry = previous.entries[key] ?? emptyEntry(key)
+    if (entry.quickCheckIns?.some((item) => item.id === checkIn.id))
+      return previous
+    return {
+      ...previous,
+      entries: {
+        ...previous.entries,
+        [key]: {
+          ...entry,
+          quickCheckIns: [...(entry.quickCheckIns ?? []), checkIn],
+          ...(checkIn.nextStep ? { intention: checkIn.nextStep } : {}),
+        },
+      },
+    }
+  })
+  return saved
+    ? { ok: true }
+    : {
+        ok: false,
+        error:
+          "Could not save on this device. Your text is still here. Free up storage or copy it before leaving, then try again.",
+      }
 }
 
 type RitualKind = "morning" | "evening"

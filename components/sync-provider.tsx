@@ -26,6 +26,7 @@ import {
   setStorageScope,
 } from "@/lib/store/store"
 import { INITIAL_STATE, type AppState } from "@/lib/store/state"
+import { shouldResetGuestHistory } from "@/lib/store/guest-session"
 
 const SAVE_DELAY_MS = 650
 
@@ -79,13 +80,9 @@ export function SyncProvider() {
       if (prevUserId) clearAuthedSlot(prevUserId)
       else clearAllAuthedSlots()
       previousAuthedUserIdRef.current = null
-      // Wipe any previous anon visitor's local progress so the current
-      // visitor starts fresh on shared devices. Then switch to the anon
-      // scope (a no-op if already there, but resets the hydrated guard so
-      // the next hydrateFromStorage() reads the wiped slot). Anon progress
-      // for THIS visitor is captured later if they sign in within the
-      // same tab — see the authed branch below.
-      resetAnonSlot()
+      // Restore guest notes across launches. Clear them only after an explicit
+      // account sign-out so private account transitions still start fresh.
+      if (shouldResetGuestHistory(previousStatus)) resetAnonSlot()
       setStorageScope("anon")
       hydrateFromStorage()
       return () => {
@@ -156,11 +153,7 @@ export function SyncProvider() {
     }
 
     function installInboundSync(initialBaselineState: AppState | null) {
-      if (
-        inboundSync ||
-        cancelled ||
-        !cloudSyncStatus.isCurrent(syncSession)
-      ) {
+      if (inboundSync || cancelled || !cloudSyncStatus.isCurrent(syncSession)) {
         return
       }
 
@@ -170,8 +163,7 @@ export function SyncProvider() {
         initialBaselineState,
         getLocalState: getSnapshot,
         replaceLocalState: applyInboundCloudState,
-        isActive: () =>
-          !cancelled && cloudSyncStatus.isCurrent(syncSession),
+        isActive: () => !cancelled && cloudSyncStatus.isCurrent(syncSession),
         onError: (error) => {
           // Realtime is an optional freshness layer. Keep its failures out of
           // the visible save status; ordinary load/save continues to work.

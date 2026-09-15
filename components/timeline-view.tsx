@@ -58,7 +58,7 @@ function WeeklyReflection({
           </h2>
         </div>
         <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground lg:mt-0 lg:text-right">
-          A factual mirror from the rituals you recorded — no score attached.
+          A factual mirror from your check-ins and rituals — no score attached.
         </p>
       </div>
 
@@ -83,7 +83,7 @@ function WeeklyReflection({
           )}
           <p className="mt-3 max-w-xs text-sm leading-6 text-muted-foreground">
             {activity.count > 0
-              ? "Days with a completed morning or evening ritual."
+              ? "Days with a check-in or completed ritual."
               : "Complete a morning or evening ritual to add an active day."}
           </p>
         </div>
@@ -223,7 +223,9 @@ function WeeklyTrendChart({
         role="img"
         aria-labelledby="weekly-trend-title weekly-trend-description"
       >
-        <title id="weekly-trend-title">Mood and sleep over the last seven days</title>
+        <title id="weekly-trend-title">
+          Mood and sleep over the last seven days
+        </title>
         <desc id="weekly-trend-description">
           Mood uses a solid line and sleep uses a dashed line. Missing daily
           recordings appear as gaps rather than connected data.
@@ -444,6 +446,25 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
             className="overflow-hidden"
           >
             <div className="flex flex-col gap-4 border-t border-border px-5 pt-4 pb-5 lg:grid lg:grid-cols-2 lg:px-6 lg:pb-6">
+              {entry.quickCheckIns?.map((checkIn) => (
+                <div key={checkIn.id} className="lg:col-span-2">
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">
+                    Check-in ·{" "}
+                    {new Date(checkIn.createdAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                  <p className="text-sm [overflow-wrap:anywhere] whitespace-pre-wrap">
+                    {checkIn.note}
+                  </p>
+                  {checkIn.nextStep && (
+                    <p className="mt-2 text-sm [overflow-wrap:anywhere]">
+                      Next step: {checkIn.nextStep}
+                    </p>
+                  )}
+                </div>
+              ))}
               {entry.intention && (
                 <div>
                   <p className="mb-1 text-xs font-medium tracking-widest text-muted-foreground uppercase">
@@ -521,8 +542,8 @@ export function TimelineView() {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16 lg:min-h-[420px]">
         <p className="max-w-xs text-center font-[family-name:var(--font-display)] text-sm text-muted-foreground italic lg:max-w-md lg:text-lg lg:leading-8">
-          Your timeline will fill in as you complete rituals. Start this
-          morning.
+          Your notes will be here whenever you want to look back. Start with a
+          short check-in.
         </p>
       </div>
     )

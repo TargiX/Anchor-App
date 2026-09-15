@@ -37,7 +37,8 @@ let storageScope: "authed" | "anon" | "local" = "authed"
 let authedUserId: string | null = null
 
 function activeKey(): string | null {
-  if (storageScope === "anon" || storageScope === "local") return ANON_STORAGE_KEY
+  if (storageScope === "anon" || storageScope === "local")
+    return ANON_STORAGE_KEY
   if (authedUserId) return authedStorageKey(authedUserId)
   // Authed scope with no user id yet: nothing to read/write. Callers must
   // set authedUserId via setStorageScope("authed", userId) before
@@ -148,6 +149,25 @@ export function setState(updater: (prev: AppState) => AppState): void {
   replaceState(updater(state))
 }
 
+/** Commit user input only after the active device slot acknowledges the write. */
+export function commitLocalState(
+  updater: (prev: AppState) => AppState
+): boolean {
+  hydrateFromStorage()
+  const key = activeKey()
+  if (!key) return false
+  const next = updater(state)
+  if (
+    !storage.write(key, JSON.stringify({ version: STATE_VERSION, data: next }))
+  ) {
+    return false
+  }
+  state = next
+  notify()
+  cloudPersistence?.(state)
+  return true
+}
+
 export function replaceState(
   nextState: AppState,
   options: { persistCloud?: boolean } = {}
@@ -252,9 +272,7 @@ export function resetState(): void {
   notify()
 }
 
-export function setCloudPersistence(
-  persist: (state: AppState) => void
-): void {
+export function setCloudPersistence(persist: (state: AppState) => void): void {
   cloudPersistence = persist
 }
 
