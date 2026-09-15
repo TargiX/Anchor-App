@@ -19,6 +19,8 @@ function hasRecordedField(
 ): boolean {
   return Object.entries(entry).some(([field, value]) => {
     if (field === "date" || value === undefined) return false
+    if (field === "quickCheckIns")
+      return Array.isArray(value) && value.length > 0
     if (field === "habitsCompleted") {
       return (value as string[]).some((id) => configuredHabitIds.has(id))
     }
@@ -72,6 +74,12 @@ function textSection(title: string, value: string): string {
 
 function entryMarkdown(entry: DayEntry, habits: Habit[]): string {
   const sections: string[] = [`## ${entry.date}`]
+
+  for (const checkIn of entry.quickCheckIns ?? []) {
+    sections.push(textSection(`Check-in · ${checkIn.createdAt}`, checkIn.note))
+    if (checkIn.nextStep)
+      sections.push(textSection("Next step", checkIn.nextStep))
+  }
 
   if (entry.morningMood) {
     sections.push(

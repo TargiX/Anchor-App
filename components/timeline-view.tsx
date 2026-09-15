@@ -1,7 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useAppState } from "@/hooks/use-store"
+import { JournalNote } from "@/components/journal-note"
+import { matchesJournal } from "@/lib/domain/journal"
 import { cn } from "@/lib/utils"
 import { type DayEntry, type MoodPoint } from "@/lib/domain/entry"
 import type { Habit } from "@/lib/domain/habit"
@@ -23,7 +25,7 @@ const MOOD_DIRECTION_COPY: Record<MoodDirection, string> = {
   falling: "Trending lower",
 }
 
-function WeeklyReflection({
+export function WeeklyReflection({
   entries,
   habits,
   todayKey,
@@ -48,7 +50,7 @@ function WeeklyReflection({
       <div className="border-b border-border px-5 py-5 sm:px-7 lg:flex lg:items-end lg:justify-between lg:gap-6 lg:px-8">
         <div>
           <p className="text-xs font-medium tracking-widest text-accent uppercase">
-            Last seven days
+            Seven-day view
           </p>
           <h2
             id="weekly-reflection-title"
@@ -58,7 +60,7 @@ function WeeklyReflection({
           </h2>
         </div>
         <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground lg:mt-0 lg:text-right">
-          A factual mirror from the rituals you recorded — no score attached.
+          A factual mirror from your check-ins and rituals — no score attached.
         </p>
       </div>
 
@@ -83,8 +85,8 @@ function WeeklyReflection({
           )}
           <p className="mt-3 max-w-xs text-sm leading-6 text-muted-foreground">
             {activity.count > 0
-              ? "Days with a completed morning or evening ritual."
-              : "Complete a morning or evening ritual to add an active day."}
+              ? "Days with a check-in or completed ritual."
+              : "Write a note or complete a ritual to start gathering your week."}
           </p>
         </div>
 
@@ -223,7 +225,9 @@ function WeeklyTrendChart({
         role="img"
         aria-labelledby="weekly-trend-title weekly-trend-description"
       >
-        <title id="weekly-trend-title">Mood and sleep over the last seven days</title>
+        <title id="weekly-trend-title">
+          Mood and sleep over the last seven days
+        </title>
         <desc id="weekly-trend-description">
           Mood uses a solid line and sleep uses a dashed line. Missing daily
           recordings appear as gaps rather than connected data.
@@ -354,6 +358,14 @@ function MoodMiniChart({
 
 function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
   const [expanded, setExpanded] = useState(false)
+  useEffect(() => {
+    const reveal = () => {
+      if (window.location.hash === `#day-${entry.date}`) setExpanded(true)
+    }
+    reveal()
+    window.addEventListener("hashchange", reveal)
+    return () => window.removeEventListener("hashchange", reveal)
+  }, [entry.date])
   const shouldReduceMotion = useReducedMotion()
   const date = parseEntryDate(entry.date)
   const weekday = date.toLocaleDateString("en-US", { weekday: "short" })
@@ -367,8 +379,9 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
 
   return (
     <div
+      id={`day-${entry.date}`}
       className={cn(
-        "rounded-2xl border bg-card transition-all lg:rounded-3xl",
+        "scroll-mt-8 rounded-2xl border bg-card transition-all lg:rounded-3xl",
         isToday ? "border-accent/40" : "border-border"
       )}
     >
@@ -414,10 +427,15 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
         )}
 
         {/* Journal snippet */}
-        {entry.journal && (
+        {(entry.journal || entry.quickCheckIns?.[0]?.note) && (
           <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground italic lg:text-sm">
-            {entry.journal.slice(0, 60)}
-            {entry.journal.length > 60 ? "…" : ""}
+            {(entry.journal || entry.quickCheckIns?.[0]?.note || "").slice(
+              0,
+              60
+            )}
+            {(entry.journal || entry.quickCheckIns?.[0]?.note || "").length > 60
+              ? "…"
+              : ""}
           </p>
         )}
 
@@ -444,6 +462,21 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
             className="overflow-hidden"
           >
             <div className="flex flex-col gap-4 border-t border-border px-5 pt-4 pb-5 lg:grid lg:grid-cols-2 lg:px-6 lg:pb-6">
+              {entry.quickCheckIns?.map((checkIn) => (
+                <div key={checkIn.id} className="lg:col-span-2">
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">
+                    Check-in ·{" "}
+                    {new Date(checkIn.createdAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                  <JournalNote
+                    target={{ day: entry.date, id: checkIn.id }}
+                    text={{ note: checkIn.note, nextStep: checkIn.nextStep }}
+                  />
+                </div>
+              ))}
               {entry.intention && (
                 <div>
                   <p className="mb-1 text-xs font-medium tracking-widest text-muted-foreground uppercase">
@@ -469,9 +502,10 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
                   <p className="mb-1 text-xs font-medium tracking-widest text-muted-foreground uppercase">
                     Journal
                   </p>
-                  <p className="text-sm leading-relaxed text-foreground">
-                    {entry.journal}
-                  </p>
+                  <JournalNote
+                    target={{ day: entry.date }}
+                    text={{ note: entry.journal, nextStep: "" }}
+                  />
                 </div>
               )}
               <div className="flex gap-6 lg:col-span-2">
@@ -507,61 +541,48 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
 
 export function TimelineView() {
   const state = useAppState()
+  const [query, setQuery] = useState("")
   const todayKey = getTodayKey()
-
-  // Group entries by week
-  const entries = Object.values(state.entries).sort((a, b) =>
-    b.date.localeCompare(a.date)
-  )
-
-  // Generate last 14 days as skeleton if empty
-  const displayEntries = entries.length > 0 ? entries : []
-
-  if (displayEntries.length === 0) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16 lg:min-h-[420px]">
-        <p className="max-w-xs text-center font-[family-name:var(--font-display)] text-sm text-muted-foreground italic lg:max-w-md lg:text-lg lg:leading-8">
-          Your timeline will fill in as you complete rituals. Start this
-          morning.
+  const entries = Object.values(state.entries)
+    .filter((entry) => matchesJournal(entry, query))
+    .sort((a, b) => b.date.localeCompare(a.date))
+  return (
+    <div className="space-y-5 pb-8">
+      <div>
+        <label
+          htmlFor="journal-search"
+          className="mb-2 block text-sm font-medium"
+        >
+          Find something in your journal
+        </label>
+        <input
+          id="journal-search"
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="A word, a feeling, a date…"
+          className="min-h-12 w-full rounded-xl border border-border bg-card px-4 text-base focus-visible:outline-2 focus-visible:outline-ring"
+        />
+        <p role="status" className="mt-2 text-xs text-muted-foreground">
+          {entries.length} {entries.length === 1 ? "day" : "days"}
+          {query.trim() ? " matching your search" : " in your journal"}
         </p>
       </div>
-    )
-  }
-
-  // Group by week
-  const weeks: DayEntry[][] = []
-  let currentWeek: DayEntry[] = []
-
-  displayEntries.forEach((entry, i) => {
-    currentWeek.push(entry)
-    const d = parseEntryDate(entry.date)
-    if (d.getDay() === 0 || i === displayEntries.length - 1) {
-      weeks.push(currentWeek)
-      currentWeek = []
-    }
-  })
-
-  return (
-    <div className="flex flex-col gap-6 pb-8">
-      <WeeklyReflection
-        entries={state.entries}
-        habits={state.habits}
-        todayKey={todayKey}
-      />
-      {weeks.map((week, wi) => (
-        <div key={wi} className="flex flex-col gap-2">
-          <p className="px-1 text-xs font-medium tracking-widest text-muted-foreground uppercase">
-            {wi === 0 ? "This week" : `${week.length} days`}
-          </p>
-          {week.map((entry) => (
-            <DayCard
-              key={entry.date}
-              entry={entry}
-              isToday={entry.date === todayKey}
-            />
-          ))}
-        </div>
-      ))}
+      {entries.length ? (
+        entries.map((entry) => (
+          <DayCard
+            key={entry.date}
+            entry={entry}
+            isToday={entry.date === todayKey}
+          />
+        ))
+      ) : (
+        <p className="py-12 text-center text-muted-foreground">
+          {query.trim()
+            ? "No matching entries. Try another word or clear the search."
+            : "Your days will gather here. Start with a note on Today."}
+        </p>
+      )}
     </div>
   )
 }

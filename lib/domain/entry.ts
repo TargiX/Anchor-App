@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { LIMITS } from "./validation"
+import { QuickCheckInSchema } from "./quick-checkin"
 
 /**
  * Domain model for a single day's ritual data.
@@ -63,6 +64,7 @@ export const DayEntrySchema = z.object({
   sleepHours: z.number().optional(),
   intention: z.string().optional(),
   journal: z.string().optional(),
+  quickCheckIns: z.array(QuickCheckInSchema).optional(),
   affirmation: z.string().optional(),
   habitsCompleted: z.array(z.string()).optional(),
   meditationMinutes: z.number().optional(),

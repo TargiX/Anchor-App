@@ -20,6 +20,7 @@ import {
   usesNativeScheduler,
 } from "@/lib/notifications"
 import { cn } from "@/lib/utils"
+import { JournalBackupControls } from "@/components/journal-backup-controls"
 import { useTheme } from "next-themes"
 
 const THEMES = ["light", "dark", "sepia"] as const
@@ -278,6 +279,8 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <JournalBackupControls />
 
       {status === "authed" && (
         <div className="mt-6 flex items-center justify-between rounded-2xl border border-border bg-card px-5 py-4">

@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "cross-env PORT=3088 next dev --turbopack",
-    "build": "next build",
+    "build": "next build && node scripts/verify-build.mjs web",
     "start": "next start",
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
@@ -16,7 +16,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "showcase:capture": "node scripts/capture-showcase.mjs",
-    "build:native": "cross-env BUILD_TARGET=native next build",
+    "build:native": "cross-env BUILD_TARGET=native next build && node scripts/verify-build.mjs native",
     "cap:sync": "npm run build:native && cap sync",
     "desktop:dev": "npm run cap:sync && cd electron && npm run electron:start",
     "desktop:pack": "npm run cap:sync && cd electron && npm run electron:pack",

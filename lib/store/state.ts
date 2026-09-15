@@ -1,5 +1,9 @@
 import { z } from "zod"
-import { DayEntrySchema, TimeOfDaySchema, type DayEntry } from "@/lib/domain/entry"
+import {
+  DayEntrySchema,
+  TimeOfDaySchema,
+  type DayEntry,
+} from "@/lib/domain/entry"
 import { HabitSchema, DEFAULT_HABITS } from "@/lib/domain/habit"
 
 /**
@@ -40,7 +44,8 @@ export const ANON_STORAGE_KEY = "anchor-state-anon"
  */
 export const LEGACY_STORAGE_KEY = "anchor-state"
 /** Bump when the persisted shape changes; add a branch in `migrate`. */
-export const STATE_VERSION = 1
+// Version 3 adds device-only drafts beside data in the persisted envelope.
+export const STATE_VERSION = 3
 
 export const INITIAL_STATE: AppState = {
   entries: {},
@@ -83,7 +88,9 @@ function recover(candidate: unknown): AppState {
 
   const entries: Record<string, DayEntry> = {}
   if (obj.entries && typeof obj.entries === "object") {
-    for (const [key, value] of Object.entries(obj.entries as Record<string, unknown>)) {
+    for (const [key, value] of Object.entries(
+      obj.entries as Record<string, unknown>
+    )) {
       const parsed = DayEntrySchema.safeParse(value)
       if (parsed.success) entries[key] = parsed.data
     }
@@ -96,7 +103,11 @@ function recover(candidate: unknown): AppState {
   return {
     entries,
     habits: habits.success ? habits.data : INITIAL_STATE.habits,
-    notificationMorning: morning.success ? morning.data : INITIAL_STATE.notificationMorning,
-    notificationEvening: evening.success ? evening.data : INITIAL_STATE.notificationEvening,
+    notificationMorning: morning.success
+      ? morning.data
+      : INITIAL_STATE.notificationMorning,
+    notificationEvening: evening.success
+      ? evening.data
+      : INITIAL_STATE.notificationEvening,
   }
 }
