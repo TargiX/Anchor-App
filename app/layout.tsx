@@ -6,6 +6,7 @@ import { AuthProvider } from "@/components/auth-provider"
 import { ReminderScheduler } from "@/components/reminder-scheduler"
 import { ServiceWorkerRegistrar } from "@/components/service-worker-registrar"
 import { SyncProvider } from "@/components/sync-provider"
+import { DeviceStorageProvider } from "@/components/device-storage-provider"
 import { cn } from "@/lib/utils"
 
 const display = Cormorant_Garamond({
@@ -59,12 +60,14 @@ export default function RootLayout({
     >
       <body className="font-sans">
         <ThemeProvider>
-          <AuthProvider>
-            <SyncProvider />
-            {children}
-            <ReminderScheduler />
-            <ServiceWorkerRegistrar />
-          </AuthProvider>
+          <DeviceStorageProvider>
+            <AuthProvider>
+              <SyncProvider />
+              {children}
+              <ReminderScheduler />
+              <ServiceWorkerRegistrar />
+            </AuthProvider>
+          </DeviceStorageProvider>
         </ThemeProvider>
       </body>
     </html>

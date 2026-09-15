@@ -3,6 +3,10 @@ import Foundation
 
 /// Next exports one HTML document per route; Capacitor defaults to a single index.
 final class AnchorBridgeViewController: CAPBridgeViewController {
+    override func capacitorDidLoad() {
+        bridge?.registerPluginInstance(AnchorJournalPlugin())
+    }
+
     override func router() -> Router {
         return NextExportRouter()
     }

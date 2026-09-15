@@ -2,6 +2,20 @@ import XCTest
 
 /// Runs against the already installed native app, with its real WKWebView storage.
 final class CheckInTests: XCTestCase {
+    /// Run after the save test, optionally after moving aside Library/WebKit.
+    func testRestoreExistingJournal() {
+        continueAfterFailure = false
+        let app = XCUIApplication(bundleIdentifier: "app.anchor.ritual")
+        app.launch()
+        XCTAssertTrue(app.links["History"].waitForExistence(timeout: 20))
+        app.links["History"].tap()
+        let saved = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Simulator check-in ")).firstMatch
+        XCTAssertTrue(saved.waitForExistence(timeout: 15), app.debugDescription)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
     func testSaveSurvivesRelaunch() {
         continueAfterFailure = false
         let app = XCUIApplication(bundleIdentifier: "app.anchor.ritual")

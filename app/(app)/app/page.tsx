@@ -1,13 +1,14 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { ArrowRight, Anchor, BookOpen, Settings } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { SyncStatusIndicator } from "@/components/sync-status-indicator"
 import { Button } from "@/components/ui/button"
 import { useTodayEntry } from "@/hooks/use-store"
 import { saveQuickCheckIn } from "@/lib/store/actions"
+import { flushDeviceStorage } from "@/lib/store/store"
 import { LIMITS } from "@/lib/domain/validation"
 import { getTodayKey } from "@/lib/time/today"
 
@@ -30,24 +31,39 @@ function Today({ ready, signedIn }: { ready: boolean; signedIn: boolean }) {
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
 
-  function save(event: React.FormEvent<HTMLFormElement>) {
+  const [saving, setSaving] = useState(false)
+  const pendingId = useRef<string | null>(null)
+  const savingRef = useRef(false)
+
+  async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError("")
     setMessage("")
-    if (!ready) return
+    if (!ready || savingRef.current) return
+    savingRef.current = true
+    setSaving(true)
+    pendingId.current ??= crypto.randomUUID()
     const result = saveQuickCheckIn(
       {
-        id: crypto.randomUUID(),
+        id: pendingId.current,
         createdAt: new Date().toISOString(),
         note,
         nextStep,
       },
       getTodayKey()
     )
-    if (!result.ok) {
-      setError(result.error)
+    const durable = result.ok && (await flushDeviceStorage())
+    savingRef.current = false
+    setSaving(false)
+    if (!result.ok || !durable) {
+      setError(
+        !result.ok
+          ? result.error
+          : "Could not finish saving. Keep this screen open and try again."
+      )
       return
     }
+    pendingId.current = null
     setNote("")
     setNextStep("")
     setMessage("Saved on this device. You can leave it here.")
@@ -133,9 +149,11 @@ function Today({ ready, signedIn }: { ready: boolean; signedIn: boolean }) {
             id="checkin-note"
             value={note}
             onChange={(event) => {
+              pendingId.current = null
               setNote(event.target.value)
               setMessage("")
             }}
+            disabled={saving}
             required
             maxLength={LIMITS.journalMax}
             rows={4}
@@ -153,8 +171,12 @@ function Today({ ready, signedIn }: { ready: boolean; signedIn: boolean }) {
           </label>
           <input
             id="checkin-next"
+            disabled={saving}
             value={nextStep}
-            onChange={(event) => setNextStep(event.target.value)}
+            onChange={(event) => {
+              pendingId.current = null
+              setNextStep(event.target.value)
+            }}
             maxLength={LIMITS.intentionMax}
             placeholder="Open the document. Or take a break."
             className="mt-3 min-h-12 w-full rounded-xl border border-border bg-background p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -171,15 +193,16 @@ function Today({ ready, signedIn }: { ready: boolean; signedIn: boolean }) {
         )}
         <Button
           type="submit"
-          disabled={!ready || !note.trim()}
+          disabled={saving || !ready || !note.trim()}
           className="min-h-12 w-full rounded-xl text-base"
         >
-          Save check-in <ArrowRight className="size-4" />
+          {saving ? "Saving…" : "Save check-in"}{" "}
+          <ArrowRight className="size-4" />
         </Button>
         <p className="text-xs leading-5 text-muted-foreground">
           {signedIn
             ? "Saved on this device first. Account sync status appears above."
-            : "Saved on this device when you tap Save. Clearing browser data removes guest notes."}
+            : "Saved on this device when you tap Save. Export a copy from History to keep a backup."}
         </p>
       </form>
       <p

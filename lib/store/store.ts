@@ -20,7 +20,23 @@ import { localStorageAdapter, type StoragePort } from "./persistence"
  * storage after mount so the first client render matches the server HTML.
  */
 
-const storage: StoragePort = localStorageAdapter
+let storage: StoragePort = localStorageAdapter
+let flushDevice: (() => Promise<boolean>) | null = null
+
+/** Install before mounting auth, sync or any journal consumers. */
+export function installDeviceStorage(
+  adapter: StoragePort,
+  flush: () => Promise<boolean>
+): void {
+  storage = adapter
+  flushDevice = flush
+  hydrated = false
+}
+
+/** Native writes are asynchronous; user-facing save success must await this. */
+export async function flushDeviceStorage(): Promise<boolean> {
+  return flushDevice ? flushDevice() : true
+}
 
 let state: AppState = INITIAL_STATE
 const listeners = new Set<() => void>()
@@ -149,7 +165,7 @@ export function setState(updater: (prev: AppState) => AppState): void {
   replaceState(updater(state))
 }
 
-/** Commit user input only after the active device slot acknowledges the write. */
+/** Commit to the active slot; native callers also await flushDeviceStorage. */
 export function commitLocalState(
   updater: (prev: AppState) => AppState
 ): boolean {

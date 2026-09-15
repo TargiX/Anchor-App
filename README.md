@@ -66,6 +66,7 @@ test with XcodeGen and Xcode (replace `<simulator-id>` with that device's UUID):
 xcodegen generate --spec ios/SmokeTests/project.yml
 xcodebuild -project ios/SmokeTests/AnchorSmokeTests.xcodeproj \
   -scheme AnchorSmokeTests \
+  -only-testing:AnchorSmokeTests/CheckInTests/testSaveSurvivesRelaunch \
   -destination 'platform=iOS Simulator,id=<simulator-id>' test
 ```
 
@@ -73,6 +74,30 @@ This test writes a uniquely named synthetic note through the real WKWebView UI,
 terminates the app, and checks History after relaunch. Use a guest test simulator;
 the note remains in its local history. It does not verify physical-device behavior
 or cloud sync.
+
+### iOS journal storage
+
+iOS stores journal slots in `Library/Application Support/anchor-journal.json`,
+outside WebView storage. The native plugin atomically replaces this archive with
+complete file protection. Writes run serially; the check-in button awaits native
+acknowledgement. Other edits update the UI immediately and show a persistent
+retry banner if device persistence fails.
+
+On the first upgraded launch, Anchor copies only its journal keys from WebView
+storage and removes those copies after the native write succeeds. It keeps guest
+and account slots separate and retains the existing logout-clearing policy. A
+native read or archive decoding failure blocks journal editing instead of
+overwriting the archive. Web builds continue to use localStorage.
+
+For a recovery check, first run the save test above. Terminate the guest test app,
+back up and move aside **that simulator app's** `Library/WebKit` directory, then
+run `-only-testing:AnchorSmokeTests/CheckInTests/testRestoreExistingJournal`.
+This test creates no notes: it finds an existing synthetic entry in History and
+attaches a screenshot. Do not clear data from a personal or signed-in app.
+
+The archive is an atomic snapshot, not a per-entry database. App removal still
+removes local data; Markdown export remains available for backups. Physical-device
+lock/unlock behavior and cloud conflict recovery need separate release testing.
 
 ## Desktop (Electron)
 
