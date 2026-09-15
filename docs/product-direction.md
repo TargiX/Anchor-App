@@ -36,6 +36,9 @@ Working promise: **Keep your days. Make room for what matters.**
 The distinctive experience is the connection between a moment, its place in the
 week, and a small personal decision. It must work without generated advice.
 
+TargiX is the studio behind Anchor and defines its production/design approach;
+Anchor remains the application and release name.
+
 TargiX production direction: expressive typography, warm restrained color,
 original illustrations, tactile controls, and deliberate transitions. Journal
 content leads each screen. Validate contrast, Dynamic Type, VoiceOver, keyboard

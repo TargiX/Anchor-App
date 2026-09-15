@@ -36,7 +36,7 @@ function initialize() {
         report
       )
       retryWrite = adapter.retry
-      installDeviceStorage(adapter.storage, adapter.flush)
+      installDeviceStorage(adapter.storage, adapter.flush, adapter.retry)
     })().catch((error) => {
       initialization = undefined
       throw error
