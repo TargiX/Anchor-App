@@ -17,6 +17,7 @@ export function assertBuildRoutes(manifest, target) {
   )
   assert.ok(manifest["/(app)/app/page"], "Missing main check-in screen")
   assert.ok(manifest["/(app)/timeline/page"], "Missing history screen")
+  assert.ok(manifest["/(app)/review/page"], "Missing weekly review screen")
   for (const route of serverRoutes) {
     assert.equal(
       Boolean(manifest[route]),
@@ -40,6 +41,7 @@ async function verify(target) {
   if (target === "native") {
     await access("out/app/index.html")
     await access("out/timeline/index.html")
+    await access("out/review/index.html")
     for (const path of ["out/api", "out/voice-checkin"]) {
       await assert.rejects(
         access(path),

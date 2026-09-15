@@ -1,16 +1,12 @@
 "use client"
 
 import Link from "next/link"
-import { useRef, useState } from "react"
-import { ArrowRight, Anchor, BookOpen, Settings } from "lucide-react"
+import { ArrowRight, Anchor, Settings } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
+import { JournalComposer } from "@/components/journal-composer"
+import { DailyPaths } from "@/components/daily-paths"
 import { SyncStatusIndicator } from "@/components/sync-status-indicator"
-import { Button } from "@/components/ui/button"
 import { useTodayEntry } from "@/hooks/use-store"
-import { saveQuickCheckIn } from "@/lib/store/actions"
-import { flushDeviceStorage } from "@/lib/store/store"
-import { LIMITS } from "@/lib/domain/validation"
-import { getTodayKey } from "@/lib/time/today"
 
 export default function Home() {
   const { status, user } = useAuth()
@@ -26,48 +22,6 @@ export default function Home() {
 
 function Today({ ready, signedIn }: { ready: boolean; signedIn: boolean }) {
   const today = useTodayEntry()
-  const [note, setNote] = useState("")
-  const [nextStep, setNextStep] = useState("")
-  const [message, setMessage] = useState("")
-  const [error, setError] = useState("")
-
-  const [saving, setSaving] = useState(false)
-  const pendingId = useRef<string | null>(null)
-  const savingRef = useRef(false)
-
-  async function save(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setError("")
-    setMessage("")
-    if (!ready || savingRef.current) return
-    savingRef.current = true
-    setSaving(true)
-    pendingId.current ??= crypto.randomUUID()
-    const result = saveQuickCheckIn(
-      {
-        id: pendingId.current,
-        createdAt: new Date().toISOString(),
-        note,
-        nextStep,
-      },
-      getTodayKey()
-    )
-    const durable = result.ok && (await flushDeviceStorage())
-    savingRef.current = false
-    setSaving(false)
-    if (!result.ok || !durable) {
-      setError(
-        !result.ok
-          ? result.error
-          : "Could not finish saving. Keep this screen open and try again."
-      )
-      return
-    }
-    pendingId.current = null
-    setNote("")
-    setNextStep("")
-    setMessage("Saved on this device. You can leave it here.")
-  }
 
   return (
     <main className="mx-auto min-h-dvh max-w-2xl px-5 py-8 sm:px-8 sm:py-12">
@@ -81,13 +35,6 @@ function Today({ ready, signedIn }: { ready: boolean; signedIn: boolean }) {
         </Link>
         <nav aria-label="Main navigation" className="flex gap-2">
           <Link
-            href="/timeline"
-            className="flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm hover:bg-muted"
-          >
-            <BookOpen className="size-4" />
-            History
-          </Link>
-          <Link
             href={signedIn ? "/settings" : "/login"}
             aria-label={signedIn ? "Settings" : "Sign in for sync"}
             className="flex size-11 items-center justify-center rounded-xl hover:bg-muted"
@@ -99,13 +46,14 @@ function Today({ ready, signedIn }: { ready: boolean; signedIn: boolean }) {
 
       <section className="pt-12 pb-8">
         <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
-          Right now
+          Today
         </p>
         <h1 className="mt-3 font-[family-name:var(--font-display)] text-4xl sm:text-5xl">
-          Continue from here.
+          A day of your own.
         </h1>
         <p className="mt-3 text-base leading-7 text-muted-foreground">
-          A few words to clear your head. Nothing to catch up on.
+          Notice how you feel, make room for what matters, and keep a little of
+          today.
         </p>
         {signedIn && (
           <div className="mt-3">
@@ -134,84 +82,9 @@ function Today({ ready, signedIn }: { ready: boolean; signedIn: boolean }) {
         </section>
       )}
 
-      <form
-        onSubmit={save}
-        className="space-y-5 rounded-3xl border border-border bg-card p-5 sm:p-7"
-      >
-        <div>
-          <label htmlFor="checkin-note" className="block font-medium">
-            What’s on your mind?
-          </label>
-          <p id="note-hint" className="mt-1 text-sm text-muted-foreground">
-            Fragments are fine. Your words stay in your own words.
-          </p>
-          <textarea
-            id="checkin-note"
-            value={note}
-            onChange={(event) => {
-              pendingId.current = null
-              setNote(event.target.value)
-              setMessage("")
-            }}
-            disabled={saving}
-            required
-            maxLength={LIMITS.journalMax}
-            rows={4}
-            aria-describedby="note-hint"
-            placeholder="A lot going on, not sure where to start…"
-            className="mt-3 w-full resize-y rounded-xl border border-border bg-background p-3 text-base leading-7 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
-        </div>
-        <div>
-          <label htmlFor="checkin-next" className="block font-medium">
-            One small next step{" "}
-            <span className="font-normal text-muted-foreground">
-              (optional)
-            </span>
-          </label>
-          <input
-            id="checkin-next"
-            disabled={saving}
-            value={nextStep}
-            onChange={(event) => {
-              pendingId.current = null
-              setNextStep(event.target.value)
-            }}
-            maxLength={LIMITS.intentionMax}
-            placeholder="Open the document. Or take a break."
-            className="mt-3 min-h-12 w-full rounded-xl border border-border bg-background p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
-          <p className="mt-2 text-xs leading-5 text-muted-foreground">
-            Add a step to update today’s anchor, or leave it empty to keep the
-            current one.
-          </p>
-        </div>
-        {error && (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
-        )}
-        <Button
-          type="submit"
-          disabled={saving || !ready || !note.trim()}
-          className="min-h-12 w-full rounded-xl text-base"
-        >
-          {saving ? "Saving…" : "Save check-in"}{" "}
-          <ArrowRight className="size-4" />
-        </Button>
-        <p className="text-xs leading-5 text-muted-foreground">
-          {signedIn
-            ? "Saved on this device first. Account sync status appears above."
-            : "Saved on this device when you tap Save. Export a copy from History to keep a backup."}
-        </p>
-      </form>
-      <p
-        role="status"
-        aria-live="polite"
-        className="mt-4 min-h-6 text-sm text-primary"
-      >
-        {message}
-      </p>
+      <DailyPaths entry={today} />
+
+      <JournalComposer ready={ready} signedIn={signedIn} />
 
       {Boolean(today.quickCheckIns?.length) && (
         <section aria-label="Today's check-ins" className="mt-7">
@@ -240,29 +113,18 @@ function Today({ ready, signedIn }: { ready: boolean; signedIn: boolean }) {
           </div>
         </section>
       )}
-      <section className="mt-10 border-t border-border pt-6">
-        <h2 className="text-sm text-muted-foreground">Want a longer moment?</h2>
-        <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2">
-          <Link
-            href="/morning"
-            className="inline-flex min-h-11 items-center text-sm underline underline-offset-4"
-          >
-            Morning ritual
-          </Link>
-          <Link
-            href="/evening"
-            className="inline-flex min-h-11 items-center text-sm underline underline-offset-4"
-          >
-            Evening reflection
-          </Link>
-          <Link
-            href="/focus"
-            className="inline-flex min-h-11 items-center text-sm underline underline-offset-4"
-          >
-            A quiet reset
-          </Link>
-        </div>
-      </section>
+      <Link
+        href="/review"
+        className="mt-8 flex min-h-16 items-center justify-between border-t border-border py-5"
+      >
+        <span>
+          <span className="block font-medium">Your week, in perspective</span>
+          <span className="text-sm text-muted-foreground">
+            Revisit your words and choose what to carry forward.
+          </span>
+        </span>
+        <ArrowRight className="ml-3 size-5 shrink-0" />
+      </Link>
     </main>
   )
 }

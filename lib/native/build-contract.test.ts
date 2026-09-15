@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { assertBuildRoutes } from "../../scripts/verify-build.mjs"
 
 const nativeRoutes = {
+  "/(app)/review/page": "app/(app)/review/page.js",
   "/(app)/app/page": "app/(app)/app/page.js",
   "/(app)/timeline/page": "app/(app)/timeline/page.js",
 }

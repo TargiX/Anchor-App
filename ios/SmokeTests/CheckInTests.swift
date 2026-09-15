@@ -2,13 +2,32 @@ import XCTest
 
 /// Runs against the already installed native app, with its real WKWebView storage.
 final class CheckInTests: XCTestCase {
+    func testReviewLinksToOriginalDay() {
+        continueAfterFailure = false
+        let app = XCUIApplication(bundleIdentifier: "app.anchor.ritual")
+        app.launch()
+        XCTAssertTrue(app.links["Review"].waitForExistence(timeout: 20))
+        app.links["Review"].tap()
+        let source = app.links.matching(NSPredicate(format: "label CONTAINS %@", "Read this day")).firstMatch
+        XCTAssertTrue(source.waitForExistence(timeout: 10), app.debugDescription)
+        source.tap()
+        let day = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Hide details for ")).firstMatch
+        XCTAssertTrue(day.waitForExistence(timeout: 10), app.debugDescription)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
     /// Run after the save test, optionally after moving aside Library/WebKit.
     func testRestoreExistingJournal() {
         continueAfterFailure = false
         let app = XCUIApplication(bundleIdentifier: "app.anchor.ritual")
         app.launch()
-        XCTAssertTrue(app.links["History"].waitForExistence(timeout: 20))
-        app.links["History"].tap()
+        XCTAssertTrue(app.links["Journal"].waitForExistence(timeout: 20))
+        app.links["Journal"].tap()
+        let day = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Show details for ")).firstMatch
+        XCTAssertTrue(day.waitForExistence(timeout: 10))
+        day.tap()
         let saved = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Simulator check-in ")).firstMatch
         XCTAssertTrue(saved.waitForExistence(timeout: 15), app.debugDescription)
         let screenshot = XCTAttachment(screenshot: app.screenshot())
@@ -34,8 +53,11 @@ final class CheckInTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Saved on this device. You can leave it here."].waitForExistence(timeout: 10), app.debugDescription)
         app.terminate()
         app.launch()
-        XCTAssertTrue(app.links["History"].waitForExistence(timeout: 20), app.debugDescription)
-        app.links["History"].tap()
+        XCTAssertTrue(app.links["Journal"].waitForExistence(timeout: 20), app.debugDescription)
+        app.links["Journal"].tap()
+        let day = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Show details for ")).firstMatch
+        XCTAssertTrue(day.waitForExistence(timeout: 10))
+        day.tap()
         XCTAssertTrue(app.staticTexts[marker].waitForExistence(timeout: 15), app.debugDescription)
     }
 }

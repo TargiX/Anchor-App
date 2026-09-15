@@ -8,9 +8,9 @@ import { TimelineView } from "@/components/timeline-view"
 export default function TimelinePage() {
   return (
     <AppScreenShell
-      title="Timeline"
-      eyebrow="Ritual history"
-      description="A wider look at mood, sleep, habits, intention, and reflection over time."
+      title="Journal"
+      eyebrow="Your own words"
+      description="Find a thought, revisit a moment, or see how a day unfolded."
       backHref="/app"
       railTitle="Your days, gathered."
       railBody="The timeline is meant for scanning patterns, not judging streaks. Open a day when you want the detail."
@@ -22,8 +22,8 @@ export default function TimelinePage() {
       }
       contentClassName="lg:max-w-4xl"
     >
-      <RitualHistoryExport />
       <TimelineView />
+      <RitualHistoryExport />
     </AppScreenShell>
   )
 }
