@@ -54,6 +54,32 @@ export function isJournalKey(key: string): boolean {
   )
 }
 
+/** Shared by startup and backup preview; never repairs or drops records. */
+export function parseJournalArchive(value: string): Record<string, string> {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(value)
+  } catch {
+    throw new JournalRecoveryError("damaged")
+  }
+  if (
+    !parsed ||
+    typeof parsed !== "object" ||
+    Array.isArray(parsed) ||
+    !Object.entries(parsed).every(
+      ([key, entry]) => isJournalKey(key) && typeof entry === "string"
+    )
+  ) {
+    throw new JournalRecoveryError("damaged")
+  }
+  const values: Record<string, string> = Object.assign(
+    Object.create(null),
+    parsed
+  )
+  Object.values(values).forEach(validateJournal)
+  return values
+}
+
 /** React reads a synchronous mirror; all native snapshots are written in order. */
 export async function createNativeStorage(
   disk: NativeJournalPort,
@@ -63,23 +89,7 @@ export async function createNativeStorage(
   const loaded = await disk.load()
   let values: Record<string, string> = Object.create(null)
   if (loaded.value !== null) {
-    let parsed: unknown
-    try {
-      parsed = JSON.parse(loaded.value)
-    } catch {
-      throw new JournalRecoveryError("damaged")
-    }
-    if (
-      !parsed ||
-      typeof parsed !== "object" ||
-      Array.isArray(parsed) ||
-      !Object.entries(parsed).every(
-        ([key, value]) => isJournalKey(key) && typeof value === "string"
-      )
-    ) {
-      throw new JournalRecoveryError("damaged")
-    }
-    values = Object.assign(Object.create(null), parsed)
+    values = parseJournalArchive(loaded.value)
   } else {
     for (const key of legacy.keys().filter(isJournalKey)) {
       const value = legacy.read(key)

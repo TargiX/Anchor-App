@@ -2,6 +2,33 @@ import XCTest
 
 /// Runs against the already installed native app, with its real WKWebView storage.
 final class CheckInTests: XCTestCase {
+    func testBackupRecoveryCanBeCancelledWithoutChangingJournal() {
+        continueAfterFailure = false
+        let app = XCUIApplication(bundleIdentifier: "app.anchor.ritual")
+        app.launch()
+        XCTAssertTrue(app.links["Journal"].waitForExistence(timeout: 20))
+        app.links["Journal"].tap()
+        let restore = app.buttons["Restore a backup"]
+        XCTAssertTrue(restore.waitForExistence(timeout: 10), app.debugDescription)
+        for _ in 0..<8 {
+            if restore.isHittable { break }
+            app.swipeUp()
+        }
+        restore.tap()
+        XCTAssertTrue(app.buttons["Choose backup to restore"].waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertFalse(app.links["Journal"].exists)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        let back = app.buttons["Back to journal"]
+        if !back.isHittable { app.swipeUp() }
+        back.tap()
+        XCTAssertTrue(app.links["Journal"].waitForExistence(timeout: 10), app.debugDescription)
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.links["Journal"].waitForExistence(timeout: 20), app.debugDescription)
+    }
+
     func testDictationDoesNotStartOnOpen() {
         continueAfterFailure = false
         let app = XCUIApplication(bundleIdentifier: "app.anchor.ritual")

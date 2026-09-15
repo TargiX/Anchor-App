@@ -8,6 +8,7 @@ import {
   type NativeJournalPort,
 } from "@/lib/store/native-storage"
 import { localStorageAdapter } from "@/lib/store/persistence"
+import { JournalBackupControls } from "@/components/journal-backup-controls"
 import { installDeviceStorage } from "@/lib/store/store"
 
 let initialization: Promise<void> | undefined
@@ -51,6 +52,8 @@ export function DeviceStorageProvider({ children }: { children: ReactNode }) {
 
 function NativeStorageGate({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false)
+  const [manualRecovery, setManualRecovery] = useState(false)
+  const [backupBusy, setBackupBusy] = useState(false)
   const [failed, setFailed] = useState(false)
   const [recovery, setRecovery] = useState<
     JournalRecoveryError["reason"] | null
@@ -77,31 +80,58 @@ function NativeStorageGate({ children }: { children: ReactNode }) {
       listeners.delete(setStatus)
     }
   }, [attempt])
+  useEffect(() => {
+    const openRecovery = () => {
+      initialization = undefined
+      setManualRecovery(true)
+      setReady(false)
+      setFailed(true)
+      setRecovery(null)
+    }
+    window.addEventListener("anchor:open-recovery", openRecovery)
+    return () =>
+      window.removeEventListener("anchor:open-recovery", openRecovery)
+  }, [])
   if (!ready)
     return (
       <main className="mx-auto max-w-md px-6 py-24" role="status">
         <h1 className="text-2xl">
-          {failed
-            ? "Your journal couldn’t be opened."
-            : "Opening your journal…"}
+          {manualRecovery
+            ? "Restore your journal"
+            : failed
+              ? "Your journal couldn’t be opened."
+              : "Opening your journal…"}
         </h1>
         {failed && (
           <>
             <p className="my-4">
-              {recovery === "newer-version"
-                ? "This journal was saved by a newer version of Anchor. Update the app to open it. Your saved data has not been changed."
-                : recovery === "damaged"
-                  ? "Some saved data could not be read safely. Your original journal has been kept, and new saves are paused. Keep the app installed to preserve your records."
-                  : "Your saved data has not been replaced. Unlock your device and try again."}
+              {manualRecovery
+                ? "Choose a saved Anchor backup to restore on this device. Journaling and account sync are paused while you restore."
+                : recovery === "newer-version"
+                  ? "This journal was saved by a newer version of Anchor. Update the app to open it. Your saved data has not been changed."
+                  : recovery === "damaged"
+                    ? "Some saved data could not be read safely. Your original journal has been kept, and new saves are paused. Keep the app installed to preserve your records."
+                    : "Your saved data has not been replaced. Unlock your device and try again."}
             </p>
+            <JournalBackupControls
+              onBusyChange={setBackupBusy}
+              onRestored={() => {
+                initialization = undefined
+                setManualRecovery(false)
+                setFailed(false)
+                setAttempt((value) => value + 1)
+              }}
+            />
             <button
+              disabled={backupBusy}
               className="min-h-12 underline"
               onClick={() => {
+                setManualRecovery(false)
                 setFailed(false)
                 setAttempt((value) => value + 1)
               }}
             >
-              Try again
+              {manualRecovery ? "Back to journal" : "Try again"}
             </button>
           </>
         )}

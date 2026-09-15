@@ -30,6 +30,7 @@ export function installDeviceStorage(
 ): void {
   storage = adapter
   flushDevice = flush
+  state = INITIAL_STATE
   hydrated = false
 }
 

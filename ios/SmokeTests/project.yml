@@ -6,7 +6,7 @@ targets:
   AnchorSmokeTests:
     type: bundle.ui-testing
     platform: iOS
-    sources: [CheckInTests.swift]
+    sources: [CheckInTests.swift, JournalRecoveryTests.swift, ../App/App/JournalArchiveRecovery.swift]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.anchor.smoketests
