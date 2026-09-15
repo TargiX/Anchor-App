@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 import { updateTodayEntry } from "@/lib/store/actions"
 import { type MiddayCheckIn } from "@/lib/domain/entry"
 import { saveFocusResetContextFrom } from "@/lib/focus/reset-context"
+import { readFocusReturnFrom } from "@/lib/focus/focus-return"
 
 const CHECK_INS: Array<{
   value: MiddayCheckIn
@@ -36,6 +37,11 @@ const CHECK_INS: Array<{
   },
 ]
 
+/**
+ * Pulse midday check-in: lets the user report how the day is going and, on
+ * "reset", persist the next step and hand off to Focus. Highlights the
+ * post-reset check-in on the arrival that directly follows a Focus reset.
+ */
 export function PulseCheck() {
   const router = useRouter()
   const today = useTodayEntry()
@@ -52,7 +58,7 @@ export function PulseCheck() {
 
   /* eslint-disable react-hooks/set-state-in-effect -- read the one-shot Focus return marker after hydration */
   useEffect(() => {
-    setReturnedFromFocus(new URLSearchParams(window.location.search).get("after") === "focus")
+    setReturnedFromFocus(readFocusReturnFrom(() => window.location.search))
   }, [])
   /* eslint-enable react-hooks/set-state-in-effect */
 
