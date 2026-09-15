@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AD0000012B00000000000001 /* AnchorDictationPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000022B00000000000001 /* AnchorDictationPlugin.swift */; };
 		AC0000012B00000000000001 /* AnchorJournalPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0000022B00000000000001 /* AnchorJournalPlugin.swift */; };
 		AB0000012B00000000000001 /* AnchorBridgeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000022B00000000000001 /* AnchorBridgeViewController.swift */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
@@ -21,6 +22,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		AD0000022B00000000000001 /* AnchorDictationPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnchorDictationPlugin.swift; sourceTree = "<group>"; };
 		AC0000022B00000000000001 /* AnchorJournalPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnchorJournalPlugin.swift; sourceTree = "<group>"; };
 		AB0000022B00000000000001 /* AnchorBridgeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnchorBridgeViewController.swift; sourceTree = "<group>"; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
@@ -72,6 +74,7 @@
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				AB0000022B00000000000001 /* AnchorBridgeViewController.swift */,
 				AC0000022B00000000000001 /* AnchorJournalPlugin.swift */,
+				AD0000022B00000000000001 /* AnchorDictationPlugin.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -168,6 +171,7 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				AB0000012B00000000000001 /* AnchorBridgeViewController.swift in Sources */,
 				AC0000012B00000000000001 /* AnchorJournalPlugin.swift in Sources */,
+				AD0000012B00000000000001 /* AnchorDictationPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

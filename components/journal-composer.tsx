@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react"
 import { ArrowRight } from "lucide-react"
+import { DictationControl } from "@/components/dictation-control"
 import { Button } from "@/components/ui/button"
 import { saveQuickCheckIn } from "@/lib/store/actions"
 import { flushDeviceStorage } from "@/lib/store/store"
@@ -22,6 +23,9 @@ export function JournalComposer({
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
 
+  const [voiceBusy, setVoiceBusy] = useState(false)
+  const noteLimit =
+    LIMITS.journalMax - (reviewPeriod ? reviewPeriod.length + 18 : 0)
   const [saving, setSaving] = useState(false)
   const pendingId = useRef<string | null>(null)
   const savingRef = useRef(false)
@@ -30,7 +34,7 @@ export function JournalComposer({
     event.preventDefault()
     setError("")
     setMessage("")
-    if (!ready || savingRef.current) return
+    if (!ready || voiceBusy || savingRef.current) return
     savingRef.current = true
     setSaving(true)
     pendingId.current ??= crypto.randomUUID()
@@ -86,11 +90,9 @@ export function JournalComposer({
               setNote(event.target.value)
               setMessage("")
             }}
-            disabled={saving}
+            disabled={saving || voiceBusy}
             required
-            maxLength={
-              LIMITS.journalMax - (reviewPeriod ? reviewPeriod.length + 18 : 0)
-            }
+            maxLength={noteLimit}
             rows={4}
             aria-describedby="note-hint"
             placeholder={
@@ -99,6 +101,17 @@ export function JournalComposer({
                 : "Today, I noticed…"
             }
             className="mt-3 w-full resize-y rounded-xl border border-border bg-background p-3 text-base leading-7 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          <DictationControl
+            note={note}
+            limit={noteLimit}
+            disabled={!ready || saving}
+            onBusy={setVoiceBusy}
+            onInsert={(value) => {
+              pendingId.current = null
+              setNote(value)
+              setMessage("")
+            }}
           />
         </div>
         <div>
@@ -110,7 +123,7 @@ export function JournalComposer({
           </label>
           <input
             id="checkin-next"
-            disabled={saving}
+            disabled={saving || voiceBusy}
             value={nextStep}
             onChange={(event) => {
               pendingId.current = null
@@ -132,7 +145,7 @@ export function JournalComposer({
         )}
         <Button
           type="submit"
-          disabled={saving || !ready || !note.trim()}
+          disabled={saving || voiceBusy || !ready || !note.trim()}
           className="min-h-12 w-full rounded-xl text-base"
         >
           {saving ? "Saving…" : "Save check-in"}{" "}

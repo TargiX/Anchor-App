@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Use your microphone to turn your words into an editable journal draft.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>Recognize your speech on this device to create a journal draft. Anchor does not save the audio.</string>
     <key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>

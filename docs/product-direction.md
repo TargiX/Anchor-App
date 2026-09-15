@@ -29,7 +29,8 @@ user's text; the app does not infer psychological traits or causal relationships
 
 ## Remaining before the envisioned first release
 
-- Native voice capture with clear permission, interruption and privacy behavior.
+- Physical-device validation of the implemented on-device voice draft flow (see
+  [voice dictation](voice-dictation.md)), including permissions and interruptions.
 - First-use guidance, accessibility and real-device usability validation.
 - Backup/recovery and account-sync testing across versions and devices.
 - TestFlight recruitment and testing whether people return without prompting.

@@ -2,6 +2,21 @@ import XCTest
 
 /// Runs against the already installed native app, with its real WKWebView storage.
 final class CheckInTests: XCTestCase {
+    func testDictationDoesNotStartOnOpen() {
+        continueAfterFailure = false
+        let app = XCUIApplication(bundleIdentifier: "app.anchor.ritual")
+        app.launch()
+        XCTAssertTrue(app.buttons["Dictate"].waitForExistence(timeout: 20), app.debugDescription)
+        XCTAssertFalse(app.buttons["Stop"].exists)
+        XCTAssertFalse(app.buttons["Cancel dictation"].exists)
+        // Capture the native capability result without opening the microphone.
+        print("On-device dictation button enabled: \(app.buttons["Dictate"].isEnabled)")
+        app.swipeUp()
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
     func testReviewLinksToOriginalDay() {
         continueAfterFailure = false
         let app = XCUIApplication(bundleIdentifier: "app.anchor.ritual")

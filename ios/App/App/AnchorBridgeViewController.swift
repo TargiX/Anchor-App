@@ -5,6 +5,7 @@ import Foundation
 final class AnchorBridgeViewController: CAPBridgeViewController {
     override func capacitorDidLoad() {
         bridge?.registerPluginInstance(AnchorJournalPlugin())
+        bridge?.registerPluginInstance(AnchorDictationPlugin())
     }
 
     override func router() -> Router {
