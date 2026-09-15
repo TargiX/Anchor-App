@@ -10,6 +10,8 @@ import {
   authedStorageKey,
   migrate,
 } from "./state"
+import { validateJournal } from "./native-storage"
+import { JournalDraftsSchema, type JournalDraft } from "./journal-draft"
 import { localStorageAdapter, type StoragePort } from "./persistence"
 
 /**
@@ -61,6 +63,75 @@ function activeKey(): string | null {
   // set authedUserId via setStorageScope("authed", userId) before
   // hydrating; see SyncProvider.
   return null
+}
+
+/** Identity token for asynchronous editor completions and undo. */
+export function getStorageIdentity(): string | null {
+  return activeKey()
+}
+
+let draftRaw: string | null = null
+let draftKey: string | null = null
+let draftCache: Record<string, JournalDraft> = {}
+const EMPTY_DRAFTS: Record<string, JournalDraft> = {}
+
+export function getJournalDrafts(): Record<string, JournalDraft> {
+  const key = activeKey()
+  const raw = key ? storage.read(key) : null
+  if (key === draftKey && raw === draftRaw) return draftCache
+  draftKey = key
+  draftRaw = raw
+  try {
+    const parsed = raw ? JSON.parse(raw) : {}
+    draftCache = JournalDraftsSchema.parse(parsed.localDrafts ?? {})
+  } catch {
+    draftCache = EMPTY_DRAFTS
+  }
+  return draftCache
+}
+
+export function getServerDrafts() {
+  return EMPTY_DRAFTS
+}
+
+export function saveJournalDraft(
+  context: string,
+  draft: JournalDraft | null
+): boolean {
+  hydrateFromStorage()
+  const key = activeKey()
+  if (!key) return false
+  try {
+    const original = storage.read(key)
+    if (original !== null) validateJournal(original)
+  } catch {
+    return false
+  }
+  const drafts = { ...getJournalDrafts() }
+  if (draft) drafts[context] = draft
+  else delete drafts[context]
+  if (!JournalDraftsSchema.safeParse(drafts).success) return false
+  if (
+    !storage.write(
+      key,
+      JSON.stringify({
+        version: STATE_VERSION,
+        data: state,
+        localDrafts: drafts,
+      })
+    )
+  )
+    return false
+  notify()
+  return true
+}
+
+function serializedState(next: AppState): string {
+  return JSON.stringify({
+    version: STATE_VERSION,
+    data: next,
+    localDrafts: getJournalDrafts(),
+  })
 }
 
 function migrateLegacyIfPresent(): void {
@@ -120,10 +191,7 @@ function hydrate(): void {
 function persistLocal(): boolean {
   const key = activeKey()
   if (!key) return false
-  return storage.write(
-    key,
-    JSON.stringify({ version: STATE_VERSION, data: state })
-  )
+  return storage.write(key, serializedState(state))
 }
 
 function notify(): void {
@@ -174,9 +242,7 @@ export function commitLocalState(
   const key = activeKey()
   if (!key) return false
   const next = updater(state)
-  if (
-    !storage.write(key, JSON.stringify({ version: STATE_VERSION, data: next }))
-  ) {
+  if (!storage.write(key, serializedState(next))) {
     return false
   }
   state = next

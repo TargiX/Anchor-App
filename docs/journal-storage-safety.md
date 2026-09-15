@@ -12,7 +12,7 @@ native records into an empty journal and overwriting their original bytes on
 the next save. One damaged account slot blocks the entire archive, including
 other accounts, because they share the same snapshot file.
 
-Supported v1/v2 envelopes and valid legacy flat state remain readable. Validation
+Supported v1/v2/v3 envelopes and valid legacy flat state remain readable. Validation
 does not reserialize the imported strings. Invalid subsequent adapter writes
 return false without changing the memory mirror or scheduling a disk write.
 

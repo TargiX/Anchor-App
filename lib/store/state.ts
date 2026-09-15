@@ -44,8 +44,8 @@ export const ANON_STORAGE_KEY = "anchor-state-anon"
  */
 export const LEGACY_STORAGE_KEY = "anchor-state"
 /** Bump when the persisted shape changes; add a branch in `migrate`. */
-// Version 2 adds optional quickCheckIns to each day; v1 entries parse unchanged.
-export const STATE_VERSION = 2
+// Version 3 adds device-only drafts beside data in the persisted envelope.
+export const STATE_VERSION = 3
 
 export const INITIAL_STATE: AppState = {
   entries: {},

@@ -47,6 +47,22 @@ function fixture(initial: Record<string, string> = {}) {
 }
 
 describe("native journal storage", () => {
+  it("preserves malformed device drafts instead of dropping them during startup", async () => {
+    const slot = JSON.stringify({
+      version: STATE_VERSION,
+      data: INITIAL_STATE,
+      localDrafts: { today: { note: "Keep my unfinished words" } },
+    })
+    const f = fixture()
+    vi.mocked(f.disk.load).mockResolvedValue({
+      value: JSON.stringify({ [ANON_STORAGE_KEY]: slot }),
+    })
+    await expect(
+      createNativeStorage(f.disk, f.legacy, vi.fn())
+    ).rejects.toBeInstanceOf(JournalRecoveryError)
+    expect(f.disk.save).not.toHaveBeenCalled()
+  })
+
   it.each([
     "{broken journal bytes",
     "null",

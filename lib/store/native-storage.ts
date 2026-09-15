@@ -1,3 +1,4 @@
+import { JournalDraftsSchema } from "./journal-draft"
 import type { StoragePort } from "./persistence"
 import {
   ANON_STORAGE_KEY,
@@ -15,7 +16,7 @@ export class JournalRecoveryError extends Error {
 }
 
 /** Validate without best-effort migration, which can silently discard entries. */
-function validateJournal(value: string): void {
+export function validateJournal(value: string): void {
   let raw: unknown
   try {
     raw = JSON.parse(value)
@@ -31,7 +32,17 @@ function validateJournal(value: string): void {
     if (typeof record.version === "number" && record.version > STATE_VERSION) {
       throw new JournalRecoveryError("newer-version")
     }
-    if (record.version !== 1 && record.version !== STATE_VERSION) {
+    if (
+      record.version !== 1 &&
+      record.version !== 2 &&
+      record.version !== STATE_VERSION
+    ) {
+      throw new JournalRecoveryError("damaged")
+    }
+    if (
+      record.localDrafts !== undefined &&
+      !JournalDraftsSchema.safeParse(record.localDrafts).success
+    ) {
       throw new JournalRecoveryError("damaged")
     }
     candidate = record.data

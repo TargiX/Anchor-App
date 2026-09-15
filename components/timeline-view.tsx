@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useAppState } from "@/hooks/use-store"
+import { JournalNote } from "@/components/journal-note"
 import { matchesJournal } from "@/lib/domain/journal"
 import { cn } from "@/lib/utils"
 import { type DayEntry, type MoodPoint } from "@/lib/domain/entry"
@@ -470,14 +471,10 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
                       minute: "2-digit",
                     })}
                   </p>
-                  <p className="text-sm [overflow-wrap:anywhere] whitespace-pre-wrap">
-                    {checkIn.note}
-                  </p>
-                  {checkIn.nextStep && (
-                    <p className="mt-2 text-sm [overflow-wrap:anywhere]">
-                      Next step: {checkIn.nextStep}
-                    </p>
-                  )}
+                  <JournalNote
+                    target={{ day: entry.date, id: checkIn.id }}
+                    text={{ note: checkIn.note, nextStep: checkIn.nextStep }}
+                  />
                 </div>
               ))}
               {entry.intention && (
@@ -505,9 +502,10 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
                   <p className="mb-1 text-xs font-medium tracking-widest text-muted-foreground uppercase">
                     Journal
                   </p>
-                  <p className="text-sm leading-relaxed text-foreground">
-                    {entry.journal}
-                  </p>
+                  <JournalNote
+                    target={{ day: entry.date }}
+                    text={{ note: entry.journal, nextStep: "" }}
+                  />
                 </div>
               )}
               <div className="flex gap-6 lg:col-span-2">

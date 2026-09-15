@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest"
 import { legacyArchive, previewBackup, restoreBackup } from "./journal-backup"
-import { ANON_STORAGE_KEY, authedStorageKey, INITIAL_STATE } from "./state"
+import {
+  ANON_STORAGE_KEY,
+  authedStorageKey,
+  INITIAL_STATE,
+  STATE_VERSION,
+} from "./state"
 import { JournalRecoveryError } from "./native-storage"
 
 const journal = JSON.stringify({
@@ -35,7 +40,11 @@ describe("journal backup recovery", () => {
     '{"unexpected":"data"}',
     JSON.stringify({ [ANON_STORAGE_KEY]: "broken" }),
     JSON.stringify({
-      [ANON_STORAGE_KEY]: JSON.stringify({ version: 3, data: INITIAL_STATE }),
+      [ANON_STORAGE_KEY]: JSON.stringify({
+        version: STATE_VERSION + 1,
+        data: INITIAL_STATE,
+        STATE_VERSION,
+      }),
     }),
   ])(
     "rejects unreadable, empty and future backups before touching native storage",
@@ -52,7 +61,7 @@ describe("journal backup recovery", () => {
       previewBackup(
         JSON.stringify({
           [ANON_STORAGE_KEY]: JSON.stringify({
-            version: 3,
+            version: STATE_VERSION + 1,
             data: INITIAL_STATE,
           }),
         })

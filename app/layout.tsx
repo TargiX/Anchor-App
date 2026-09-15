@@ -6,6 +6,7 @@ import { AuthProvider } from "@/components/auth-provider"
 import { ReminderScheduler } from "@/components/reminder-scheduler"
 import { ServiceWorkerRegistrar } from "@/components/service-worker-registrar"
 import { SyncProvider } from "@/components/sync-provider"
+import { JournalEditingProvider } from "@/components/journal-note"
 import { DeviceStorageProvider } from "@/components/device-storage-provider"
 import { cn } from "@/lib/utils"
 
@@ -63,7 +64,7 @@ export default function RootLayout({
           <DeviceStorageProvider>
             <AuthProvider>
               <SyncProvider />
-              {children}
+              <JournalEditingProvider>{children}</JournalEditingProvider>
               <ReminderScheduler />
               <ServiceWorkerRegistrar />
             </AuthProvider>

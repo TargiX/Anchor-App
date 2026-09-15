@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { ArrowRight, Anchor, Settings } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
+import { JournalNote } from "@/components/journal-note"
 import { JournalComposer } from "@/components/journal-composer"
 import { DailyPaths } from "@/components/daily-paths"
 import { SyncStatusIndicator } from "@/components/sync-status-indicator"
@@ -100,14 +101,10 @@ function Today({ ready, signedIn }: { ready: boolean; signedIn: boolean }) {
                   key={checkIn.id}
                   className="rounded-2xl border border-border p-4"
                 >
-                  <p className="text-sm leading-6 [overflow-wrap:anywhere] whitespace-pre-wrap">
-                    {checkIn.note}
-                  </p>
-                  {checkIn.nextStep && (
-                    <p className="mt-2 text-sm [overflow-wrap:anywhere] text-muted-foreground">
-                      Next step: {checkIn.nextStep}
-                    </p>
-                  )}
+                  <JournalNote
+                    target={{ day: today.date, id: checkIn.id }}
+                    text={{ note: checkIn.note, nextStep: checkIn.nextStep }}
+                  />
                 </article>
               ))}
           </div>

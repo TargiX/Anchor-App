@@ -1,15 +1,39 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useRef, useState, useSyncExternalStore } from "react"
 import { ArrowRight } from "lucide-react"
 import { DictationControl } from "@/components/dictation-control"
 import { Button } from "@/components/ui/button"
 import { saveQuickCheckIn } from "@/lib/store/actions"
-import { flushDeviceStorage } from "@/lib/store/store"
+import {
+  flushDeviceStorage,
+  getJournalDrafts,
+  saveJournalDraft,
+  getStorageIdentity,
+  subscribe,
+  getSnapshot,
+} from "@/lib/store/store"
 import { LIMITS } from "@/lib/domain/validation"
 import { getTodayKey } from "@/lib/time/today"
 
-export function JournalComposer({
+export function JournalComposer(props: {
+  ready: boolean
+  signedIn: boolean
+  reviewPeriod?: string
+}) {
+  const identity = useSyncExternalStore(
+    subscribe,
+    getStorageIdentity,
+    () => null
+  )
+  if (!props.ready || !identity)
+    return <p role="status">Opening your journal…</p>
+  return (
+    <Composer key={`${identity}:${props.reviewPeriod ?? "today"}`} {...props} />
+  )
+}
+
+function Composer({
   ready,
   signedIn,
   reviewPeriod,
@@ -18,8 +42,19 @@ export function JournalComposer({
   signedIn: boolean
   reviewPeriod?: string
 }) {
-  const [note, setNote] = useState("")
-  const [nextStep, setNextStep] = useState("")
+  const context = reviewPeriod ? `review:${reviewPeriod}` : "today"
+  const [initial] = useState(() => {
+    const draft = getJournalDrafts()[context]
+    // A crash between durable note save and draft cleanup must not duplicate it.
+    return draft &&
+      !Object.values(getSnapshot().entries).some((entry) =>
+        entry.quickCheckIns?.some((item) => item.id === draft.id)
+      )
+      ? draft
+      : undefined
+  })
+  const [note, setNote] = useState(initial?.note ?? "")
+  const [nextStep, setNextStep] = useState(initial?.nextStep ?? "")
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
 
@@ -27,8 +62,29 @@ export function JournalComposer({
   const noteLimit =
     LIMITS.journalMax - (reviewPeriod ? reviewPeriod.length + 18 : 0)
   const [saving, setSaving] = useState(false)
-  const pendingId = useRef<string | null>(null)
+  const [retryOnly, setRetryOnly] = useState(false)
+  const pendingId = useRef<string | null>(initial?.id ?? null)
   const savingRef = useRef(false)
+
+  function remember(nextNote: string, step: string) {
+    pendingId.current ??= crypto.randomUUID()
+    const saved = saveJournalDraft(
+      context,
+      nextNote || step
+        ? {
+            id: pendingId.current,
+            createdAt: new Date().toISOString(),
+            day: getTodayKey(),
+            note: nextNote,
+            nextStep: step,
+          }
+        : null
+    )
+    if (!saved)
+      setError(
+        "Your draft could not be saved. Copy your text before leaving this screen."
+      )
+  }
 
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -38,6 +94,7 @@ export function JournalComposer({
     savingRef.current = true
     setSaving(true)
     pendingId.current ??= crypto.randomUUID()
+    const identity = getStorageIdentity()
     const result = saveQuickCheckIn(
       {
         id: pendingId.current,
@@ -48,9 +105,10 @@ export function JournalComposer({
       getTodayKey()
     )
     const durable = result.ok && (await flushDeviceStorage())
-    savingRef.current = false
-    setSaving(false)
     if (!result.ok || !durable) {
+      savingRef.current = false
+      setSaving(false)
+      setRetryOnly(result.ok)
       setError(
         !result.ok
           ? result.error
@@ -58,6 +116,12 @@ export function JournalComposer({
       )
       return
     }
+    if (identity !== getStorageIdentity()) return
+    saveJournalDraft(context, null)
+    await flushDeviceStorage()
+    savingRef.current = false
+    setSaving(false)
+    setRetryOnly(false)
     pendingId.current = null
     setNote("")
     setNextStep("")
@@ -86,11 +150,11 @@ export function JournalComposer({
             id="checkin-note"
             value={note}
             onChange={(event) => {
-              pendingId.current = null
+              remember(event.target.value, nextStep)
               setNote(event.target.value)
               setMessage("")
             }}
-            disabled={saving || voiceBusy}
+            disabled={saving || voiceBusy || retryOnly}
             required
             maxLength={noteLimit}
             rows={4}
@@ -105,10 +169,10 @@ export function JournalComposer({
           <DictationControl
             note={note}
             limit={noteLimit}
-            disabled={!ready || saving}
+            disabled={!ready || saving || retryOnly}
             onBusy={setVoiceBusy}
             onInsert={(value) => {
-              pendingId.current = null
+              remember(value, nextStep)
               setNote(value)
               setMessage("")
             }}
@@ -123,10 +187,10 @@ export function JournalComposer({
           </label>
           <input
             id="checkin-next"
-            disabled={saving || voiceBusy}
+            disabled={saving || voiceBusy || retryOnly}
             value={nextStep}
             onChange={(event) => {
-              pendingId.current = null
+              remember(note, event.target.value)
               setNextStep(event.target.value)
             }}
             maxLength={LIMITS.intentionMax}
@@ -153,8 +217,8 @@ export function JournalComposer({
         </Button>
         <p className="text-xs leading-5 text-muted-foreground">
           {signedIn
-            ? "Saved on this device first. Account sync status appears above."
-            : "Saved on this device when you tap Save. Export a copy from Journal to keep a backup."}
+            ? "Drafts stay on this device. Saved entries can sync with your account."
+            : "Your draft stays on this device when you leave. Tap Save to add it to your journal."}
         </p>
       </form>
       <p
