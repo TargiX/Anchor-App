@@ -3,7 +3,43 @@ import {
   ANON_STORAGE_KEY,
   AUTHED_STORAGE_KEY_PREFIX,
   LEGACY_STORAGE_KEY,
+  AppStateSchema,
+  STATE_VERSION,
 } from "./state"
+
+export class JournalRecoveryError extends Error {
+  constructor(public readonly reason: "damaged" | "newer-version") {
+    super("Journal requires recovery")
+    this.name = "JournalRecoveryError"
+  }
+}
+
+/** Validate without best-effort migration, which can silently discard entries. */
+function validateJournal(value: string): void {
+  let raw: unknown
+  try {
+    raw = JSON.parse(value)
+  } catch {
+    throw new JournalRecoveryError("damaged")
+  }
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new JournalRecoveryError("damaged")
+  }
+  const record = raw as Record<string, unknown>
+  let candidate: unknown = raw
+  if ("version" in record || "data" in record) {
+    if (typeof record.version === "number" && record.version > STATE_VERSION) {
+      throw new JournalRecoveryError("newer-version")
+    }
+    if (record.version !== 1 && record.version !== STATE_VERSION) {
+      throw new JournalRecoveryError("damaged")
+    }
+    candidate = record.data
+  }
+  if (!AppStateSchema.safeParse(candidate).success) {
+    throw new JournalRecoveryError("damaged")
+  }
+}
 
 export interface NativeJournalPort {
   load(): Promise<{ value: string | null }>
@@ -27,7 +63,12 @@ export async function createNativeStorage(
   const loaded = await disk.load()
   let values: Record<string, string> = Object.create(null)
   if (loaded.value !== null) {
-    const parsed: unknown = JSON.parse(loaded.value)
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(loaded.value)
+    } catch {
+      throw new JournalRecoveryError("damaged")
+    }
     if (
       !parsed ||
       typeof parsed !== "object" ||
@@ -36,7 +77,7 @@ export async function createNativeStorage(
         ([key, value]) => isJournalKey(key) && typeof value === "string"
       )
     ) {
-      throw new Error("Invalid native journal archive")
+      throw new JournalRecoveryError("damaged")
     }
     values = Object.assign(Object.create(null), parsed)
   } else {
@@ -44,6 +85,11 @@ export async function createNativeStorage(
       const value = legacy.read(key)
       if (value !== null) values[key] = value
     }
+  }
+  // Check every account and legacy slot before installing writable storage,
+  // deleting WebView copies, or creating the first native archive.
+  Object.values(values).forEach(validateJournal)
+  if (loaded.value === null) {
     // Never remove the only copy until native storage acknowledges migration.
     await disk.save({ value: JSON.stringify(values) })
   }
@@ -72,6 +118,11 @@ export async function createNativeStorage(
     keys: () => Object.keys(values),
     write(key, value) {
       if (!isJournalKey(key)) return false
+      try {
+        validateJournal(value)
+      } catch {
+        return false
+      }
       values[key] = value
       void enqueue()
       return true

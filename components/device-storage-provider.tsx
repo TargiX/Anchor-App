@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react"
 import { Capacitor, registerPlugin } from "@capacitor/core"
 import {
   createNativeStorage,
+  JournalRecoveryError,
   type NativeJournalPort,
 } from "@/lib/store/native-storage"
 import { localStorageAdapter } from "@/lib/store/persistence"
@@ -51,6 +52,9 @@ export function DeviceStorageProvider({ children }: { children: ReactNode }) {
 function NativeStorageGate({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false)
   const [failed, setFailed] = useState(false)
+  const [recovery, setRecovery] = useState<
+    JournalRecoveryError["reason"] | null
+  >(null)
   const [attempt, setAttempt] = useState(0)
   const [status, setStatus] = useState(currentStatus)
   useEffect(() => {
@@ -60,8 +64,13 @@ function NativeStorageGate({ children }: { children: ReactNode }) {
       .then(() => {
         if (active) setReady(true)
       })
-      .catch(() => {
-        if (active) setFailed(true)
+      .catch((error: unknown) => {
+        if (active) {
+          setFailed(true)
+          setRecovery(
+            error instanceof JournalRecoveryError ? error.reason : null
+          )
+        }
       })
     return () => {
       active = false
@@ -79,8 +88,11 @@ function NativeStorageGate({ children }: { children: ReactNode }) {
         {failed && (
           <>
             <p className="my-4">
-              Your saved data has not been replaced. Unlock your device and try
-              again.
+              {recovery === "newer-version"
+                ? "This journal was saved by a newer version of Anchor. Update the app to open it. Your saved data has not been changed."
+                : recovery === "damaged"
+                  ? "Some saved data could not be read safely. Your original journal has been kept, and new saves are paused. Keep the app installed to preserve your records."
+                  : "Your saved data has not been replaced. Unlock your device and try again."}
             </p>
             <button
               className="min-h-12 underline"
