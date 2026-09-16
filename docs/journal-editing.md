@@ -33,3 +33,10 @@ rejected writes, draft persistence, cloud exclusion, and corrupt-envelope refusa
 The simulator UI test verifies draft navigation/relaunch, saving, editing,
 deleting, undo, another relaunch, and draft cleanup. Physical-iPhone and live
 multi-device editing remain release checks.
+
+
+Deletion status is owned above the removed row. It shows “Saving deletion” until
+the native snapshot is acknowledged, retains retry and undo on failure, and
+prevents another deletion from replacing an unresolved operation. Retry schedules
+a fresh native write rather than reawaiting the failed promise. Undo likewise
+waits for acknowledgment and can retry without restoring the same note twice.

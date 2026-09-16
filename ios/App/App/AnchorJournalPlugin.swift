@@ -18,6 +18,8 @@ public final class AnchorJournalPlugin: CAPPlugin, CAPBridgedPlugin, UIDocumentP
     private func archiveURL() throws -> URL {
         let support = try FileManager.default.url(for: .applicationSupportDirectory,
             in: .userDomainMask, appropriateFor: nil, create: true)
+        // Also persist the parent entry if Application Support was just created.
+        try JournalAtomicWrite.synchronizeDirectory(support.deletingLastPathComponent())
         return support.appendingPathComponent("anchor-journal.json")
     }
 
@@ -48,9 +50,8 @@ public final class AnchorJournalPlugin: CAPPlugin, CAPBridgedPlugin, UIDocumentP
         }
         queue.async {
             do {
-                // Atomic replacement preserves the previous archive on write failure.
-                // Complete protection keeps the file inaccessible while the device is locked.
-                try data.write(to: self.archiveURL(), options: [.atomic, .completeFileProtection])
+                // Acknowledge only after file and directory synchronization.
+                try JournalAtomicWrite.write(data, to: self.archiveURL())
                 call.resolve()
             } catch {
                 call.reject("Journal could not be saved")

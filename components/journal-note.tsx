@@ -13,79 +13,107 @@ import {
   deleteJournalText,
   editJournalText,
   undoJournalDeletion,
-  type DeletedNote,
   type JournalTarget,
   type JournalText,
 } from "@/lib/store/journal-editing"
 import {
   flushDeviceStorage,
+  retryDeviceStorage,
   getStorageIdentity,
   subscribe,
 } from "@/lib/store/store"
+import { createDeletionOperation } from "@/lib/store/journal-deletion"
 import { LIMITS } from "@/lib/domain/validation"
 
-const DeletionContext = createContext<(token: DeletedNote) => void>(() => {})
+type DeletionOperation = ReturnType<typeof createDeletionOperation>
+const DeletionContext = createContext<
+  (target: JournalTarget, expected: JournalText) => boolean
+>(() => false)
 export function JournalEditingProvider({ children }: { children: ReactNode }) {
-  const [deleted, setDeleted] = useState<DeletedNote | null>(null)
-  const [message, setMessage] = useState("")
-  const [busy, setBusy] = useState(false)
-  const pending = useRef(false)
-  const applied = useRef<DeletedNote | null>(null)
-  const latest = useRef<DeletedNote | null>(null)
+  const [operation, setOperation] = useState<DeletionOperation | null>(null)
+  const latest = useRef<DeletionOperation | null>(null)
+  function remove(target: JournalTarget, expected: JournalText) {
+    const previous = latest.current?.getStatus()
+    if (previous && !["deleted", "restored", "conflict"].includes(previous))
+      return false
+    const token = deleteJournalText(target, expected)
+    if (!token) return false
+    const next = createDeletionOperation(token, {
+      flush: flushDeviceStorage,
+      retry: retryDeviceStorage,
+      undo: undoJournalDeletion,
+      identity: getStorageIdentity,
+    })
+    latest.current = next
+    setOperation(next)
+    void next.save()
+    return true
+  }
   return (
-    <DeletionContext.Provider
-      value={(token) => {
-        applied.current = null
-        latest.current = token
-        setDeleted(token)
-        setMessage("")
-      }}
-    >
+    <DeletionContext.Provider value={remove}>
       {children}
-      {deleted && (
-        <aside
-          role="status"
-          className="fixed inset-x-4 bottom-24 z-50 mx-auto max-w-md rounded-2xl border bg-background p-4 shadow-lg"
-        >
-          <p>{message || "Note deleted."}</p>
-          <div className="mt-2 flex gap-3">
-            <Button
-              disabled={busy}
-              onClick={async () => {
-                if (pending.current) return
-                pending.current = true
-                setBusy(true)
-                const restored =
-                  applied.current === deleted || undoJournalDeletion(deleted)
-                if (restored) applied.current = deleted
-                const durable = await flushDeviceStorage()
-                pending.current = false
-                setBusy(false)
-                if (latest.current !== deleted) return
-                if (restored && durable) {
-                  setDeleted(null)
-                  applied.current = null
-                }
-                setMessage(
-                  !durable
-                    ? "Changes still need to be saved on this device."
-                    : "This note could not be restored because the journal changed."
-                )
-              }}
-            >
-              Undo delete
-            </Button>
-            <Button
-              variant="ghost"
-              disabled={busy}
-              onClick={() => setDeleted(null)}
-            >
-              Dismiss
-            </Button>
-          </div>
-        </aside>
+      {operation && (
+        <DeletionNotice
+          operation={operation}
+          dismiss={() => {
+            latest.current = null
+            setOperation(null)
+          }}
+        />
       )}
     </DeletionContext.Provider>
+  )
+}
+
+function DeletionNotice({
+  operation,
+  dismiss,
+}: {
+  operation: DeletionOperation
+  dismiss: () => void
+}) {
+  const status = useSyncExternalStore(
+    operation.subscribe,
+    operation.getStatus,
+    operation.getStatus
+  )
+  const messages = {
+    saving: "Saving deletion…",
+    deleted: "Note deleted.",
+    error:
+      "Deletion has not been saved. Keep Anchor open and retry, or undo the deletion.",
+    restoring: "Restoring note…",
+    "restore-error":
+      "The restored note has not been saved. Keep Anchor open and retry.",
+    restored: "Note restored.",
+    conflict:
+      "The journal changed. This operation can no longer be applied here.",
+  }
+  return (
+    <aside
+      role="status"
+      className="fixed inset-x-4 bottom-24 z-50 mx-auto max-w-md rounded-2xl border bg-background p-4 shadow-lg"
+    >
+      <p>{messages[status]}</p>
+      <div className="mt-2 flex flex-wrap gap-3">
+        {status === "error" && (
+          <Button onClick={() => void operation.save(true)}>
+            Retry deletion
+          </Button>
+        )}
+        {status === "restore-error" && (
+          <Button onClick={() => void operation.undo()}>Retry restoring</Button>
+        )}
+        {(["deleted", "error"] as string[]).includes(status) && (
+          <Button onClick={() => void operation.undo()}>Undo delete</Button>
+        )}
+        {(["deleted", "restored", "conflict"] as string[]).includes(status) && (
+          <Button variant="ghost" onClick={dismiss}>
+            Dismiss
+          </Button>
+        )}
+      </div>
+    </aside>
   )
 }
 
@@ -113,7 +141,7 @@ function NoteEditor({
   target: JournalTarget
   text: JournalText
 }) {
-  const offerUndo = useContext(DeletionContext)
+  const removeNote = useContext(DeletionContext)
   const [editing, setEditing] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [draft, setDraft] = useState(text)
@@ -145,11 +173,11 @@ function NoteEditor({
   }
   function remove() {
     if (pending.current) return
-    const token = deleteJournalText(target, baseline)
-    if (token) {
-      offerUndo(token)
-      void flushDeviceStorage()
-    } else setError("The note changed or could not be deleted. Try again.")
+    if (!removeNote(target, baseline)) {
+      setError(
+        "The note changed or another deletion still needs saving. Finish that operation, then try again."
+      )
+    }
   }
   return (
     <div className="space-y-3">

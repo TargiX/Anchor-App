@@ -24,14 +24,17 @@ import { localStorageAdapter, type StoragePort } from "./persistence"
 
 let storage: StoragePort = localStorageAdapter
 let flushDevice: (() => Promise<boolean>) | null = null
+let retryDevice: (() => Promise<boolean>) | null = null
 
 /** Install before mounting auth, sync or any journal consumers. */
 export function installDeviceStorage(
   adapter: StoragePort,
-  flush: () => Promise<boolean>
+  flush: () => Promise<boolean>,
+  retry: () => Promise<boolean> = flush
 ): void {
   storage = adapter
   flushDevice = flush
+  retryDevice = retry
   state = INITIAL_STATE
   hydrated = false
 }
@@ -39,6 +42,10 @@ export function installDeviceStorage(
 /** Native writes are asynchronous; user-facing save success must await this. */
 export async function flushDeviceStorage(): Promise<boolean> {
   return flushDevice ? flushDevice() : true
+}
+
+export async function retryDeviceStorage(): Promise<boolean> {
+  return retryDevice ? retryDevice() : persistLocal()
 }
 
 let state: AppState = INITIAL_STATE

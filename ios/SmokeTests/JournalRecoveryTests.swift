@@ -8,6 +8,55 @@ final class JournalRecoveryTests: XCTestCase {
         try run(root.appendingPathComponent("anchor-journal.json"))
     }
 
+    func testAtomicWriteSynchronizesInOrder() throws {
+        try withArchive { archive in
+            var stages: [JournalAtomicWrite.Stage] = []
+            try JournalAtomicWrite.write(Data("saved".utf8), to: archive) { stages.append($0) }
+            XCTAssertEqual(stages, [.fileSync, .rename, .directorySync])
+            XCTAssertEqual(try Data(contentsOf: archive), Data("saved".utf8))
+        }
+    }
+
+    func testCompleteFileProtectionOnDevice() throws {
+#if targetEnvironment(simulator)
+        throw XCTSkip("Verify file protection on a physical iPhone; the simulator does not expose this attribute.")
+#else
+        try withArchive { archive in
+            try JournalAtomicWrite.write(Data("protected".utf8), to: archive)
+            let attributes = try FileManager.default.attributesOfItem(atPath: archive.path)
+            XCTAssertEqual(attributes[.protectionKey] as? FileProtectionType, .complete)
+        }
+#endif
+    }
+
+    func testAtomicWriteFailureBeforeRenamePreservesOriginalAndCleansTemporaryFile() throws {
+        for stage in [JournalAtomicWrite.Stage.fileSync, .rename] {
+            try withArchive { archive in
+                let original = Data("original".utf8)
+                try original.write(to: archive)
+                XCTAssertThrowsError(try JournalAtomicWrite.write(Data("new".utf8), to: archive) {
+                    if $0 == stage { throw NSError(domain: "injected", code: 1) }
+                })
+                XCTAssertEqual(try Data(contentsOf: archive), original)
+                let files = try FileManager.default.contentsOfDirectory(atPath: archive.deletingLastPathComponent().path)
+                XCTAssertEqual(files, ["anchor-journal.json"])
+            }
+        }
+    }
+
+    func testDirectorySyncFailureIsReportedEvenIfReplacementIsVisible() throws {
+        try withArchive { archive in
+            try Data("original".utf8).write(to: archive)
+            XCTAssertThrowsError(try JournalAtomicWrite.write(Data("new".utf8), to: archive) {
+                if $0 == .directorySync { throw NSError(domain: "injected", code: 1) }
+            })
+            XCTAssertEqual(try Data(contentsOf: archive), Data("new".utf8))
+            // Retrying the same snapshot is safe after an uncertain acknowledgement.
+            try JournalAtomicWrite.write(Data("new".utf8), to: archive)
+            XCTAssertEqual(try Data(contentsOf: archive), Data("new".utf8))
+        }
+    }
+
     func testPreservesUndecodableOriginalBytesBeforeReplacing() throws {
         try withArchive { archive in
             let original = Data([0xff, 0xfe, 0x00, 0x81])

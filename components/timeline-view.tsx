@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useAppState } from "@/hooks/use-store"
 import { JournalNote } from "@/components/journal-note"
+import { revealDayFragment } from "@/lib/ui/day-fragment"
 import { matchesJournal } from "@/lib/domain/journal"
 import { cn } from "@/lib/utils"
 import { type DayEntry, type MoodPoint } from "@/lib/domain/entry"
@@ -358,14 +359,10 @@ function MoodMiniChart({
 
 function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
   const [expanded, setExpanded] = useState(false)
-  useEffect(() => {
-    const reveal = () => {
-      if (window.location.hash === `#day-${entry.date}`) setExpanded(true)
-    }
-    reveal()
-    window.addEventListener("hashchange", reveal)
-    return () => window.removeEventListener("hashchange", reveal)
-  }, [entry.date])
+  useEffect(
+    () => revealDayFragment(entry.date, () => setExpanded(true)),
+    [entry.date]
+  )
   const shouldReduceMotion = useReducedMotion()
   const date = parseEntryDate(entry.date)
   const weekday = date.toLocaleDateString("en-US", { weekday: "short" })

@@ -69,3 +69,25 @@ still use permissive migration and require separate hardening. The backup
 workflow restores a previously valid copy; it does not reconstruct
 unreadable entries automatically. Cloud-account recovery and physical-device
 Files/authentication validation remain unfinished.
+
+
+## Synchronized writes
+
+Ordinary saves and both recovery writes share `JournalAtomicWrite`. It creates a
+protected temporary file in the destination directory, synchronizes that file
+(`fsync` and `F_FULLFSYNC`), atomically renames it, synchronizes the parent
+directory, and requests a final full flush before acknowledging success. New
+recovery-directory entries are synchronized before replacing a journal.
+Errors propagate at every stage. A failure after rename can leave the replacement
+visible; it is not reported as a successful save, and retrying the same snapshot
+is safe. Recovery preserves the original in a separate file first.
+
+This strengthens acknowledgment semantics; it is not proof against every hardware
+or power-loss failure. Apple describes even `F_FULLFSYNC` as best effort:
+[Reducing disk writes](https://developer.apple.com/documentation/xcode/reducing-disk-writes).
+Native tests verify operation order and original-file preservation on
+pre-rename failure, temporary-file cleanup, and post-rename failure reporting.
+
+The file-protection attribute test runs only on physical devices. It is skipped
+in Simulator, where this test environment does not expose the attribute;
+physical-device protection verification remains pending.
