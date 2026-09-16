@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { useAppState } from "@/hooks/use-store"
 import { createRitualHistoryExport } from "@/lib/domain/ritual-history-export"
 import { getTodayKey } from "@/lib/time/today"
+import { captureClientException, captureEvent } from "@/lib/analytics/client"
 
 const subscribeToNativePlatform = () => () => undefined
 
@@ -43,6 +44,10 @@ export function RitualHistoryExport() {
 
     if (isNativePlatform) {
       if (typeof navigator.clipboard?.writeText !== "function") {
+        captureEvent("ritual_history_export_failed", {
+          method: "copy",
+          reason: "clipboard_unavailable",
+        })
         setExportError(
           "Could not access the clipboard. Your history stayed private."
         )
@@ -57,8 +62,16 @@ export function RitualHistoryExport() {
         if (activeExportAttemptRef.current === attempt) {
           setExportedArtifact(artifactKey)
           setExportMethod("copy")
+          captureEvent("ritual_history_exported", {
+            method: "copy",
+            entry_count: artifact.entryCount,
+          })
         }
-      } catch {
+      } catch (error) {
+        captureClientException(error, {
+          flow: "ritual_history_export",
+          method: "copy",
+        })
         if (activeExportAttemptRef.current === attempt) {
           setExportError(
             "Could not copy the Markdown. Your history stayed private."
@@ -87,7 +100,15 @@ export function RitualHistoryExport() {
       link.click()
       setExportedArtifact(artifactKey)
       setExportMethod("download")
-    } catch {
+      captureEvent("ritual_history_exported", {
+        method: "download",
+        entry_count: artifact.entryCount,
+      })
+    } catch (error) {
+      captureClientException(error, {
+        flow: "ritual_history_export",
+        method: "download",
+      })
       setExportError(
         "Could not start the Markdown download. Your history stayed private."
       )

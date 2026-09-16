@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 import { updateTodayEntry } from "@/lib/store/actions"
 import { type MiddayCheckIn } from "@/lib/domain/entry"
 import { saveFocusResetContextFrom } from "@/lib/focus/reset-context"
+import { captureEvent } from "@/lib/analytics/client"
 
 const CHECK_INS: Array<{
   value: MiddayCheckIn
@@ -25,13 +26,15 @@ const CHECK_INS: Array<{
   {
     value: "reset",
     title: "I need a reset",
-    description: "Take one breath, make the next action smaller, and begin again.",
+    description:
+      "Take one breath, make the next action smaller, and begin again.",
     icon: RotateCcw,
   },
   {
     value: "pivot",
     title: "Today needs a pivot",
-    description: "The day changed. Choose a direction that fits the day you actually have.",
+    description:
+      "The day changed. Choose a direction that fits the day you actually have.",
     icon: Route,
   },
 ]
@@ -52,7 +55,9 @@ export function PulseCheck() {
 
   /* eslint-disable react-hooks/set-state-in-effect -- read the one-shot Focus return marker after hydration */
   useEffect(() => {
-    setReturnedFromFocus(new URLSearchParams(window.location.search).get("after") === "focus")
+    setReturnedFromFocus(
+      new URLSearchParams(window.location.search).get("after") === "focus"
+    )
   }, [])
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -65,6 +70,12 @@ export function PulseCheck() {
       saveFocusResetContextFrom(() => window.sessionStorage, nextStep)
     }
 
+    captureEvent("pulse_check_in_saved", {
+      response: selected,
+      follows_focus_reset: returnedFromFocus,
+      has_morning_intention: Boolean(nextStep),
+    })
+
     router.push(selected === "reset" ? "/focus" : "/app")
   }
 
@@ -76,11 +87,12 @@ export function PulseCheck() {
         <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
           Right now
         </p>
-        <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl font-medium leading-tight text-foreground text-balance lg:text-4xl">
+        <h2 className="mt-3 font-[family-name:var(--font-display)] text-3xl leading-tight font-medium text-balance text-foreground lg:text-4xl">
           How is the day landing?
         </h2>
         <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
-          Choose the response that gives you the most honest next step. You can revise it later.
+          Choose the response that gives you the most honest next step. You can
+          revise it later.
         </p>
       </div>
 
@@ -89,9 +101,12 @@ export function PulseCheck() {
           role="status"
           className="rounded-2xl border border-accent/30 bg-accent/5 px-5 py-4"
         >
-          <p className="text-sm font-medium text-foreground">You made some room.</p>
+          <p className="text-sm font-medium text-foreground">
+            You made some room.
+          </p>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">
-            Notice what feels true now, then choose the response that fits this moment.
+            Notice what feels true now, then choose the response that fits this
+            moment.
           </p>
         </div>
       ) : null}
@@ -107,7 +122,11 @@ export function PulseCheck() {
         </div>
       ) : null}
 
-      <div role="radiogroup" aria-label="Midday check-in" className="grid gap-3">
+      <div
+        role="radiogroup"
+        aria-label="Midday check-in"
+        className="grid gap-3"
+      >
         {CHECK_INS.map(({ value, title, description, icon: Icon }) => {
           const isSelected = selected === value
           return (
@@ -118,7 +137,7 @@ export function PulseCheck() {
               aria-checked={isSelected}
               onClick={() => setSelected(value)}
               className={cn(
-                "flex w-full items-start gap-4 rounded-2xl border p-5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "flex w-full items-start gap-4 rounded-2xl border p-5 text-left transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
                 isSelected
                   ? "border-primary bg-primary/8"
                   : "border-border bg-card hover:border-primary/40"
@@ -135,7 +154,9 @@ export function PulseCheck() {
                 <Icon className="size-4" />
               </span>
               <span>
-                <span className="block text-base font-medium text-foreground">{title}</span>
+                <span className="block text-base font-medium text-foreground">
+                  {title}
+                </span>
                 <span className="mt-1 block text-sm leading-6 text-muted-foreground">
                   {description}
                 </span>
@@ -150,9 +171,12 @@ export function PulseCheck() {
           aria-live="polite"
           className="rounded-2xl border border-primary/30 bg-primary/6 px-5 py-4"
         >
-          <p className="text-sm font-medium text-foreground">Make a little room first.</p>
+          <p className="text-sm font-medium text-foreground">
+            Make a little room first.
+          </p>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">
-            We&apos;ll save this check-in, then begin a short box-breathing cycle before you return to the day.
+            We&apos;ll save this check-in, then begin a short box-breathing
+            cycle before you return to the day.
           </p>
         </div>
       ) : null}

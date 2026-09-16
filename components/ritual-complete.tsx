@@ -5,6 +5,7 @@ import { Flame } from "lucide-react"
 import { AnchorMotif } from "@/components/anchor-motif"
 import { Button } from "@/components/ui/button"
 import { useStreak } from "@/hooks/use-store"
+import { captureEvent } from "@/lib/analytics/client"
 
 interface RitualCompleteProps {
   kind: "morning" | "evening"
@@ -29,6 +30,11 @@ const COPY = {
 export function RitualComplete({ kind, onDone }: RitualCompleteProps) {
   const streak = useStreak()
   const copy = COPY[kind]
+
+  function finishRitual() {
+    captureEvent("ritual_completed", { kind, streak })
+    onDone()
+  }
 
   return (
     <div className="ritual-atmosphere flex min-h-dvh flex-col items-center justify-center px-6 text-center">
@@ -64,7 +70,7 @@ export function RitualComplete({ kind, onDone }: RitualCompleteProps) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.55, duration: 0.7 }}
-        className="mt-4 max-w-xs text-sm leading-7 text-muted-foreground text-balance"
+        className="mt-4 max-w-xs text-sm leading-7 text-balance text-muted-foreground"
       >
         {copy.body}
       </motion.p>
@@ -77,7 +83,8 @@ export function RitualComplete({ kind, onDone }: RitualCompleteProps) {
       >
         <Flame className="size-4 text-accent" />
         <span className="text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">{streak}</span> day streak
+          <span className="font-medium text-foreground">{streak}</span> day
+          streak
         </span>
       </motion.div>
 
@@ -88,7 +95,7 @@ export function RitualComplete({ kind, onDone }: RitualCompleteProps) {
         className="mt-10 w-full max-w-xs"
       >
         <Button
-          onClick={onDone}
+          onClick={finishRitual}
           className="h-14 w-full rounded-2xl text-base font-medium"
         >
           {copy.cta}

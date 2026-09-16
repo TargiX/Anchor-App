@@ -6,6 +6,10 @@ import {
   type CheckInKind,
 } from "@/lib/anchor-checkin/checkin"
 import { appendCheckIn, listCheckIns } from "@/lib/anchor-checkin/storage"
+import {
+  getPostHogServerClient,
+  postHogRequestContext,
+} from "@/lib/analytics/server"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -38,9 +42,7 @@ function isValidSupabaseUrl(value: string | undefined): value is string {
   }
 }
 
-type SessionAccess =
-  | { error: NextResponse }
-  | { userId: string | null }
+type SessionAccess = { error: NextResponse } | { userId: string | null }
 
 async function requireSession(request: Request): Promise<SessionAccess> {
   const { publishableKey, url } = getSupabaseAuthConfig()
@@ -59,7 +61,9 @@ async function requireSession(request: Request): Promise<SessionAccess> {
 
   const authHeader = request.headers.get("authorization")
   if (!authHeader?.startsWith("Bearer ")) {
-    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) }
+    return {
+      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    }
   }
 
   let response: Response
@@ -73,20 +77,30 @@ async function requireSession(request: Request): Promise<SessionAccess> {
       },
     })
   } catch {
-    return { error: NextResponse.json({ error: "Auth check failed" }, { status: 502 }) }
+    return {
+      error: NextResponse.json({ error: "Auth check failed" }, { status: 502 }),
+    }
   }
 
   if (response.status === 401 || response.status === 403) {
-    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) }
+    return {
+      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    }
   }
 
   if (!response.ok) {
-    return { error: NextResponse.json({ error: "Auth check failed" }, { status: 502 }) }
+    return {
+      error: NextResponse.json({ error: "Auth check failed" }, { status: 502 }),
+    }
   }
 
-  const user = (await response.json().catch(() => null)) as { id?: unknown } | null
+  const user = (await response.json().catch(() => null)) as {
+    id?: unknown
+  } | null
   if (typeof user?.id !== "string" || user.id.length === 0) {
-    return { error: NextResponse.json({ error: "Auth check failed" }, { status: 502 }) }
+    return {
+      error: NextResponse.json({ error: "Auth check failed" }, { status: 502 }),
+    }
   }
 
   return { userId: user.id }
@@ -100,14 +114,20 @@ function storageOptionsForUser(userId: string | null) {
 }
 
 function parseKind(kind: unknown): CheckInKind | undefined {
-  if (kind === "morning" || kind === "evening" || kind === "spontaneous") return kind
+  if (kind === "morning" || kind === "evening" || kind === "spontaneous")
+    return kind
   return undefined
 }
 
-function latestMorningIntention(records: Awaited<ReturnType<typeof listCheckIns>>): string | null {
-  return [...records]
-    .reverse()
-    .find((record) => record.kind === "morning" && record.intention.main)?.intention.main ?? null
+function latestMorningIntention(
+  records: Awaited<ReturnType<typeof listCheckIns>>
+): string | null {
+  return (
+    [...records]
+      .reverse()
+      .find((record) => record.kind === "morning" && record.intention.main)
+      ?.intention.main ?? null
+  )
 }
 
 export async function GET(request: Request) {
@@ -126,9 +146,13 @@ export async function POST(request: Request) {
   if ("error" in session) return session.error
 
   const body = (await request.json().catch(() => null)) as CheckInRequest | null
-  const transcript = typeof body?.transcript === "string" ? body.transcript.trim() : ""
+  const transcript =
+    typeof body?.transcript === "string" ? body.transcript.trim() : ""
   if (!transcript) {
-    return NextResponse.json({ error: "transcript is required" }, { status: 400 })
+    return NextResponse.json(
+      { error: "transcript is required" },
+      { status: 400 }
+    )
   }
 
   const storageOptions = storageOptionsForUser(session.userId)
@@ -137,13 +161,39 @@ export async function POST(request: Request) {
   const checkIn = createCheckInFromTranscript({
     transcript,
     kind: parseKind(body?.kind),
-    durationSec: typeof body?.durationSec === "number" ? body.durationSec : null,
+    durationSec:
+      typeof body?.durationSec === "number" ? body.durationSec : null,
     morningIntention,
   })
   await appendCheckIn(checkIn, storageOptions)
 
+  const analytics = getPostHogServerClient()
+  const analyticsContext = postHogRequestContext(
+    request,
+    session.userId ?? "anonymous-server-check-in"
+  )
+  analytics?.capture({
+    distinctId: analyticsContext.distinctId,
+    event: "voice_check_in_completed",
+    properties: {
+      kind: checkIn.kind,
+      authenticated: Boolean(session.userId),
+      transcript_length_bucket:
+        transcript.length < 100
+          ? "short"
+          : transcript.length < 500
+            ? "medium"
+            : "long",
+      ...(analyticsContext.sessionId
+        ? { $session_id: analyticsContext.sessionId }
+        : {}),
+    },
+  })
+
   const morning = records
-    .filter((record) => record.kind === "morning" && record.dayKey === checkIn.dayKey)
+    .filter(
+      (record) => record.kind === "morning" && record.dayKey === checkIn.dayKey
+    )
     .at(-1)
 
   return NextResponse.json({
