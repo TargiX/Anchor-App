@@ -55,6 +55,7 @@ function Composer({
   })
   const [note, setNote] = useState(initial?.note ?? "")
   const [nextStep, setNextStep] = useState(initial?.nextStep ?? "")
+  const [stepExpanded, setStepExpanded] = useState(Boolean(initial?.nextStep))
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
 
@@ -144,7 +145,7 @@ function Composer({
           <p id="note-hint" className="mt-1 text-sm text-muted-foreground">
             {reviewPeriod
               ? "What supported you? What would you like to change?"
-              : "A good moment, a difficult feeling, an idea. There’s room for all of it."}
+              : "A moment, a feeling, an idea."}
           </p>
           <textarea
             id="checkin-note"
@@ -166,41 +167,6 @@ function Composer({
             }
             className="mt-3 w-full resize-y rounded-xl border border-border bg-background p-3 text-base leading-7 outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
-          <DictationControl
-            note={note}
-            limit={noteLimit}
-            disabled={!ready || saving || retryOnly}
-            onBusy={setVoiceBusy}
-            onInsert={(value) => {
-              remember(value, nextStep)
-              setNote(value)
-              setMessage("")
-            }}
-          />
-        </div>
-        <div>
-          <label htmlFor="checkin-next" className="block font-medium">
-            One small next step{" "}
-            <span className="font-normal text-muted-foreground">
-              (optional)
-            </span>
-          </label>
-          <input
-            id="checkin-next"
-            disabled={saving || voiceBusy || retryOnly}
-            value={nextStep}
-            onChange={(event) => {
-              remember(note, event.target.value)
-              setNextStep(event.target.value)
-            }}
-            maxLength={LIMITS.intentionMax}
-            placeholder="Open the document. Or take a break."
-            className="mt-3 min-h-12 w-full rounded-xl border border-border bg-background p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
-          <p className="mt-2 text-xs leading-5 text-muted-foreground">
-            A step here updates today’s anchor; leave it empty to keep the
-            current one.
-          </p>
         </div>
         {error && (
           <p role="alert" className="text-sm text-destructive">
@@ -215,6 +181,60 @@ function Composer({
           {saving ? "Saving…" : "Save check-in"}{" "}
           <ArrowRight className="size-4" />
         </Button>
+        <details
+          className="group border-t border-border pt-2"
+          onToggle={(event) => {
+            if (voiceBusy) event.currentTarget.open = true
+          }}
+        >
+          <summary className="min-h-11 cursor-pointer py-3 text-sm text-primary">
+            Use dictation
+          </summary>
+          <DictationControl
+            note={note}
+            limit={noteLimit}
+            disabled={!ready || saving || retryOnly}
+            onBusy={setVoiceBusy}
+            onInsert={(value) => {
+              remember(value, nextStep)
+              setNote(value)
+              setMessage("")
+            }}
+          />
+        </details>
+        <details
+          open={stepExpanded}
+          onToggle={(event) => setStepExpanded(event.currentTarget.open)}
+          className="border-t border-border pt-2"
+        >
+          <summary className="min-h-11 cursor-pointer py-3 text-sm text-primary">
+            Add a next step (optional)
+          </summary>
+          <div>
+            <label htmlFor="checkin-next" className="block font-medium">
+              One small next step{" "}
+              <span className="font-normal text-muted-foreground">
+                (optional)
+              </span>
+            </label>
+            <input
+              id="checkin-next"
+              disabled={saving || voiceBusy || retryOnly}
+              value={nextStep}
+              onChange={(event) => {
+                remember(note, event.target.value)
+                setNextStep(event.target.value)
+              }}
+              maxLength={LIMITS.intentionMax}
+              placeholder="Open the document. Or take a break."
+              className="mt-3 min-h-12 w-full rounded-xl border border-border bg-background p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">
+              A step here updates today’s anchor; leave it empty to keep the
+              current one.
+            </p>
+          </div>
+        </details>
         <p className="text-xs leading-5 text-muted-foreground">
           {signedIn
             ? "Drafts stay on this device. Saved notes can sync with your account."

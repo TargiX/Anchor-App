@@ -8,6 +8,8 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react"
+import { DropdownMenu } from "radix-ui"
+import { MoreHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   deleteJournalText,
@@ -236,29 +238,47 @@ function NoteEditor({
               Next step: {text.nextStep}
             </p>
           )}
-          <div className="flex gap-3">
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setDraft(text)
-                setBaseline(text)
-                setEditing(true)
-                setConfirmDelete(false)
-                setError("")
-              }}
-            >
-              Edit note
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setBaseline(text)
-                setConfirmDelete(true)
-              }}
-            >
-              Delete note
-            </Button>
-          </div>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Note actions"
+                className="min-h-11 min-w-11"
+              >
+                <MoreHorizontal className="size-5" />
+              </Button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content
+                align="end"
+                sideOffset={6}
+                className="z-[60] min-w-44 rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-lg"
+              >
+                <DropdownMenu.Item
+                  className="flex min-h-11 cursor-pointer items-center rounded-lg px-3 text-sm outline-none focus:bg-muted"
+                  onSelect={() => {
+                    setDraft(text)
+                    setBaseline(text)
+                    setEditing(true)
+                    setConfirmDelete(false)
+                    setError("")
+                  }}
+                >
+                  Edit note
+                </DropdownMenu.Item>
+                <DropdownMenu.Item
+                  className="flex min-h-11 cursor-pointer items-center rounded-lg px-3 text-sm text-destructive outline-none focus:bg-muted"
+                  onSelect={() => {
+                    setBaseline(text)
+                    setConfirmDelete(true)
+                  }}
+                >
+                  Delete note
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
         </>
       )}
       {confirmDelete && (

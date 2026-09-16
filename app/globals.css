@@ -1386,3 +1386,14 @@
     animation: none;
   }
 }
+
+/* Keep scrolling content out of the native status bar without intercepting taps. */
+body.native-app::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  background: var(--background);
+  z-index: 100;
+  pointer-events: none;
+}
