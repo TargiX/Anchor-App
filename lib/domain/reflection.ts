@@ -116,7 +116,7 @@ export function moodDirection(
   return "steady"
 }
 
-/** How many of the last `days` were active (either ritual done), and of how many. */
+/** How many days included a quick check-in or completed ritual, and of how many. */
 export function activeDays(
   entries: Record<string, DayEntry>,
   todayKey: string = getTodayKey(),
@@ -125,7 +125,8 @@ export function activeDays(
   let count = 0
   for (let i = 0; i < days; i++) {
     const entry = entries[shiftKey(todayKey, -i)]
-    if (entry?.eveningMood && entry?.journal) count++
+    if (entry?.quickCheckIns?.length) count++
+    else if (entry?.eveningMood && entry?.journal) count++
     else if (entry?.morningMood && entry?.intention) count++
   }
   return { count, of: days }
