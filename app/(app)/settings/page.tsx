@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { Trash2, Plus, LogOut, SlidersHorizontal } from "lucide-react"
 import { AppScreenShell } from "@/components/app-screen-shell"
 import { Button } from "@/components/ui/button"
@@ -48,7 +49,7 @@ export default function SettingsPage() {
     <AppScreenShell
       title="Settings"
       eyebrow="Preferences"
-      description="Tune habits, reminders, and appearance without leaving the local-first rhythm."
+      description="Habits, reminders, and appearance — all kept on this device."
       backHref="/app"
       railTitle="Make Anchor fit the way you check in."
       railBody="Keep the ritual light: only the habits, notification times, and visual tone that help you return."
@@ -97,7 +98,7 @@ export default function SettingsPage() {
                     </span>
                     <button
                       onClick={() => removeHabit(habit.id)}
-                      className="text-muted-foreground transition-colors hover:text-destructive"
+                      className="flex min-h-11 min-w-11 items-center justify-center text-muted-foreground transition-colors hover:text-destructive"
                       aria-label={`Remove ${habit.name}`}
                     >
                       <Trash2 className="size-4" />
@@ -120,18 +121,20 @@ export default function SettingsPage() {
                 }}
                 onKeyDown={(e) => e.key === "Enter" && handleAddHabit()}
                 placeholder="Add a new habit..."
+                aria-label="New habit"
                 maxLength={LIMITS.habitNameMax}
                 aria-invalid={habitError ? true : undefined}
                 aria-describedby={habitError ? "habit-error" : undefined}
                 className={cn(
-                  "flex-1 rounded-xl border bg-card px-4 py-3",
-                  "text-sm text-foreground placeholder:text-muted-foreground",
+                  "min-w-0 flex-1 rounded-xl border bg-card px-4 py-3",
+                  "text-base text-foreground placeholder:text-muted-foreground",
                   "focus:ring-2 focus:ring-ring focus:outline-none",
                   habitError ? "border-destructive" : "border-border"
                 )}
               />
               <Button
                 onClick={handleAddHabit}
+                aria-label="Add habit"
                 className="rounded-xl px-4"
                 disabled={!newHabit.trim()}
               >
@@ -172,7 +175,9 @@ export default function SettingsPage() {
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {permission === "denied"
-                      ? "Re-enable notifications in your browser settings."
+                      ? nativeReminders
+                        ? "Re-enable notifications in iOS Settings → Notifications → Anchor."
+                        : "Re-enable notifications in your browser settings."
                       : permission === "unsupported"
                         ? "This browser can't show notifications."
                         : nativeReminders
@@ -213,10 +218,14 @@ export default function SettingsPage() {
               <Separator className="lg:col-span-2" />
 
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-muted-foreground">
+                <label
+                  htmlFor="morning-reminder"
+                  className="text-sm font-medium text-muted-foreground"
+                >
                   Morning ritual
                 </label>
                 <input
+                  id="morning-reminder"
                   type="time"
                   value={state.notificationMorning}
                   onChange={(e) =>
@@ -224,7 +233,7 @@ export default function SettingsPage() {
                   }
                   className={cn(
                     "rounded-xl border border-border bg-card px-4 py-3",
-                    "text-sm text-foreground",
+                    "text-base text-foreground",
                     "focus:ring-2 focus:ring-ring focus:outline-none"
                   )}
                 />
@@ -233,10 +242,14 @@ export default function SettingsPage() {
               <Separator className="lg:hidden" />
 
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-muted-foreground">
+                <label
+                  htmlFor="evening-reminder"
+                  className="text-sm font-medium text-muted-foreground"
+                >
                   Evening ritual
                 </label>
                 <input
+                  id="evening-reminder"
                   type="time"
                   value={state.notificationEvening}
                   onChange={(e) =>
@@ -244,7 +257,7 @@ export default function SettingsPage() {
                   }
                   className={cn(
                     "rounded-xl border border-border bg-card px-4 py-3",
-                    "text-sm text-foreground",
+                    "text-base text-foreground",
                     "focus:ring-2 focus:ring-ring focus:outline-none"
                   )}
                 />
@@ -265,8 +278,9 @@ export default function SettingsPage() {
                 <button
                   key={t}
                   onClick={() => setTheme(t)}
+                  aria-pressed={theme === t}
                   className={cn(
-                    "rounded-xl border px-4 py-3 text-left text-sm capitalize transition-all",
+                    "min-h-11 rounded-xl border px-4 py-3 text-left text-sm capitalize transition-all",
                     theme === t
                       ? "border-accent bg-accent/10 font-medium text-foreground"
                       : "border-border bg-card text-muted-foreground hover:border-primary/30"
@@ -281,6 +295,39 @@ export default function SettingsPage() {
       </Tabs>
 
       <JournalBackupControls />
+
+      {status === "anon" && (
+        <Link
+          href="/login"
+          className="inline-flex min-h-11 items-center underline"
+        >
+          Sign in for sync
+        </Link>
+      )}
+
+      <nav
+        aria-label="Help and privacy"
+        className="mt-6 flex flex-wrap gap-x-6"
+      >
+        <Link
+          href="/support"
+          className="inline-flex min-h-11 items-center underline"
+        >
+          Support
+        </Link>
+        <Link
+          href="/privacy"
+          className="inline-flex min-h-11 items-center underline"
+        >
+          Privacy Policy
+        </Link>
+        <Link
+          href="/terms"
+          className="inline-flex min-h-11 items-center underline"
+        >
+          Terms
+        </Link>
+      </nav>
 
       {status === "authed" && (
         <div className="mt-6 flex items-center justify-between rounded-2xl border border-border bg-card px-5 py-4">

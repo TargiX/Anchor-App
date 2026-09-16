@@ -10,6 +10,15 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Full-height screens must not extend past the safe-area padding applied to
+   body.native-app — otherwise content overflows the viewport by the inset and
+   pinned actions land below the fold. env() is 0 on the web. */
+@utility min-h-app {
+  min-height: calc(
+    100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
+  );
+}
+
 @theme inline {
   --font-heading: var(--font-display);
   --font-sans: var(--font-body);
@@ -161,6 +170,13 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  /* Capacitor uses an edge-to-edge WebView. Keep controls clear of the
+     status bar/notch and landscape sensor housing on every native route. */
+  body.native-app {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
   }
   html {
     @apply font-sans;
@@ -1370,4 +1386,3 @@
     animation: none;
   }
 }
-

@@ -5,13 +5,27 @@ import { Button } from "@/components/ui/button"
 
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto flex min-h-dvh max-w-2xl flex-col px-6 py-8 text-foreground">
-      <Link href="/" className="mb-8 inline-flex w-fit">
-        <Button variant="ghost" size="sm" className="rounded-xl">
+    <main className="mx-auto flex min-h-app max-w-2xl flex-col px-6 py-8 text-foreground">
+      <Button
+        asChild
+        variant="ghost"
+        size="sm"
+        className="mb-8 min-h-11 w-fit rounded-xl"
+      >
+        <Link
+          href={
+            process.env.NEXT_PUBLIC_NATIVE_BUILD === "true" ? "/settings" : "/"
+          }
+          aria-label={
+            process.env.NEXT_PUBLIC_NATIVE_BUILD === "true"
+              ? "Back to settings"
+              : "Back"
+          }
+        >
           <ArrowLeft className="size-4" />
           Back
-        </Button>
-      </Link>
+        </Link>
+      </Button>
 
       <div className="mb-8 flex items-center gap-3">
         <AnchorMotif size={32} className="text-primary" />
