@@ -123,3 +123,14 @@ Three previously noted limitations were fixed:
    - **Tooling caveat:** npm 10.9.8 (bundled with node 24) crashes re-resolving this dependency set (`Cannot read properties of null (reading 'edgesOut')` — an arborist bug in the vitest 4.1.11 peer graph). `npm install`/`npm ci` against the committed lockfile works fine on npm 10; for future dependency changes use npm 11+ (`npx npm@11 install`).
 
 The dependency-security finding recorded earlier in this document is therefore **resolved**, including for the web build's dependency tree (a web deployment still needs its own review before approval — see above).
+
+## TestFlight build (same day, evening)
+
+A signed Release archive of the current tree — all polish fixes, keyboard plugin, Next 16.3.4 — was built and uploaded to App Store Connect:
+
+- Archive: `.context/Anchor-TestFlight-v2.xcarchive` (`DEVELOPMENT_TEAM=DV3YJVS7GN`, `CURRENT_PROJECT_VERSION=4` passed as a build override; `MARKETING_VERSION` 1.0).
+- Upload: `xcodebuild -exportArchive` with `destination: upload`, authenticated via the ASC API key in `~/.appstoreconnect/` (options: `.context/testflight-upload-options.plist`).
+- App record `app.anchor.ritual` (ASC id 6812741930) was created manually in App Store Connect — the ASC API does not support creating apps (`POST /v1/apps` is unsupported regardless of key role).
+- Result: **Anchor 1.0 build 4, `READY_FOR_BETA_TESTING`** for internal testers. Export compliance was answered via `usesNonExemptEncryption=false` on the build (only standard HTTPS is used); `ITSAppUsesNonExemptEncryption` is now also declared in `Info.plist` so future builds skip the manual step.
+- External TestFlight groups would still need beta-app review; App Store submission was not performed.
+- This build has **not** run on the physical iPhone that previously stalled — that caveat still stands for any real release decision, though TestFlight makes the on-device check easy to perform.
