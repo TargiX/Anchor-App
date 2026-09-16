@@ -7,6 +7,12 @@ const config: CapacitorConfig = {
   webDir: "out",
   backgroundColor: "#f8f3ec",
   server: { appStartPath: "/app/" },
+  plugins: {
+    Keyboard: {
+      resize: "native",
+      resizeOnFullScreen: true,
+    },
+  },
 }
 
 export default config

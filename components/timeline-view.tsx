@@ -46,55 +46,27 @@ export function WeeklyReflection({
   return (
     <section
       aria-labelledby="weekly-reflection-title"
-      className="overflow-hidden rounded-[2rem] border border-border bg-card"
+      className="overflow-hidden rounded-2xl border border-border bg-card"
     >
-      <div className="border-b border-border px-5 py-5 sm:px-7 lg:flex lg:items-end lg:justify-between lg:gap-6 lg:px-8">
-        <div>
-          <p className="text-xs font-medium tracking-widest text-accent uppercase">
-            Seven-day view
-          </p>
-          <h2
-            id="weekly-reflection-title"
-            className="mt-2 font-[family-name:var(--font-display)] text-2xl font-medium tracking-tight text-foreground sm:text-3xl"
-          >
-            Weekly reflection
-          </h2>
-        </div>
-        <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground lg:mt-0 lg:text-right">
-          A factual mirror from your check-ins and rituals — no score attached.
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+        <h2
+          id="weekly-reflection-title"
+          className="font-[family-name:var(--font-display)] text-xl"
+        >
+          Your week
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">
+            {activity.count} of {activity.of}
+          </span>{" "}
+          days recorded
         </p>
       </div>
-
-      <div className="grid gap-7 px-5 py-6 sm:px-7 md:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)] md:gap-0 lg:px-8 lg:py-8">
-        <div className="md:pr-8">
-          <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
-            Active days
-          </p>
-          {activity.count > 0 ? (
-            <p className="mt-2 flex items-baseline gap-2 text-foreground">
-              <span className="font-[family-name:var(--font-display)] text-6xl leading-none font-medium tracking-[-0.06em] sm:text-7xl">
-                {activity.count}
-              </span>
-              <span className="text-base text-muted-foreground">
-                of {activity.of}
-              </span>
-            </p>
-          ) : (
-            <p className="mt-3 font-[family-name:var(--font-display)] text-xl leading-7 text-foreground">
-              Still gathering
-            </p>
-          )}
-          <p className="mt-3 max-w-xs text-sm leading-6 text-muted-foreground">
-            {activity.count > 0
-              ? "Days with a check-in or completed ritual."
-              : "Write a note or complete a ritual to start gathering your week."}
-          </p>
-        </div>
-
+      <div className="px-5 pb-4">
         {hasSupportingMetrics ? (
-          <dl className="grid min-w-0 border-t border-border pt-2 md:border-t-0 md:border-l md:pt-0 md:pl-8 lg:grid-cols-3 lg:divide-x lg:divide-border lg:pl-0">
+          <dl className="grid min-w-0 grid-cols-2 gap-4 border-t border-border pt-4 sm:grid-cols-3">
             {mood !== null ? (
-              <div className="border-t border-border py-4 first:border-t-0 first:pt-0 lg:border-t-0 lg:px-6 lg:py-0 lg:first:pl-8">
+              <div className="min-w-0">
                 <dt className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
                   Mood direction
                 </dt>
@@ -104,7 +76,7 @@ export function WeeklyReflection({
               </div>
             ) : null}
             {sleep !== null ? (
-              <div className="border-t border-border py-4 first:border-t-0 first:pt-0 lg:border-t-0 lg:px-6 lg:py-0 lg:first:pl-8">
+              <div className="min-w-0">
                 <dt className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
                   Average sleep
                 </dt>
@@ -114,7 +86,7 @@ export function WeeklyReflection({
               </div>
             ) : null}
             {topHabit !== null ? (
-              <div className="min-w-0 border-t border-border py-4 first:border-t-0 first:pt-0 last:pb-0 lg:border-t-0 lg:px-6 lg:py-0 lg:first:pl-8 lg:last:pr-0">
+              <div className="min-w-0">
                 <dt className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
                   Most repeated
                 </dt>
@@ -128,14 +100,18 @@ export function WeeklyReflection({
             ) : null}
           </dl>
         ) : (
-          <p className="border-t border-border pt-5 text-sm leading-6 text-muted-foreground md:border-t-0 md:border-l md:pt-2 md:pl-8">
-            Mood, sleep, and habit patterns will appear here when they have
-            recorded data.
+          <p className="text-sm leading-6 text-muted-foreground">
+            Your notes are gathered below. Mood and sleep appear when recorded.
           </p>
         )}
       </div>
       {trend.some((point) => point.mood || point.sleepHours !== undefined) ? (
-        <WeeklyTrendChart trend={trend} />
+        <details className="border-t border-border">
+          <summary className="min-h-11 cursor-pointer px-5 py-3 text-sm text-primary">
+            Mood and sleep trends
+          </summary>
+          <WeeklyTrendChart trend={trend} />
+        </details>
       ) : null}
     </section>
   )
@@ -418,7 +394,8 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
           <div className="flex items-center gap-1">
             <div className="size-1.5 rounded-full bg-accent" />
             <span className="text-xs text-muted-foreground lg:text-sm">
-              {entry.habitsCompleted.length} habits
+              {entry.habitsCompleted.length}{" "}
+              {entry.habitsCompleted.length === 1 ? "habit" : "habits"}
             </span>
           </div>
         )}

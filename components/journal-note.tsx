@@ -8,6 +8,8 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react"
+import { DropdownMenu } from "radix-ui"
+import { MoreHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   deleteJournalText,
@@ -92,7 +94,7 @@ function DeletionNotice({
   return (
     <aside
       role="status"
-      className="fixed inset-x-4 bottom-24 z-50 mx-auto max-w-md rounded-2xl border bg-background p-4 shadow-lg"
+      className="fixed inset-x-4 bottom-[max(7rem,calc(env(safe-area-inset-bottom,0px)+6rem))] z-50 mx-auto max-w-md rounded-2xl border bg-background p-4 shadow-lg"
     >
       <p>{messages[status]}</p>
       <div className="mt-2 flex flex-wrap gap-3">
@@ -228,7 +230,7 @@ function NoteEditor({
         </>
       ) : (
         <>
-          <p className="text-sm leading-6 [overflow-wrap:anywhere] whitespace-pre-wrap">
+          <p className="text-base leading-7 [overflow-wrap:anywhere] whitespace-pre-wrap">
             {text.note}
           </p>
           {text.nextStep && (
@@ -236,29 +238,47 @@ function NoteEditor({
               Next step: {text.nextStep}
             </p>
           )}
-          <div className="flex gap-3">
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setDraft(text)
-                setBaseline(text)
-                setEditing(true)
-                setConfirmDelete(false)
-                setError("")
-              }}
-            >
-              Edit note
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setBaseline(text)
-                setConfirmDelete(true)
-              }}
-            >
-              Delete note
-            </Button>
-          </div>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Note actions"
+                className="min-h-11 min-w-11"
+              >
+                <MoreHorizontal className="size-5" />
+              </Button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content
+                align="end"
+                sideOffset={6}
+                className="z-[60] min-w-44 rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-lg"
+              >
+                <DropdownMenu.Item
+                  className="flex min-h-11 cursor-pointer items-center rounded-lg px-3 text-sm outline-none focus:bg-muted"
+                  onSelect={() => {
+                    setDraft(text)
+                    setBaseline(text)
+                    setEditing(true)
+                    setConfirmDelete(false)
+                    setError("")
+                  }}
+                >
+                  Edit note
+                </DropdownMenu.Item>
+                <DropdownMenu.Item
+                  className="flex min-h-11 cursor-pointer items-center rounded-lg px-3 text-sm text-destructive outline-none focus:bg-muted"
+                  onSelect={() => {
+                    setBaseline(text)
+                    setConfirmDelete(true)
+                  }}
+                >
+                  Delete note
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
         </>
       )}
       {confirmDelete && (

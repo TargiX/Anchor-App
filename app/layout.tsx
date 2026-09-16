@@ -42,6 +42,7 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
 }
 
 export default function RootLayout({
@@ -59,7 +60,12 @@ export default function RootLayout({
         body.variable
       )}
     >
-      <body className="font-sans">
+      <body
+        className={cn(
+          "font-sans",
+          process.env.NEXT_PUBLIC_NATIVE_BUILD === "true" && "native-app"
+        )}
+      >
         <ThemeProvider>
           <DeviceStorageProvider>
             <AuthProvider>

@@ -34,3 +34,7 @@ runs solo (no concurrent store edits). See ROADMAP "Workstreams".
 `dev` · `build` · `start` · `test` / `test:watch` · `typecheck` · `lint` ·
 `build:native` (static export for Capacitor) · `cap:sync` · `desktop:dev` ·
 `mobile:add:ios|android`.
+
+**Dependency changes:** npm 10.x crashes re-resolving this tree
+(`edgesOut` arborist bug). `npm install`/`npm ci` on the committed lockfile
+works fine; to add/upgrade packages use `npx npm@11 install ...` instead.

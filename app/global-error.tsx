@@ -23,7 +23,8 @@ export default function GlobalError({
       <body
         style={{
           margin: 0,
-          minHeight: "100dvh",
+          minHeight:
+            "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
