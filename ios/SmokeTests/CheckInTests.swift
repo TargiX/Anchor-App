@@ -2,6 +2,21 @@ import XCTest
 
 /// Runs against the already installed native app, with its real WKWebView storage.
 final class CheckInTests: XCTestCase {
+    func testInstalledReleaseOpensJournal() {
+        let app = XCUIApplication(bundleIdentifier: "app.anchor.ritual")
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.links["Journal"].waitForExistence(timeout: 15), app.debugDescription)
+        XCTAssertTrue(app.textViews.firstMatch.exists, app.debugDescription)
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(app.links["Journal"].waitForExistence(timeout: 10))
+        app.links["Journal"].tap()
+        XCTAssertTrue(app.links["Today"].waitForExistence(timeout: 10))
+        app.links["Today"].tap()
+        XCTAssertTrue(app.textViews.firstMatch.waitForExistence(timeout: 10))
+    }
+
     func testDraftThenEditDeleteAndUndo() {
         continueAfterFailure = false
         let app = XCUIApplication(bundleIdentifier: "app.anchor.ritual")
