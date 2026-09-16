@@ -1,6 +1,6 @@
 "use client"
 
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { AnchorMotif } from "@/components/anchor-motif"
 import { cn } from "@/lib/utils"
 
@@ -31,6 +31,12 @@ const variants = {
   },
 }
 
+const reducedVariants = {
+  enter: { opacity: 0 },
+  center: { opacity: 1 },
+  exit: { opacity: 0 },
+}
+
 export function RitualShell({
   children,
   step,
@@ -39,11 +45,12 @@ export function RitualShell({
   description = "Move through one quiet step at a time.",
   className,
 }: RitualShellProps) {
+  const shouldReduceMotion = useReducedMotion()
   const stepLabel = `${Math.min(step + 1, totalSteps)} of ${totalSteps}`
 
   return (
-    <div className={cn("ritual-atmosphere min-h-dvh px-6 lg:px-10 lg:py-10", className)}>
-      <div className="mx-auto flex min-h-dvh max-w-md flex-col lg:grid lg:min-h-[calc(100dvh-5rem)] lg:max-w-6xl lg:grid-cols-[320px_minmax(0,1fr)] lg:items-stretch lg:gap-12 xl:grid-cols-[360px_minmax(0,1fr)]">
+    <div className={cn("ritual-atmosphere min-h-app px-6 lg:px-10 lg:py-10", className)}>
+      <div className="mx-auto flex min-h-app max-w-md flex-col lg:grid lg:min-h-[calc(100dvh-5rem)] lg:max-w-6xl lg:grid-cols-[320px_minmax(0,1fr)] lg:items-stretch lg:gap-12 xl:grid-cols-[360px_minmax(0,1fr)]">
         <aside className="hidden border-r border-border/70 pr-10 lg:flex lg:flex-col lg:justify-between">
           <div>
             <AnchorMotif size={220} animate className="-ml-8 text-primary opacity-75" />
@@ -58,11 +65,11 @@ export function RitualShell({
             </p>
           </div>
           <p className="pb-3 font-[family-name:var(--font-display)] text-sm leading-7 text-muted-foreground italic">
-            Anchor is local-first. Your ritual stays with you.
+            Everything you record stays on this device.
           </p>
         </aside>
 
-        <main className="flex min-h-dvh flex-col lg:min-h-0">
+        <main className="flex min-h-app flex-col lg:min-h-0">
           {/* Progress dots */}
           <div className="flex items-center justify-center gap-2 pt-8 pb-6 lg:pt-3 lg:pb-7">
             {Array.from({ length: totalSteps }).map((_, i) => (
@@ -84,12 +91,12 @@ export function RitualShell({
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
-              variants={variants}
+              variants={shouldReduceMotion ? reducedVariants : variants}
               initial="enter"
               animate="center"
               exit="exit"
               transition={{
-                duration: 0.4,
+                duration: shouldReduceMotion ? 0.15 : 0.4,
                 ease: [0.25, 0.46, 0.45, 0.94],
               }}
               className="flex flex-1 flex-col lg:min-h-[640px] lg:rounded-[2rem] lg:border lg:border-border/80 lg:bg-card/55 lg:px-10 lg:py-8 lg:shadow-sm"

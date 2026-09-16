@@ -91,7 +91,7 @@ export function JournalBackupControls({
     >
       <h2 className="text-lg font-medium">Journal backups</h2>
       <p className="text-sm text-muted-foreground">
-        A device backup includes all journals stored on this iPhone, including
+        A device backup includes all journals stored on this device, including
         account journals. Exported files are not encrypted. Keep them somewhere
         private. Face ID or your device passcode protects these actions.
       </p>

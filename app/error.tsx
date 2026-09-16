@@ -23,7 +23,7 @@ export default function Error({
   }, [error])
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6 text-center">
+    <div className="flex min-h-app flex-col items-center justify-center gap-6 px-6 text-center">
       <AnchorMotif size={96} className="text-primary opacity-80" />
       <div className="space-y-2">
         <p className="text-xs uppercase tracking-widest text-muted-foreground">

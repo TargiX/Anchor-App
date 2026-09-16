@@ -418,7 +418,8 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
           <div className="flex items-center gap-1">
             <div className="size-1.5 rounded-full bg-accent" />
             <span className="text-xs text-muted-foreground lg:text-sm">
-              {entry.habitsCompleted.length} habits
+              {entry.habitsCompleted.length}{" "}
+              {entry.habitsCompleted.length === 1 ? "habit" : "habits"}
             </span>
           </div>
         )}

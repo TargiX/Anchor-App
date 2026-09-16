@@ -20,7 +20,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
 
   if (status === "loading" || status === "anon") {
     return (
-      <div className="flex min-h-dvh items-center justify-center">
+      <div className="flex min-h-app items-center justify-center">
         <AnchorMotif size={88} className="animate-pulse text-primary opacity-60" />
       </div>
     )

@@ -5,7 +5,7 @@ import { RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AnchorMotif } from "@/components/anchor-motif"
 import { cn } from "@/lib/utils"
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 import { getGreeting } from "@/lib/time/context"
 import { updateEntry } from "@/lib/store/actions"
 import type { DayKey } from "@/lib/domain/entry"
@@ -24,6 +24,7 @@ const AFFIRMATIONS = [
 interface StepAffirmationProps {
   entryKey: DayKey
   onNext: () => void
+  onBack: () => void
   userName?: string
 }
 
@@ -38,12 +39,14 @@ function getDate() {
 export function StepAffirmation({
   entryKey,
   onNext,
+  onBack,
   userName,
 }: StepAffirmationProps) {
   const [index, setIndex] = useState(0)
   const [dateLabel, setDateLabel] = useState("Today")
   const [greeting, setGreeting] = useState(getGreeting(12))
   const [spinning, setSpinning] = useState(false)
+  const shouldReduceMotion = useReducedMotion()
 
   /* eslint-disable react-hooks/set-state-in-effect -- hydration guard: client-only date and random affirmation must not affect the first client render */
   useEffect(() => {
@@ -79,50 +82,58 @@ export function StepAffirmation({
         </h1>
       </div>
 
-      {/* Brand motif */}
-      <div className="flex justify-center">
-        <AnchorMotif size={140} animate className="text-primary opacity-70 lg:hidden" />
-        <AnchorMotif
-          size={180}
-          animate
-          className="hidden text-primary opacity-70 lg:block"
-        />
-      </div>
-
-      {/* Affirmation card */}
-      <div className="relative rounded-2xl border border-border bg-card px-6 py-7">
-        <p className="mb-4 text-xs font-medium tracking-widest text-muted-foreground uppercase">
-          Today&apos;s affirmation
-        </p>
-        <motion.p
-          key={index}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
-          className="font-[family-name:var(--font-display)] text-xl leading-relaxed text-balance text-foreground"
-        >
-          &ldquo;{AFFIRMATIONS[index]}&rdquo;
-        </motion.p>
-        <button
-          onClick={regenerate}
-          className="mt-5 flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          aria-label="Generate another affirmation"
-        >
-          <RefreshCw
-            className={cn(
-              "size-3.5 transition-transform duration-500",
-              spinning && "rotate-180"
-            )}
+      {/* Brand motif + affirmation, centered in the space the CTA leaves open */}
+      <div className="flex flex-1 flex-col justify-center gap-8">
+        <div className="flex justify-center">
+          <AnchorMotif size={140} animate className="text-primary opacity-70 lg:hidden" />
+          <AnchorMotif
+            size={180}
+            animate
+            className="hidden text-primary opacity-70 lg:block"
           />
-          another one
-        </button>
+        </div>
+
+        <div className="relative rounded-2xl border border-border bg-card px-6 py-7">
+          <p className="mb-4 text-xs font-medium tracking-widest text-muted-foreground uppercase">
+            Today&apos;s affirmation
+          </p>
+          <motion.p
+            key={index}
+            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: shouldReduceMotion ? 0.15 : 0.35 }}
+            className="font-[family-name:var(--font-display)] text-xl leading-relaxed text-balance text-foreground"
+          >
+            &ldquo;{AFFIRMATIONS[index]}&rdquo;
+          </motion.p>
+          <button
+            onClick={regenerate}
+            className="mt-3 -ml-2 flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="Generate another affirmation"
+          >
+            <RefreshCw
+              className={cn(
+                "size-3.5 transition-transform duration-500",
+                spinning && "rotate-180"
+              )}
+            />
+            another one
+          </button>
+        </div>
       </div>
 
       {/* CTA */}
-      <div className="mt-auto pb-10">
+      <div className="mt-auto flex gap-3 pb-10">
+        <Button
+          variant="outline"
+          onClick={onBack}
+          className="h-14 flex-none rounded-2xl px-6"
+        >
+          Back
+        </Button>
         <Button
           onClick={beginRitual}
-          className="h-14 w-full rounded-2xl text-base font-medium"
+          className="h-14 flex-1 rounded-2xl text-base font-medium"
         >
           Begin the ritual
         </Button>

@@ -177,7 +177,7 @@ export function AnchorVoiceCheckInMvp() {
   }
 
   return (
-    <main className="min-h-dvh px-5 py-7 lg:px-10 lg:py-10">
+    <main className="min-h-app px-5 py-7 lg:px-10 lg:py-10">
       <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <section className="rounded-[2rem] border border-border bg-card/70 p-5 shadow-sm lg:p-8">
           <div className="mb-7 flex items-start justify-between gap-4">

@@ -92,7 +92,7 @@ function DeletionNotice({
   return (
     <aside
       role="status"
-      className="fixed inset-x-4 bottom-24 z-50 mx-auto max-w-md rounded-2xl border bg-background p-4 shadow-lg"
+      className="fixed inset-x-4 bottom-[max(7rem,calc(env(safe-area-inset-bottom,0px)+6rem))] z-50 mx-auto max-w-md rounded-2xl border bg-background p-4 shadow-lg"
     >
       <p>{messages[status]}</p>
       <div className="mt-2 flex flex-wrap gap-3">
@@ -228,7 +228,7 @@ function NoteEditor({
         </>
       ) : (
         <>
-          <p className="text-sm leading-6 [overflow-wrap:anywhere] whitespace-pre-wrap">
+          <p className="text-base leading-7 [overflow-wrap:anywhere] whitespace-pre-wrap">
             {text.note}
           </p>
           {text.nextStep && (

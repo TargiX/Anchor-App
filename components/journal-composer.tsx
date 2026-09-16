@@ -133,7 +133,7 @@ function Composer({
       <form
         id="journal-composer"
         onSubmit={save}
-        className="space-y-5 rounded-3xl border border-border bg-card p-5 sm:p-7"
+        className="space-y-4 rounded-2xl border border-border bg-card p-5"
       >
         <div>
           <label htmlFor="checkin-note" className="block font-medium">
@@ -157,7 +157,7 @@ function Composer({
             disabled={saving || voiceBusy || retryOnly}
             required
             maxLength={noteLimit}
-            rows={4}
+            rows={3}
             aria-describedby="note-hint"
             placeholder={
               reviewPeriod
@@ -198,7 +198,7 @@ function Composer({
             className="mt-3 min-h-12 w-full rounded-xl border border-border bg-background p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           <p className="mt-2 text-xs leading-5 text-muted-foreground">
-            Add a step to update today’s anchor, or leave it empty to keep the
+            A step here updates today’s anchor; leave it empty to keep the
             current one.
           </p>
         </div>
@@ -217,8 +217,8 @@ function Composer({
         </Button>
         <p className="text-xs leading-5 text-muted-foreground">
           {signedIn
-            ? "Drafts stay on this device. Saved entries can sync with your account."
-            : "Your draft stays on this device when you leave. Tap Save to add it to your journal."}
+            ? "Drafts stay on this device. Saved notes can sync with your account."
+            : "Your draft stays on this device until you save."}
         </p>
       </form>
       <p

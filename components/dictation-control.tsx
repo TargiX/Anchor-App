@@ -107,10 +107,7 @@ function NativeDictationControl({
   }, [busy, phase, onBusy])
   const combined = appendDictation(note, draft, limit)
   return (
-    <section
-      aria-label="Voice draft"
-      className="mt-3 rounded-xl border border-border p-3"
-    >
+    <section aria-label="Voice draft" className="mt-1">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <label className="text-xs text-muted-foreground">
           Dictation language

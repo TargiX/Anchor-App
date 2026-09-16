@@ -32,8 +32,8 @@ export function AppScreenShell({
   contentClassName,
 }: AppScreenShellProps) {
   return (
-    <main className={cn("min-h-dvh px-6 py-8 lg:px-10 lg:py-10", className)}>
-      <div className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-md flex-col lg:grid lg:max-w-6xl lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-12 xl:grid-cols-[340px_minmax(0,1fr)]">
+    <main className={cn("min-h-app px-6 py-8 lg:px-10 lg:py-10", className)}>
+      <div className="mx-auto flex min-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-4rem)] max-w-md flex-col lg:grid lg:max-w-6xl lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-12 xl:grid-cols-[340px_minmax(0,1fr)]">
         <aside className="hidden border-r border-border/70 pr-10 lg:flex lg:flex-col lg:justify-between">
           <div>
             <AnchorMotif size={188} animate className="-ml-6 text-primary opacity-75" />

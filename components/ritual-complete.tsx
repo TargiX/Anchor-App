@@ -1,6 +1,6 @@
 "use client"
 
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 import { Flame } from "lucide-react"
 import { AnchorMotif } from "@/components/anchor-motif"
 import { Button } from "@/components/ui/button"
@@ -29,13 +29,17 @@ const COPY = {
 export function RitualComplete({ kind, onDone }: RitualCompleteProps) {
   const streak = useStreak()
   const copy = COPY[kind]
+  const shouldReduceMotion = useReducedMotion()
+  const drift = shouldReduceMotion
+    ? { opacity: 0 }
+    : { opacity: 0, y: 10 }
 
   return (
-    <div className="ritual-atmosphere flex min-h-dvh flex-col items-center justify-center px-6 text-center">
+    <div className="ritual-atmosphere flex min-h-app flex-col items-center justify-center px-6 text-center">
       <motion.div
-        initial={{ opacity: 0, scale: 1.14 }}
+        initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 1.14 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: shouldReduceMotion ? 0.4 : 1.1, ease: [0.16, 1, 0.3, 1] }}
         className="flex flex-col items-center"
       >
         {/* The anchor settling into place, then breathing */}
@@ -43,7 +47,7 @@ export function RitualComplete({ kind, onDone }: RitualCompleteProps) {
       </motion.div>
 
       <motion.p
-        initial={{ opacity: 0, y: 8 }}
+        initial={drift}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.35, duration: 0.6 }}
         className="mt-8 text-xs font-medium tracking-widest text-muted-foreground uppercase"
@@ -52,7 +56,7 @@ export function RitualComplete({ kind, onDone }: RitualCompleteProps) {
       </motion.p>
 
       <motion.h1
-        initial={{ opacity: 0, y: 10 }}
+        initial={drift}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.45, duration: 0.7 }}
         className="mt-3 max-w-sm font-[family-name:var(--font-display)] text-3xl leading-tight font-semibold text-balance text-foreground lg:text-4xl"
@@ -61,7 +65,7 @@ export function RitualComplete({ kind, onDone }: RitualCompleteProps) {
       </motion.h1>
 
       <motion.p
-        initial={{ opacity: 0, y: 10 }}
+        initial={drift}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.55, duration: 0.7 }}
         className="mt-4 max-w-xs text-sm leading-7 text-muted-foreground text-balance"
@@ -70,7 +74,7 @@ export function RitualComplete({ kind, onDone }: RitualCompleteProps) {
       </motion.p>
 
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={drift}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7, duration: 0.7 }}
         className="mt-7 flex items-center gap-1.5 rounded-full border border-border/70 bg-card/60 px-4 py-2"
@@ -82,7 +86,7 @@ export function RitualComplete({ kind, onDone }: RitualCompleteProps) {
       </motion.div>
 
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={drift}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.9, duration: 0.7 }}
         className="mt-10 w-full max-w-xs"

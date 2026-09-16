@@ -25,7 +25,7 @@ function Today({ ready, signedIn }: { ready: boolean; signedIn: boolean }) {
   const today = useTodayEntry()
 
   return (
-    <main className="mx-auto min-h-dvh max-w-2xl px-5 py-8 sm:px-8 sm:py-12">
+    <main className="mx-auto min-h-app max-w-2xl px-5 pt-6 pb-8 sm:px-8">
       <header className="flex items-center justify-between">
         <Link
           href="/app"
@@ -36,8 +36,8 @@ function Today({ ready, signedIn }: { ready: boolean; signedIn: boolean }) {
         </Link>
         <nav aria-label="Main navigation" className="flex gap-2">
           <Link
-            href={signedIn ? "/settings" : "/login"}
-            aria-label={signedIn ? "Settings" : "Sign in for sync"}
+            href="/settings"
+            aria-label="Settings"
             className="flex size-11 items-center justify-center rounded-xl hover:bg-muted"
           >
             <Settings className="size-5" />
@@ -45,19 +45,18 @@ function Today({ ready, signedIn }: { ready: boolean; signedIn: boolean }) {
         </nav>
       </header>
 
-      <section className="pt-12 pb-8">
+      <section className="pt-8 pb-6">
         <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
           Today
         </p>
-        <h1 className="mt-3 font-[family-name:var(--font-display)] text-4xl sm:text-5xl">
+        <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl sm:text-4xl">
           A day of your own.
         </h1>
-        <p className="mt-3 text-base leading-7 text-muted-foreground">
-          Notice how you feel, make room for what matters, and keep a little of
-          today.
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          Notice how you feel, and keep a little of today.
         </p>
         {signedIn && (
-          <div className="mt-3">
+          <div className="mt-2">
             <SyncStatusIndicator />
           </div>
         )}
@@ -66,26 +65,28 @@ function Today({ ready, signedIn }: { ready: boolean; signedIn: boolean }) {
       {today.intention && (
         <section
           aria-label="Your current anchor"
-          className="mb-6 rounded-2xl border border-accent/30 bg-accent/5 p-5"
+          className="mb-5 flex items-center justify-between gap-4 rounded-2xl border border-accent/30 bg-accent/5 px-4 py-3"
         >
-          <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
-            Your anchor today
-          </p>
-          <p className="mt-2 font-[family-name:var(--font-display)] text-2xl [overflow-wrap:anywhere]">
-            {today.intention}
+          <p className="min-w-0">
+            <span className="block text-xs font-medium tracking-widest text-muted-foreground uppercase">
+              Your anchor today
+            </span>
+            <span className="mt-1 block font-[family-name:var(--font-display)] text-lg [overflow-wrap:anywhere]">
+              {today.intention}
+            </span>
           </p>
           <Link
             href="/focus"
-            className="mt-4 inline-flex min-h-11 items-center gap-2 text-sm underline underline-offset-4"
+            className="inline-flex min-h-11 shrink-0 items-center gap-2 text-sm underline underline-offset-4"
           >
-            Take a moment to reset <ArrowRight className="size-4" />
+            Reset <ArrowRight className="size-4" />
           </Link>
         </section>
       )}
 
-      <DailyPaths entry={today} />
-
       <JournalComposer ready={ready} signedIn={signedIn} />
+
+      <DailyPaths entry={today} />
 
       {Boolean(today.quickCheckIns?.length) && (
         <section aria-label="Today's check-ins" className="mt-7">

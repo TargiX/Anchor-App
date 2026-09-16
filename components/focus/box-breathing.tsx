@@ -107,8 +107,8 @@ export function BoxBreathing() {
   }
 
   return (
-    <section className="flex flex-1 flex-col justify-center pb-8" aria-labelledby="box-breathing-title">
-      <div className="mx-auto flex w-full max-w-xl flex-col items-center rounded-[2rem] border border-border bg-card px-6 py-10 text-center shadow-sm sm:px-10 sm:py-12">
+    <section className="flex flex-1 flex-col justify-center pb-6" aria-labelledby="box-breathing-title">
+      <div className="mx-auto flex w-full max-w-xl flex-col items-center rounded-[2rem] border border-border bg-card px-6 py-6 text-center shadow-sm sm:px-10 sm:py-12">
         <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
           Box breathing
         </p>
@@ -122,7 +122,7 @@ export function BoxBreathing() {
           Choose a small container, then follow the shape: inhale, hold, exhale, hold. Each side lasts four counts.
         </p>
 
-        <div className="mt-7 w-full" aria-label="Focus reset length">
+        <div className="mt-5 w-full" aria-label="Focus reset length">
           <p className="mb-3 text-xs font-medium tracking-widest text-muted-foreground uppercase">
             Reset length
           </p>
@@ -150,18 +150,18 @@ export function BoxBreathing() {
           </div>
         </div>
 
-        <div className="mt-8 flex h-52 w-52 items-center justify-center rounded-full border border-primary/20 bg-primary/5 sm:h-60 sm:w-60">
+        <div className="mt-6 flex h-44 w-44 items-center justify-center rounded-full border border-primary/20 bg-primary/5 sm:h-60 sm:w-60">
           <div
             className={cn(
-              "flex h-40 w-40 items-center justify-center rounded-full bg-primary/10 transition-transform duration-1000 ease-in-out motion-reduce:transition-none sm:h-48 sm:w-48",
+              "flex h-32 w-32 items-center justify-center rounded-full bg-primary/10 transition-transform duration-1000 ease-in-out motion-reduce:transition-none sm:h-48 sm:w-48",
               phase.scale
             )}
           >
-            <AnchorMotif size={112} className="text-primary opacity-80 sm:size-32" />
+            <AnchorMotif size={96} className="text-primary opacity-80 sm:size-32" />
           </div>
         </div>
 
-        <div className="mt-9 min-h-20" role="status" aria-live="polite" aria-atomic="true">
+        <div className="mt-6 min-h-16" role="status" aria-live="polite" aria-atomic="true">
           <p className="font-[family-name:var(--font-display)] text-3xl font-medium text-foreground">
             {phase.label}
           </p>
@@ -171,7 +171,7 @@ export function BoxBreathing() {
         </div>
 
         <Button
-          className="mt-7 min-w-40 rounded-2xl px-8"
+          className="mt-6 min-w-40 rounded-2xl px-8"
           size="lg"
           onClick={toggleBreathing}
           aria-pressed={breathing.isRunning}
@@ -214,7 +214,7 @@ export function BoxBreathing() {
             </div>
           </section>
         ) : (
-          <p className="mt-5 text-xs text-muted-foreground">
+          <p className="mt-4 text-xs text-muted-foreground">
             {breathing.completedCycles === 0
               ? `Your ${selectedLength.label.toLowerCase()} reset begins when you are ready.`
               : `${breathing.completedCycles} ${breathing.completedCycles === 1 ? "round" : "rounds"} completed.`}

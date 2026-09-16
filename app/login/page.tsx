@@ -151,7 +151,7 @@ function LoginForm() {
   if (status === "loading") {
     return (
       <div
-        className="flex min-h-dvh items-center justify-center px-6"
+        className="flex min-h-app items-center justify-center px-6"
         aria-live="polite"
       >
         <div className="text-sm text-muted-foreground">
@@ -165,7 +165,7 @@ function LoginForm() {
   if (status === "authed" || status === "unconfigured") return null
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center px-6">
+    <div className="flex min-h-app flex-col items-center justify-center px-6">
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
