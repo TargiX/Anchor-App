@@ -172,7 +172,7 @@ export async function POST(request: Request) {
     request,
     session.userId ?? "anonymous-server-check-in"
   )
-  analytics?.capture({
+  await analytics?.captureImmediate({
     distinctId: analyticsContext.distinctId,
     event: "voice_check_in_completed",
     properties: {

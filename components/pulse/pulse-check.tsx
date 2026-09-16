@@ -75,7 +75,6 @@ export function PulseCheck() {
     }
 
     captureEvent("pulse_check_in_saved", {
-      response: selected,
       follows_focus_reset: returnedFromFocus,
       has_morning_intention: Boolean(nextStep),
     })

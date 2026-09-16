@@ -6,6 +6,7 @@ const host = process.env.NEXT_PUBLIC_POSTHOG_HOST
 if (token && host) {
   posthog.init(token, {
     api_host: host,
+    autocapture: false,
     defaults: "2026-01-30",
     capture_exceptions: true,
     capture_pageview: true,
