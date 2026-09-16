@@ -9,6 +9,7 @@ import { motion, useReducedMotion } from "framer-motion"
 import { getGreeting } from "@/lib/time/context"
 import { updateEntry } from "@/lib/store/actions"
 import type { DayKey } from "@/lib/domain/entry"
+import { captureEvent } from "@/lib/analytics/client"
 
 const AFFIRMATIONS = [
   "You are allowed to begin again, quietly and without apology.",
@@ -57,6 +58,7 @@ export function StepAffirmation({
   /* eslint-enable react-hooks/set-state-in-effect */
 
   function regenerate() {
+    captureEvent("affirmation_regenerated")
     setSpinning(true)
     setTimeout(() => {
       setIndex((prev) => (prev + 1) % AFFIRMATIONS.length)
@@ -66,6 +68,7 @@ export function StepAffirmation({
 
   function beginRitual() {
     updateEntry(entryKey, { affirmation: AFFIRMATIONS[index] })
+    captureEvent("morning_ritual_started")
     onNext()
   }
 

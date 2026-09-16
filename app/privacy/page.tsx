@@ -40,7 +40,7 @@ export default function PrivacyPage() {
       </div>
 
       <div className="space-y-6 text-sm leading-7 text-muted-foreground">
-        <p>Last updated: June 7, 2026</p>
+        <p>Last updated: August 23, 2026</p>
 
         <section className="space-y-2">
           <h2 className="text-base font-medium text-foreground">
@@ -93,10 +93,12 @@ export default function PrivacyPage() {
             Analytics and crash reporting
           </h2>
           <p>
-            This release does not require analytics or advertising tracking. If
-            crash reporting or product analytics are added later, they will be
-            configured to avoid selling personal data or tracking users across
-            apps and websites.
+            Anchor uses PostHog to understand page visits, account actions, and
+            whether core features are completed or fail. Analytics never include
+            journal text, intentions, voice transcripts, or the content of your
+            check-ins. Session replay is disabled. Anchor does not sell personal
+            data or use analytics to track you across unrelated apps and
+            websites.
           </p>
         </section>
 
