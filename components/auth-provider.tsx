@@ -8,6 +8,11 @@ import {
   supabaseUrl,
   isSupabaseConfigured,
 } from "@/lib/supabase/client"
+import {
+  captureEvent,
+  identifyUser,
+  resetAnalyticsUser,
+} from "@/lib/analytics/client"
 
 /**
  * Auth state machine:
@@ -51,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
       setStatus(session ? "authed" : "anon")
+      if (session?.user.id) identifyUser(session.user.id)
     })
 
     return () => sub.subscription.unsubscribe()
@@ -80,10 +86,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     googleEnabled,
     async signIn(email, password) {
       if (!supabase) return { error: "Accounts are not configured yet." }
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
+      if (!error && data.user) {
+        identifyUser(data.user.id)
+        captureEvent("account_signed_in", { method: "email" })
+      }
       return { error: error?.message ?? null }
     },
     async signInWithGoogle() {
@@ -93,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         provider: "google",
         options: redirectTo ? { redirectTo } : undefined,
       })
+      if (!error) captureEvent("account_oauth_started", { provider: "google" })
       return { error: error?.message ?? null }
     },
     async signUp(email, password) {
@@ -107,6 +118,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password,
         options: emailRedirectTo ? { emailRedirectTo } : undefined,
       })
+      if (!error && data.user) {
+        identifyUser(data.user.id)
+        captureEvent("account_signed_up", {
+          method: "email",
+          needs_confirmation: !data.session,
+        })
+      }
       // If email confirmation is on, there's no active session yet.
       return {
         error: error?.message ?? null,
@@ -124,7 +142,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: error?.message ?? null }
     },
     async signOut() {
+      captureEvent("account_signed_out")
       await supabase?.auth.signOut()
+      resetAnalyticsUser()
     },
   }
 

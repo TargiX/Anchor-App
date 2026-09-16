@@ -7,6 +7,7 @@ import { updateEntry } from "@/lib/store/actions"
 import { useEntry } from "@/hooks/use-store"
 import { motion } from "framer-motion"
 import { Pause, Play } from "lucide-react"
+import { captureEvent } from "@/lib/analytics/client"
 
 const DURATIONS = [2, 5, 10]
 
@@ -16,7 +17,11 @@ interface StepMeditationProps {
   onBack: () => void
 }
 
-export function StepMeditation({ entryKey, onNext, onBack }: StepMeditationProps) {
+export function StepMeditation({
+  entryKey,
+  onNext,
+  onBack,
+}: StepMeditationProps) {
   const today = useEntry(entryKey)
   // Defaults for first render; effect syncs the hydrated meditationMinutes
   // once useAppState finishes loading from storage. See step-sleep for the
@@ -60,11 +65,19 @@ export function StepMeditation({ entryKey, onNext, onBack }: StepMeditationProps
 
   function handleSkip() {
     updateEntry(entryKey, { meditationMinutes: 0 })
+    captureEvent("meditation_skipped")
     onNext()
   }
 
   function handleDone() {
-    if (selected) updateEntry(entryKey, { meditationMinutes: elapsed > 0 ? Math.ceil(elapsed / 60) : selected })
+    if (selected) {
+      const completedMinutes = elapsed > 0 ? Math.ceil(elapsed / 60) : selected
+      updateEntry(entryKey, { meditationMinutes: completedMinutes })
+      captureEvent("meditation_completed", {
+        selected_minutes: selected,
+        completed_minutes: completedMinutes,
+      })
+    }
     onNext()
   }
 
@@ -72,17 +85,18 @@ export function StepMeditation({ entryKey, onNext, onBack }: StepMeditationProps
     setSelected(mins)
     setElapsed(0)
     setRunning(false)
+    captureEvent("meditation_duration_selected", { minutes: mins })
   }
 
   const circumference = 2 * Math.PI * 52
 
   return (
-    <div className="flex flex-col flex-1 gap-8">
+    <div className="flex flex-1 flex-col gap-8">
       <div className="flex flex-col gap-2 pt-4">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
+        <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
           Stillness
         </p>
-        <h2 className="font-[family-name:var(--font-display)] text-3xl font-medium text-foreground text-balance leading-tight lg:text-4xl">
+        <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight font-medium text-balance text-foreground lg:text-4xl">
           Want to start with a moment of stillness?
         </h2>
       </div>
@@ -94,9 +108,11 @@ export function StepMeditation({ entryKey, onNext, onBack }: StepMeditationProps
             <button
               key={d}
               onClick={() => startTimer(d)}
-              className="flex-1 flex flex-col items-center gap-1 py-5 rounded-2xl border border-border bg-card hover:border-accent hover:bg-accent/5 transition-all"
+              className="flex flex-1 flex-col items-center gap-1 rounded-2xl border border-border bg-card py-5 transition-all hover:border-accent hover:bg-accent/5"
             >
-              <span className="font-[family-name:var(--font-display)] text-2xl font-medium text-foreground">{d}</span>
+              <span className="font-[family-name:var(--font-display)] text-2xl font-medium text-foreground">
+                {d}
+              </span>
               <span className="text-xs text-muted-foreground">min</span>
             </button>
           ))}
@@ -108,8 +124,21 @@ export function StepMeditation({ entryKey, onNext, onBack }: StepMeditationProps
         <div className="flex flex-col items-center gap-6">
           {/* Circular progress */}
           <div className="relative flex items-center justify-center">
-            <svg width="128" height="128" viewBox="0 0 128 128" className="-rotate-90">
-              <circle cx="64" cy="64" r="52" fill="none" stroke="currentColor" strokeWidth="2" className="text-border" />
+            <svg
+              width="128"
+              height="128"
+              viewBox="0 0 128 128"
+              className="-rotate-90"
+            >
+              <circle
+                cx="64"
+                cy="64"
+                r="52"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="text-border"
+              />
               <motion.circle
                 cx="64"
                 cy="64"
@@ -143,19 +172,27 @@ export function StepMeditation({ entryKey, onNext, onBack }: StepMeditationProps
             </motion.div>
           )}
 
-          <div className="flex gap-3 w-full">
+          <div className="flex w-full gap-3">
             <Button
               variant="outline"
               onClick={() => setRunning((r) => !r)}
-              className="flex-1 rounded-2xl h-12"
+              className="h-12 flex-1 rounded-2xl"
             >
-              {running ? <Pause className="size-4" /> : <Play className="size-4" />}
+              {running ? (
+                <Pause className="size-4" />
+              ) : (
+                <Play className="size-4" />
+              )}
               {running ? "Pause" : "Start"}
             </Button>
             <Button
               variant="outline"
-              onClick={() => { setSelected(null); setElapsed(0); setRunning(false) }}
-              className="rounded-2xl h-12 px-5"
+              onClick={() => {
+                setSelected(null)
+                setElapsed(0)
+                setRunning(false)
+              }}
+              className="h-12 rounded-2xl px-5"
             >
               Reset
             </Button>
@@ -164,20 +201,27 @@ export function StepMeditation({ entryKey, onNext, onBack }: StepMeditationProps
       )}
 
       {/* Nav */}
-      <div className="mt-auto pb-10 flex gap-3">
-        <Button variant="outline" onClick={onBack} className="flex-none rounded-2xl h-14 px-6">
+      <div className="mt-auto flex gap-3 pb-10">
+        <Button
+          variant="outline"
+          onClick={onBack}
+          className="h-14 flex-none rounded-2xl px-6"
+        >
           Back
         </Button>
         <Button
           variant="outline"
           onClick={handleSkip}
-          className="flex-none rounded-2xl h-14 px-5"
+          className="h-14 flex-none rounded-2xl px-5"
         >
           Skip
         </Button>
         <Button
           onClick={handleDone}
-          className={cn("flex-1 rounded-2xl h-14 text-base font-medium", !selected && "opacity-50")}
+          className={cn(
+            "h-14 flex-1 rounded-2xl text-base font-medium",
+            !selected && "opacity-50"
+          )}
           disabled={!selected}
         >
           Continue
