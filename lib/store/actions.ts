@@ -88,7 +88,9 @@ export function saveQuickCheckIn(
             : {}),
         },
       },
-      ...(reviewEnd.success && checkIn.nextStep
+      ...(reviewEnd.success &&
+      checkIn.nextStep &&
+      previous.weeklyDirection?.status !== "open"
         ? {
             weeklyDirection: {
               text: checkIn.nextStep,

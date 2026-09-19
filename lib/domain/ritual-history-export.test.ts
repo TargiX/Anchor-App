@@ -132,6 +132,32 @@ describe("createRitualHistoryExport", () => {
     expect(markdown).toContain("**Tomorrow's sleep window:** 22:30 · 8 hours")
   })
 
+  it("embeds an attached photo so the exported Markdown remains self-contained", () => {
+    const data = "/9j/2Q=="
+    const result = createRitualHistoryExport({
+      entries: {
+        "2026-07-19": {
+          date: "2026-07-19",
+          quickCheckIns: [
+            {
+              id: "b054f9f9-e276-43fe-9663-d7f0071aa431",
+              createdAt: "2026-07-19T08:00:00.000Z",
+              note: "A moment worth keeping",
+              nextStep: "",
+              photo: { mime: "image/jpeg", data },
+            },
+          ],
+        },
+      },
+      habits: [],
+      exportedOn: "2026-07-20",
+    })
+
+    expect(result?.markdown).toContain(
+      `![Photo attached to this note](data:image/jpeg;base64,${data})`
+    )
+  })
+
   it("keeps Markdown structure safe without exposing hidden habit identifiers", () => {
     const result = createRitualHistoryExport({
       entries: {

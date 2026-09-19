@@ -74,6 +74,7 @@ export function StepSleepTarget({
             <button
               key={t}
               onClick={() => setBedtime(t)}
+              aria-pressed={bedtime === t}
               className={`min-h-11 px-1 text-sm transition-colors ${
                 bedtime === t
                   ? "font-medium text-foreground"

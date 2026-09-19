@@ -202,7 +202,7 @@ function NoteEditor({
     setBusy(true)
     setError("")
     const identity = getStorageIdentity()
-    const saved = setJournalFavorite(target, baseline, !favorite)
+    const saved = setJournalFavorite(target, text, !favorite)
     const durable = saved && (await flushDeviceStorage())
     pending.current = false
     setBusy(false)

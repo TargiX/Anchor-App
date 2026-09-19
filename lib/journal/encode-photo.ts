@@ -95,6 +95,11 @@ export async function encodeJournalPhoto(file: Blob): Promise<EncodedPhoto> {
       ok: false,
       error: "That photo is too detailed to keep in the journal. Try another.",
     }
+  } catch {
+    return {
+      ok: false,
+      error: "This photo couldn’t be added. Try another image.",
+    }
   } finally {
     bitmap.close()
   }

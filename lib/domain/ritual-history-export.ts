@@ -1,5 +1,6 @@
 import type { DayEntry } from "./entry"
 import type { Habit } from "./habit"
+import { journalPhotoSrc } from "./photo"
 
 export interface RitualHistoryExportInput {
   entries: Record<string, DayEntry>
@@ -81,7 +82,11 @@ function entryMarkdown(entry: DayEntry, habits: Habit[]): string {
     if (checkIn.nextStep)
       sections.push(textSection("Next step", checkIn.nextStep))
     if (checkIn.favorite) sections.push("**Favorite memory**")
-    if (checkIn.photo) sections.push("**Photo attached**")
+    if (checkIn.photo) {
+      sections.push(
+        `![Photo attached to this note](${journalPhotoSrc(checkIn.photo)})`
+      )
+    }
   }
 
   if (entry.morningMood) {

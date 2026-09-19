@@ -57,6 +57,7 @@ export function StepSleep({ entryKey, onNext, onBack }: StepSleepProps) {
           <button
             key={opt.value}
             onClick={() => setQuality(opt.value)}
+            aria-pressed={quality === opt.value}
             className={cn(
               "flex min-h-11 flex-1 items-center justify-center py-2 text-sm transition-colors duration-200",
               quality === opt.value

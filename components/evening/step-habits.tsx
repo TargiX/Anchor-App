@@ -56,6 +56,7 @@ export function StepHabits({ entryKey, onNext, onBack }: StepHabitsProps) {
               <button
                 key={habit.id}
                 onClick={() => toggle(habit.id)}
+                aria-pressed={done}
                 className="flex min-h-12 items-center gap-3 py-2 text-left"
               >
                 <div

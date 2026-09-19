@@ -1,10 +1,13 @@
 import { z } from "zod"
 import { LIMITS } from "./validation"
 
-function decodedByteLength(data: string): number | null {
+const STRICT_BASE64 =
+  /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/
+
+function decodedPhotoBytes(data: string): Uint8Array | null {
+  if (!STRICT_BASE64.test(data)) return null
   try {
-    if (typeof Buffer !== "undefined") return Buffer.from(data, "base64").length
-    return atob(data).length
+    return Uint8Array.from(atob(data), (character) => character.charCodeAt(0))
   } catch {
     return null
   }
@@ -16,8 +19,14 @@ export const JournalPhotoSchema = z
     data: z.string().min(1).max(LIMITS.photoBase64Max),
   })
   .refine((photo) => {
-    const bytes = decodedByteLength(photo.data)
-    return bytes !== null && bytes > 0 && bytes <= LIMITS.photoMaxBytes
+    const bytes = decodedPhotoBytes(photo.data)
+    return (
+      bytes !== null &&
+      bytes.length <= LIMITS.photoMaxBytes &&
+      bytes[0] === 0xff &&
+      bytes[1] === 0xd8 &&
+      bytes[2] === 0xff
+    )
   })
 
 export type JournalPhoto = z.infer<typeof JournalPhotoSchema>

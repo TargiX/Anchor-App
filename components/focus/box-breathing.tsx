@@ -192,14 +192,16 @@ export function BoxBreathing() {
         </Button>
         {isComplete ? (
           <section className="mt-5 w-full" aria-label="Reset complete">
-            <p className="text-xs font-medium text-muted-foreground">
-              Ready to return
-            </p>
-            <p className="mt-2 text-sm leading-6 text-foreground">
-              {resetContext
-                ? `Your next small step: ${resetContext.nextStep}.`
-                : "You made space. Take your next smallest step."}
-            </p>
+            <div role="status" aria-live="polite" aria-atomic="true">
+              <p className="text-xs font-medium text-muted-foreground">
+                Ready to return
+              </p>
+              <p className="mt-2 text-sm leading-6 text-foreground">
+                {resetContext
+                  ? `Your next small step: ${resetContext.nextStep}.`
+                  : "You made space. Take your next smallest step."}
+              </p>
+            </div>
             <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5">
               <button
                 type="button"
