@@ -21,7 +21,7 @@ export function LandingMotion() {
         .filter(Boolean)
 
       gsap.from(cards, {
-        autoAlpha: 0,
+        opacity: 0,
         clipPath: "inset(16% 0% 0% 0% round 10px)",
         duration: 1.1,
         ease: "power3.out",
@@ -29,13 +29,13 @@ export function LandingMotion() {
         scrollTrigger: {
           trigger: ".landing-features",
           start: "top 68%",
-          toggleActions: "play none none reverse",
+          toggleActions: "play none none none",
         },
       })
 
       cardIcons.forEach((icon, index) => {
         gsap.from(icon, {
-          autoAlpha: 0,
+          opacity: 0,
           scale: 0.62,
           rotate: index % 2 === 0 ? -18 : 18,
           duration: 0.8,
@@ -44,7 +44,7 @@ export function LandingMotion() {
           scrollTrigger: {
             trigger: icon,
             start: "top 82%",
-            toggleActions: "play none none reverse",
+            toggleActions: "play none none none",
           },
         })
 
@@ -72,7 +72,7 @@ export function LandingMotion() {
       })
 
       gsap.from(".landing-platform-row", {
-        autoAlpha: 0,
+        opacity: 0,
         x: 56,
         duration: 0.95,
         ease: "power3.out",
@@ -80,24 +80,26 @@ export function LandingMotion() {
         scrollTrigger: {
           trigger: ".landing-platform-list",
           start: "top 74%",
-          toggleActions: "play none none reverse",
+          toggleActions: "play none none none",
         },
       })
 
-      gsap.utils.toArray<HTMLElement>(".landing-platform-row__icon").forEach((icon, index) => {
-        gsap.to(icon, {
-          rotate: index % 2 === 0 ? 8 : -8,
-          scale: 1.06,
-          duration: 1.9 + index * 0.15,
-          ease: "sine.inOut",
-          repeat: -1,
-          yoyo: true,
-          delay: index * 0.2,
+      gsap.utils
+        .toArray<HTMLElement>(".landing-platform-row__icon")
+        .forEach((icon, index) => {
+          gsap.to(icon, {
+            rotate: index % 2 === 0 ? 8 : -8,
+            scale: 1.06,
+            duration: 1.9 + index * 0.15,
+            ease: "sine.inOut",
+            repeat: -1,
+            yoyo: true,
+            delay: index * 0.2,
+          })
         })
-      })
 
       gsap.from(".landing-chip-list span", {
-        autoAlpha: 0,
+        opacity: 0,
         y: 26,
         scale: 0.92,
         clipPath: "inset(0% 50% 0% 50% round 999px)",
@@ -110,7 +112,7 @@ export function LandingMotion() {
         scrollTrigger: {
           trigger: ".landing-practice",
           start: "top 72%",
-          toggleActions: "play none none reverse",
+          toggleActions: "play none none none",
         },
       })
 
@@ -126,7 +128,7 @@ export function LandingMotion() {
       })
 
       gsap.from(".landing-closing__copy > *", {
-        autoAlpha: 0,
+        opacity: 0,
         y: 34,
         duration: 0.9,
         ease: "power3.out",
@@ -134,7 +136,7 @@ export function LandingMotion() {
         scrollTrigger: {
           trigger: ".landing-closing",
           start: "top 74%",
-          toggleActions: "play none none reverse",
+          toggleActions: "play none none none",
         },
       })
     }, root)

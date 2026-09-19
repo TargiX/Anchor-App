@@ -19,6 +19,14 @@ export const SleepQualitySchema = z.enum([
 ])
 export type SleepQuality = z.infer<typeof SleepQualitySchema>
 
+export const SLEEP_QUALITY_LABEL: Record<SleepQuality, string> = {
+  terrible: "Rough",
+  poor: "Poor",
+  okay: "Okay",
+  good: "Good",
+  great: "Great",
+}
+
 /** A point on the 2D mood grid. Both axes are normalised 0–1. */
 export const MoodPointSchema = z.object({
   energy: z.number().min(0).max(1),
@@ -64,6 +72,7 @@ export const DayEntrySchema = z.object({
   sleepHours: z.number().optional(),
   intention: z.string().optional(),
   journal: z.string().optional(),
+  journalFavorite: z.boolean().optional(),
   quickCheckIns: z.array(QuickCheckInSchema).optional(),
   affirmation: z.string().optional(),
   habitsCompleted: z.array(z.string()).optional(),

@@ -17,9 +17,9 @@ const PHASES = [
 const SECONDS_PER_PHASE = 4
 
 const RESET_LENGTHS = [
-  { cycles: 2, label: "2 rounds", duration: "32 sec" },
-  { cycles: 4, label: "4 rounds", duration: "about 1 min" },
-  { cycles: 6, label: "6 rounds", duration: "96 sec" },
+  { cycles: 2, label: "2 rounds", duration: "32 seconds" },
+  { cycles: 4, label: "4 rounds", duration: "1 minute" },
+  { cycles: 6, label: "6 rounds", duration: "96 seconds" },
 ] as const
 
 type BreathingState = {
@@ -73,9 +73,14 @@ export function BoxBreathing() {
   const router = useRouter()
   const [targetCycles, setTargetCycles] = useState(4)
   const [resetContext] = useState(() =>
-    typeof window === "undefined" ? null : takeFocusResetContextFrom(() => window.sessionStorage)
+    typeof window === "undefined"
+      ? null
+      : takeFocusResetContextFrom(() => window.sessionStorage)
   )
-  const [breathing, dispatch] = useReducer(breathingReducer, initialBreathingState)
+  const [breathing, dispatch] = useReducer(
+    breathingReducer,
+    initialBreathingState
+  )
   const phase = PHASES[breathing.phaseIndex]!
   const selectedLength = RESET_LENGTHS.find(
     (length) => length.cycles === targetCycles
@@ -107,26 +112,17 @@ export function BoxBreathing() {
   }
 
   return (
-    <section className="flex flex-1 flex-col justify-center pb-6" aria-labelledby="box-breathing-title">
-      <div className="mx-auto flex w-full max-w-xl flex-col items-center rounded-[2rem] border border-border bg-card px-6 py-6 text-center shadow-sm sm:px-10 sm:py-12">
-        <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
-          Box breathing
-        </p>
-        <h2
-          id="box-breathing-title"
-          className="mt-3 font-[family-name:var(--font-display)] text-3xl font-medium text-foreground sm:text-4xl"
-        >
-          Four steady sides.
-        </h2>
-        <p className="mt-3 max-w-sm text-sm leading-6 text-muted-foreground">
-          Choose a small container, then follow the shape: inhale, hold, exhale, hold. Each side lasts four counts.
+    <section
+      className="flex flex-1 flex-col justify-center pb-6"
+      aria-label="Breathe."
+    >
+      <div className="mx-auto flex w-full max-w-xl flex-col items-center px-2 text-center sm:px-6">
+        <p className="max-w-sm text-sm leading-6 text-muted-foreground">
+          Inhale, hold, exhale, hold. Four counts each.
         </p>
 
         <div className="mt-5 w-full" aria-label="Focus reset length">
-          <p className="mb-3 text-xs font-medium tracking-widest text-muted-foreground uppercase">
-            Reset length
-          </p>
-          <div className="grid grid-cols-3 gap-2 rounded-2xl bg-muted/45 p-1">
+          <div className="grid grid-cols-3 gap-2">
             {RESET_LENGTHS.map((length) => {
               const isSelected = length.cycles === targetCycles
               return (
@@ -136,14 +132,16 @@ export function BoxBreathing() {
                   onClick={() => selectLength(length.cycles)}
                   aria-pressed={isSelected}
                   className={cn(
-                    "rounded-xl px-2 py-2 text-center text-xs outline-none transition focus-visible:ring-2 focus-visible:ring-ring",
+                    "min-h-11 rounded-xl px-2 py-2 text-center text-xs transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     isSelected
-                      ? "bg-background font-medium text-foreground shadow-sm"
+                      ? "font-medium text-foreground"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   <span className="block">{length.label}</span>
-                  <span className="mt-0.5 block text-[11px] opacity-70">{length.duration}</span>
+                  <span className="mt-0.5 block text-[11px] opacity-70">
+                    {length.duration}
+                  </span>
                 </button>
               )
             })}
@@ -157,16 +155,26 @@ export function BoxBreathing() {
               phase.scale
             )}
           >
-            <AnchorMotif size={96} className="text-primary opacity-80 sm:size-32" />
+            <AnchorMotif
+              size={96}
+              className="text-primary opacity-80 sm:size-32"
+            />
           </div>
         </div>
 
-        <div className="mt-6 min-h-16" role="status" aria-live="polite" aria-atomic="true">
+        <div
+          className="mt-6 min-h-16"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           <p className="font-[family-name:var(--font-display)] text-3xl font-medium text-foreground">
             {phase.label}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {breathing.secondsRemaining} {breathing.secondsRemaining === 1 ? "second" : "seconds"} · {phase.cue}
+            {breathing.secondsRemaining}{" "}
+            {breathing.secondsRemaining === 1 ? "second" : "seconds"} ·{" "}
+            {phase.cue}
           </p>
         </div>
 
@@ -180,14 +188,11 @@ export function BoxBreathing() {
             ? "Pause"
             : isComplete
               ? "Begin again"
-              : `Start ${selectedLength.label.toLowerCase()} reset`}
+              : `Start ${selectedLength.label.toLowerCase()}`}
         </Button>
         {isComplete ? (
-          <section
-            className="mt-5 w-full rounded-2xl border border-accent/30 bg-accent/5 px-4 py-4"
-            aria-label="Reset complete"
-          >
-            <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+          <section className="mt-5 w-full" aria-label="Reset complete">
+            <p className="text-xs font-medium text-muted-foreground">
               Ready to return
             </p>
             <p className="mt-2 text-sm leading-6 text-foreground">
@@ -195,31 +200,29 @@ export function BoxBreathing() {
                 ? `Your next small step: ${resetContext.nextStep}.`
                 : "You made space. Take your next smallest step."}
             </p>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              <Button
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5">
+              <button
                 type="button"
-                className="rounded-xl"
+                className="inline-flex min-h-11 items-center text-sm text-primary"
                 onClick={() => router.push("/pulse?after=focus")}
               >
                 Check in again
-              </Button>
-              <Button
+              </button>
+              <button
                 type="button"
-                variant="outline"
-                className="rounded-xl"
+                className="inline-flex min-h-11 items-center text-sm text-muted-foreground"
                 onClick={() => router.push("/app")}
               >
                 Return to today
-              </Button>
+              </button>
             </div>
           </section>
-        ) : (
+        ) : breathing.completedCycles > 0 ? (
           <p className="mt-4 text-xs text-muted-foreground">
-            {breathing.completedCycles === 0
-              ? `Your ${selectedLength.label.toLowerCase()} reset begins when you are ready.`
-              : `${breathing.completedCycles} ${breathing.completedCycles === 1 ? "round" : "rounds"} completed.`}
+            {breathing.completedCycles}{" "}
+            {breathing.completedCycles === 1 ? "round" : "rounds"} completed.
           </p>
-        )}
+        ) : null}
       </div>
     </section>
   )

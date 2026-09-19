@@ -35,66 +35,68 @@ export function StepHabits({ entryKey, onNext, onBack }: StepHabitsProps) {
     onNext()
   }
 
-  const allDone = checked.length === state.habits.length
-
   return (
-    <div className="flex flex-col flex-1 gap-8">
+    <div className="flex flex-1 flex-col gap-8">
       <div className="flex flex-col gap-2 pt-4">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
-          Habits
-        </p>
-        <h2 className="font-[family-name:var(--font-display)] text-3xl font-medium text-foreground text-balance leading-tight lg:text-4xl">
+        <p className="text-xs font-medium text-muted-foreground">Habits</p>
+        <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight font-semibold text-balance text-foreground lg:text-4xl">
           How did your habits land today?
         </h2>
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          No judgment here. Just an honest look.
-        </p>
       </div>
 
       <div className="flex flex-col gap-2">
-        {state.habits.map((habit) => {
-          const done = checked.includes(habit.id)
-          return (
-            <button
-              key={habit.id}
-              onClick={() => toggle(habit.id)}
-              className={cn(
-                "flex items-center gap-4 px-5 py-4 rounded-2xl border text-left transition-all duration-200",
-                done
-                  ? "border-accent/50 bg-accent/8"
-                  : "border-border bg-card hover:border-primary/30"
-              )}
-            >
-              <div
-                className={cn(
-                  "size-5 rounded-full border-2 flex items-center justify-center flex-none transition-all",
-                  done ? "border-accent bg-accent" : "border-border"
-                )}
+        {state.habits.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No habits yet. Add them in Settings when you want.
+          </p>
+        ) : (
+          state.habits.map((habit) => {
+            const done = checked.includes(habit.id)
+            return (
+              <button
+                key={habit.id}
+                onClick={() => toggle(habit.id)}
+                className="flex min-h-12 items-center gap-3 py-2 text-left"
               >
-                {done && <Check className="size-3 text-accent-foreground" strokeWidth={3} />}
-              </div>
-              <span className={cn("text-sm font-medium", done ? "text-foreground" : "text-muted-foreground")}>
-                {habit.name}
-              </span>
-            </button>
-          )
-        })}
+                <div
+                  className={cn(
+                    "flex size-5 flex-none items-center justify-center rounded-full border-2 transition-colors",
+                    done ? "border-accent bg-accent" : "border-border"
+                  )}
+                >
+                  {done && (
+                    <Check
+                      className="size-3 text-accent-foreground"
+                      strokeWidth={3}
+                    />
+                  )}
+                </div>
+                <span
+                  className={cn(
+                    "text-sm font-medium",
+                    done ? "text-foreground" : "text-muted-foreground"
+                  )}
+                >
+                  {habit.name}
+                </span>
+              </button>
+            )
+          })
+        )}
       </div>
 
-      {allDone && (
-        <p className="text-sm text-center text-muted-foreground font-[family-name:var(--font-display)] italic">
-          That&apos;s a full day. Well done.
-        </p>
-      )}
-
       {/* Nav */}
-      <div className="mt-auto pb-10 flex gap-3">
-        <Button variant="outline" onClick={onBack} className="flex-none rounded-2xl h-14 px-6">
+      <div className="mt-auto flex gap-3 pb-10">
+        <Button
+          variant="outline"
+          onClick={onBack}
+          className="h-14 flex-none rounded-2xl px-6"
+        >
           Back
         </Button>
         <Button
           onClick={handleNext}
-          className="flex-1 rounded-2xl h-14 text-base font-medium"
+          className="h-14 flex-1 rounded-2xl text-base font-medium"
         >
           Continue
         </Button>

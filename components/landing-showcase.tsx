@@ -14,19 +14,20 @@ const SCREENS = [
     id: "dashboard",
     label: "Today",
     src: "/showcase/dashboard.png",
-    caption: "One glance: your streak, both rituals, today's intention.",
+    caption: "Write a little of the day. Optionally add a next step.",
   },
   {
     id: "ritual",
     label: "Ritual",
     src: "/showcase/ritual.png",
-    caption: "One quiet step at a time — mood, sleep, a moment to breathe.",
+    caption:
+      "Morning and evening, if you want them — one quiet step at a time.",
   },
   {
     id: "timeline",
-    label: "Timeline",
+    label: "Journal",
     src: "/showcase/timeline.png",
-    caption: "Weeks of mood and sleep, gathered into one gentle history.",
+    caption: "Days you can open again, without a streak to keep.",
   },
 ] as const
 
@@ -96,14 +97,13 @@ export function LandingShowcase() {
         <div className="landing-section-intro landing-showcase__intro">
           <p className="landing-kicker">The product</p>
           <h2 id="showcase-title" className="landing-display">
-            A ritual you
+            Your days,
             <br />
-            can actually see.
+            on this phone.
           </h2>
           <p className="landing-body">
-            Not another form to fill in. Anchor turns your mornings and evenings
-            into a calm, unified flow &mdash; and quietly keeps the thread across
-            weeks.
+            Write a little. Find it later. Look at the week in your own words
+            &mdash; without a feed, a streak, or generated advice.
           </p>
 
           <div

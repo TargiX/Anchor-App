@@ -13,6 +13,7 @@ export type DeletedNote = {
   original: Original
   identity: string | null
   index: number
+  journalFavorite?: boolean
 }
 
 function current(target: JournalTarget): Original | undefined {
@@ -80,14 +81,25 @@ export function deleteJournalText(
     getSnapshot().entries[target.day]?.quickCheckIns?.findIndex(
       (item) => item.id === target.id
     ) ?? -1
-  const token = { target, original, identity: getStorageIdentity(), index }
+  const token = {
+    target,
+    original,
+    identity: getStorageIdentity(),
+    index,
+    journalFavorite: target.id
+      ? undefined
+      : getSnapshot().entries[target.day]?.journalFavorite,
+  }
   const saved = commitLocalState((state) => {
     const entry = { ...state.entries[target.day], date: target.day }
     if (target.id)
       entry.quickCheckIns = entry.quickCheckIns?.filter(
         (item) => item.id !== target.id
       )
-    else delete entry.journal
+    else {
+      delete entry.journal
+      delete entry.journalFavorite
+    }
     // Retain the day and its other fields so deleting text doesn't erase rituals.
     return { ...state, entries: { ...state.entries, [target.day]: entry } }
   })
@@ -105,8 +117,11 @@ export function undoJournalDeletion(token: DeletedNote): boolean {
     const entry = {
       ...(state.entries[token.target.day] ?? { date: token.target.day }),
     }
-    if (typeof token.original === "string") entry.journal = token.original
-    else {
+    if (typeof token.original === "string") {
+      entry.journal = token.original
+      if (token.journalFavorite) entry.journalFavorite = true
+      else delete entry.journalFavorite
+    } else {
       const notes = [...(entry.quickCheckIns ?? [])]
       notes.splice(
         Math.max(0, Math.min(token.index, notes.length)),
@@ -118,6 +133,43 @@ export function undoJournalDeletion(token: DeletedNote): boolean {
     return {
       ...state,
       entries: { ...state.entries, [token.target.day]: entry },
+    }
+  })
+}
+
+export function setJournalFavorite(
+  target: JournalTarget,
+  expected: JournalText,
+  favorite: boolean
+): boolean {
+  if (!same(readJournalText(target), expected)) return false
+  const value = current(target)
+  if (value === undefined) return false
+  return commitLocalState((state) => {
+    const entry = state.entries[target.day]
+    if (!entry) return state
+    if (target.id) {
+      return {
+        ...state,
+        entries: {
+          ...state.entries,
+          [target.day]: {
+            ...entry,
+            quickCheckIns: entry.quickCheckIns?.map((item) =>
+              item.id === target.id
+                ? { ...item, favorite: favorite || undefined }
+                : item
+            ),
+          },
+        },
+      }
+    }
+    const next = { ...entry }
+    if (favorite) next.journalFavorite = true
+    else delete next.journalFavorite
+    return {
+      ...state,
+      entries: { ...state.entries, [target.day]: next },
     }
   })
 }

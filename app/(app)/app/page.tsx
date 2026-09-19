@@ -1,12 +1,13 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight, Anchor, Settings } from "lucide-react"
+import { Anchor, Settings } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { JournalNote } from "@/components/journal-note"
 import { JournalComposer } from "@/components/journal-composer"
 import { DailyPaths } from "@/components/daily-paths"
 import { SyncStatusIndicator } from "@/components/sync-status-indicator"
+import { WeeklyDirectionCard } from "@/components/weekly-direction-card"
 import { useTodayEntry } from "@/hooks/use-store"
 
 export default function Home() {
@@ -45,16 +46,10 @@ function Today({ ready, signedIn }: { ready: boolean; signedIn: boolean }) {
         </nav>
       </header>
 
-      <section className="pt-8 pb-6">
-        <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
-          Today
-        </p>
-        <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl sm:text-4xl">
-          A day of your own.
+      <section className="pt-6 pb-4">
+        <h1 className="font-[family-name:var(--font-display)] text-3xl sm:text-4xl">
+          Keep a little of today.
         </h1>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Notice how you feel, and keep a little of today.
-        </p>
         {signedIn && (
           <div className="mt-2">
             <SyncStatusIndicator />
@@ -62,38 +57,35 @@ function Today({ ready, signedIn }: { ready: boolean; signedIn: boolean }) {
         )}
       </section>
 
+      <JournalComposer ready={ready} signedIn={signedIn} />
+
+      <WeeklyDirectionCard />
+
       {today.intention && (
-        <section
-          aria-label="Your current anchor"
-          className="mb-5 flex items-center justify-between gap-4 rounded-2xl border border-accent/30 bg-accent/5 px-4 py-3"
-        >
-          <p className="min-w-0">
-            <span className="block text-xs font-medium tracking-widest text-muted-foreground uppercase">
-              Your anchor today
-            </span>
-            <span className="mt-1 block font-[family-name:var(--font-display)] text-lg [overflow-wrap:anywhere]">
-              {today.intention}
-            </span>
+        <section aria-label="Your current anchor" className="mt-8">
+          <p className="text-xs font-medium text-muted-foreground">
+            Today&apos;s focus
           </p>
-          <Link
-            href="/focus"
-            className="inline-flex min-h-11 shrink-0 items-center gap-2 text-sm underline underline-offset-4"
-          >
-            Reset <ArrowRight className="size-4" />
-          </Link>
+          <div className="mt-1 flex items-baseline justify-between gap-4">
+            <p className="min-w-0 font-[family-name:var(--font-display)] text-lg leading-snug [overflow-wrap:anywhere]">
+              {today.intention}
+            </p>
+            <Link
+              href="/focus"
+              className="inline-flex min-h-11 shrink-0 items-center text-sm text-muted-foreground"
+            >
+              Pause
+            </Link>
+          </div>
         </section>
       )}
 
-      <JournalComposer ready={ready} signedIn={signedIn} />
-
-      <DailyPaths entry={today} />
-
       {Boolean(today.quickCheckIns?.length) && (
-        <section aria-label="Today's check-ins" className="mt-7">
-          <h2 className="font-[family-name:var(--font-display)] text-2xl">
-            A little space for today
+        <section aria-label="Today's notes" className="mt-8">
+          <h2 className="text-xs font-medium text-muted-foreground">
+            Today&apos;s notes
           </h2>
-          <div className="mt-4 space-y-3">
+          <div className="mt-3 space-y-3">
             {today.quickCheckIns
               ?.slice()
               .reverse()
@@ -105,24 +97,17 @@ function Today({ ready, signedIn }: { ready: boolean; signedIn: boolean }) {
                   <JournalNote
                     target={{ day: today.date, id: checkIn.id }}
                     text={{ note: checkIn.note, nextStep: checkIn.nextStep }}
+                    favorite={checkIn.favorite}
+                    photo={checkIn.photo}
+                    hideNextStep
                   />
                 </article>
               ))}
           </div>
         </section>
       )}
-      <Link
-        href="/review"
-        className="mt-8 flex min-h-16 items-center justify-between border-t border-border py-5"
-      >
-        <span>
-          <span className="block font-medium">Your week, in perspective</span>
-          <span className="text-sm text-muted-foreground">
-            Revisit your words and choose what to carry forward.
-          </span>
-        </span>
-        <ArrowRight className="ml-3 size-5 shrink-0" />
-      </Link>
+
+      <DailyPaths entry={today} />
     </main>
   )
 }

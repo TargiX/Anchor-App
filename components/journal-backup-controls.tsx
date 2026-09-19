@@ -86,16 +86,14 @@ export function JournalBackupControls({
 
   return (
     <section
-      className="my-6 space-y-4 rounded-2xl border p-5"
+      className="mt-10 border-t border-border pt-5"
       aria-label="Journal backups"
     >
-      <h2 className="text-lg font-medium">Journal backups</h2>
-      <p className="text-sm text-muted-foreground">
-        A device backup includes all journals stored on this device, including
-        account journals. Exported files are not encrypted. Keep them somewhere
-        private. Face ID or your device passcode protects these actions.
+      <h2 className="text-sm font-medium">Journal backups</h2>
+      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+        Every journal on this device. Files are not encrypted.
       </p>
-      <div className="flex flex-col gap-3">
+      <div className="mt-4 flex flex-col gap-3">
         <Button
           variant="outline"
           disabled={busy}

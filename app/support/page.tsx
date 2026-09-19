@@ -37,9 +37,7 @@ export default function SupportPage() {
       <div className="mb-8 flex items-center gap-3">
         <AnchorMotif size={32} className="text-primary" />
         <div>
-          <p className="text-xs tracking-widest text-muted-foreground uppercase">
-            Anchor
-          </p>
+          <p className="text-xs font-medium text-muted-foreground">Anchor</p>
           <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold">
             Support
           </h1>
@@ -49,12 +47,11 @@ export default function SupportPage() {
       <div className="space-y-6 text-sm leading-7 text-muted-foreground">
         <section className="space-y-2">
           <h2 className="text-base font-medium text-foreground">
-            Beta support
+            How to reach us
           </h2>
           <p>
-            Anchor is currently preparing for a Web/PWA release and iOS
-            TestFlight beta. For support, feedback, or tester access, email the
-            beta owner.
+            For support or feedback, email the maker. Mention whether you are on
+            the web or on iPhone.
           </p>
           <a
             href="mailto:targix8@gmail.com?subject=Anchor%20beta%20feedback"
@@ -81,8 +78,8 @@ export default function SupportPage() {
             Not medical advice
           </h2>
           <p>
-            Anchor is a personal ritual and journaling app. It is not a medical,
-            crisis, diagnosis, therapy, or treatment service.
+            Anchor is a personal journal. It is not a medical, crisis,
+            diagnosis, therapy, or treatment service.
           </p>
         </section>
 

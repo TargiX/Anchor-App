@@ -3,7 +3,6 @@ import {
   ArrowRight,
   Globe2,
   LineChart,
-  Monitor,
   Moon,
   Smartphone,
   Sunrise,
@@ -16,40 +15,35 @@ import { LandingShowcase } from "@/components/landing-showcase"
 const features = [
   {
     icon: Sunrise,
-    title: "Morning ritual",
-    body: "Set an intention, log mood and sleep, breathe. A quiet five minutes that anchors the day.",
+    title: "Today",
+    body: "Write what you want to keep. A photo, a next step, or just the day as it was.",
   },
   {
     icon: Moon,
-    title: "Evening ritual",
-    body: "Reflect, journal, prepare tomorrow's sleep window. Close the loop before bed.",
+    title: "Journal",
+    body: "Search, favorite, edit, and export. Your days stay on this device.",
   },
   {
     icon: LineChart,
-    title: "Timeline",
-    body: "Mood, sleep and habit streaks visualized over time. Trends, not just snapshots.",
+    title: "Review",
+    body: "Look at the week in your own words. Carry one small thing forward.",
   },
 ]
 
 const platforms = [
-  { icon: Globe2, label: "In your browser", note: "Just open it" },
-  { icon: Smartphone, label: "On your phone", note: "Add to home" },
-  { icon: Monitor, label: "On your desktop", note: "Install it" },
+  { icon: Smartphone, label: "On iPhone", note: "Built for this" },
+  { icon: Globe2, label: "In the browser", note: "The same journal" },
 ]
 
 const practice = [
-  "Intention",
-  "Mood",
-  "Sleep",
+  "Today",
+  "Journal",
+  "Review",
+  "Note",
+  "Photo",
+  "Morning",
+  "Evening",
   "Breath",
-  "Gratitude",
-  "Reflection",
-  "Affirmation",
-  "Calm",
-  "Rest",
-  "Clarity",
-  "Focus",
-  "Presence",
 ]
 
 export default function Landing() {
@@ -62,7 +56,7 @@ export default function Landing() {
         </Link>
         <nav className="landing-nav" aria-label="Landing navigation">
           <a href="#features">Features</a>
-          <a href="#practice">Practice</a>
+          <a href="#practice">Inside</a>
           <a href="#about">About</a>
         </nav>
         <div className="landing-header-actions">
@@ -70,7 +64,7 @@ export default function Landing() {
             Sign in
           </Link>
           <Link href="/app" className="landing-button landing-button--primary">
-            <span>Open app</span>
+            <span>Open the journal</span>
             <ArrowRight aria-hidden="true" size={17} strokeWidth={1.7} />
           </Link>
         </div>
@@ -80,33 +74,39 @@ export default function Landing() {
         <LandingHeroVideo />
         <div className="landing-grid landing-hero__grid">
           <div className="landing-hero__copy">
-            <p className="landing-kicker">A quiet daily ritual</p>
+            <p className="landing-kicker">A private journal</p>
             <h1
               id="landing-title"
               className="landing-display landing-hero__title"
             >
-              Begin and close
+              Keep your days.
               <br />
-              the day,
+              Make room
               <br />
-              <em>on purpose.</em>
+              <em>for what matters.</em>
             </h1>
             <p className="landing-body landing-hero__body">
-              Anchor is a small, quiet space for morning and evening rituals
-              &mdash; mood, sleep, intention, journal. One unified flow.
+              Write what happened. Look back when you want. Choose a small next
+              step &mdash; without generated advice.
             </p>
             <div className="landing-actions" aria-label="Primary actions">
-              <Link href="/app" className="landing-button landing-button--primary">
-                <span>Try it now</span>
+              <Link
+                href="/app"
+                className="landing-button landing-button--primary"
+              >
+                <span>Open the journal</span>
                 <ArrowRight aria-hidden="true" size={18} strokeWidth={1.7} />
               </Link>
-              <a href="#features" className="landing-button landing-button--ghost">
+              <a
+                href="#features"
+                className="landing-button landing-button--ghost"
+              >
                 See how it works
               </a>
             </div>
             <p className="landing-proof">
-              Account-backed journal sync &middot; Private by default &middot;
-              Available on the web
+              Stays on this device &middot; Optional sync &middot; Built for
+              iPhone
             </p>
           </div>
         </div>
@@ -119,9 +119,8 @@ export default function Landing() {
           <div className="landing-section-intro">
             <p className="landing-kicker">What&apos;s inside</p>
             <h2 className="landing-display">
-              Two short rituals.
-              <br />
-              One long trend line.
+              A day, a week,
+              <br />a next small step.
             </h2>
           </div>
 
@@ -154,12 +153,11 @@ export default function Landing() {
             <h2 id="platforms-title" className="landing-display">
               Wherever
               <br />
-              you check in.
+              you write.
             </h2>
             <p className="landing-body">
-              Open Anchor in your browser, or add it to your home screen on
-              phone and desktop. No app store, no download &mdash; it&apos;s
-              just there when you need it.
+              On iPhone, or in the browser. Records stay on this device until
+              you choose to sync.
             </p>
           </div>
 
@@ -180,13 +178,11 @@ export default function Landing() {
       <section id="practice" className="landing-practice">
         <div className="landing-grid">
           <div className="landing-practice__intro">
-            <p className="landing-kicker">The practice</p>
-            <h2 className="landing-display">
-              A gentle vocabulary for your day
-            </h2>
+            <p className="landing-kicker">Inside</p>
+            <h2 className="landing-display">Today, Journal, Review.</h2>
           </div>
 
-          <div className="landing-chip-list" aria-label="Practice vocabulary">
+          <div className="landing-chip-list" aria-label="What is inside Anchor">
             {practice.map((word) => (
               <span key={word}>{word}</span>
             ))}
@@ -199,13 +195,16 @@ export default function Landing() {
           >
             <div className="landing-closing__copy">
               <h2 id="closing-title" className="landing-display">
-                Five quiet minutes.
+                Keep a little
                 <br />
-                Twice a day.
+                of today.
               </h2>
-              <p>That&apos;s it. Start tonight.</p>
-              <Link href="/app" className="landing-button landing-button--primary">
-                <span>Open Anchor</span>
+              <p>Start with one note.</p>
+              <Link
+                href="/app"
+                className="landing-button landing-button--primary"
+              >
+                <span>Open the journal</span>
                 <ArrowRight aria-hidden="true" size={18} strokeWidth={1.7} />
               </Link>
             </div>
@@ -219,20 +218,21 @@ export default function Landing() {
             <Link href="/" className="landing-logo" aria-label="Anchor home">
               Anchor
             </Link>
-            <p>
-              A quiet daily ritual for mood, sleep, intention, and reflection.
-            </p>
-            <Link href="/app" className="landing-button landing-button--primary">
-              <span>Open Anchor</span>
+            <p>A private journal for the days you want to keep.</p>
+            <Link
+              href="/app"
+              className="landing-button landing-button--primary"
+            >
+              <span>Open the journal</span>
               <ArrowRight aria-hidden="true" size={17} strokeWidth={1.7} />
             </Link>
           </div>
 
           <nav className="landing-footer__nav" aria-label="Footer navigation">
             <div>
-              <span>Practice</span>
+              <span>The journal</span>
               <a href="#features">Features</a>
-              <a href="#practice">Daily ritual</a>
+              <a href="#practice">The day</a>
               <a href="#about">Why Anchor</a>
             </div>
             <div>
@@ -240,7 +240,7 @@ export default function Landing() {
               <Link href="/morning">Morning</Link>
               <Link href="/evening">Evening</Link>
               <Link href="/focus">Focus</Link>
-              <Link href="/timeline">Timeline</Link>
+              <Link href="/timeline">Journal</Link>
             </div>
             <div>
               <span>Company</span>
@@ -253,7 +253,7 @@ export default function Landing() {
           <div className="landing-footer__bottom">
             <span>© 2026 Anchor</span>
             <span>Private by default</span>
-            <span>Account-backed sync</span>
+            <span>Optional sync</span>
           </div>
         </div>
       </footer>

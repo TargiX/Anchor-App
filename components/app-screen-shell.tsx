@@ -21,7 +21,7 @@ interface AppScreenShellProps {
 export function AppScreenShell({
   children,
   title,
-  eyebrow = "Anchor",
+  eyebrow,
   description,
   backHref,
   backLabel = "Back",
@@ -36,10 +36,16 @@ export function AppScreenShell({
       <div className="mx-auto flex min-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-4rem)] max-w-md flex-col lg:grid lg:max-w-6xl lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-12 xl:grid-cols-[340px_minmax(0,1fr)]">
         <aside className="hidden border-r border-border/70 pr-10 lg:flex lg:flex-col lg:justify-between">
           <div>
-            <AnchorMotif size={188} animate className="-ml-6 text-primary opacity-75" />
-            <p className="mt-8 text-xs font-medium tracking-widest text-muted-foreground uppercase">
-              {eyebrow}
-            </p>
+            <AnchorMotif
+              size={188}
+              animate
+              className="-ml-6 text-primary opacity-75"
+            />
+            {eyebrow ? (
+              <p className="mt-8 text-xs font-medium text-muted-foreground">
+                {eyebrow}
+              </p>
+            ) : null}
             <h1 className="mt-3 font-[family-name:var(--font-display)] text-4xl leading-tight font-semibold text-balance text-foreground">
               {railTitle ?? title}
             </h1>
@@ -72,9 +78,11 @@ export function AppScreenShell({
               </Button>
             ) : null}
             <div>
-              <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase lg:hidden">
-                {eyebrow}
-              </p>
+              {eyebrow ? (
+                <p className="text-xs font-medium text-muted-foreground lg:hidden">
+                  {eyebrow}
+                </p>
+              ) : null}
               <h1 className="font-[family-name:var(--font-display)] text-xl font-medium text-foreground lg:text-3xl lg:font-semibold">
                 {title}
               </h1>

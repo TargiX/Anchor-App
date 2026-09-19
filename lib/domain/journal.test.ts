@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest"
-import { matchesJournal, reviewExcerpts } from "./journal"
+import {
+  matchesJournal,
+  reviewExcerpts,
+  reviewNoteParts,
+  hasFavorite,
+} from "./journal"
 
 const entry = {
   date: "2026-09-15",
@@ -23,6 +28,16 @@ describe("journal search and review", () => {
     expect(matchesJournal(entry, " ")).toBe(true)
     expect(matchesJournal(entry, "missing")).toBe(false)
   })
+  it("treats a starred note or evening journal as a favorite memory", () => {
+    expect(hasFavorite(entry)).toBe(false)
+    expect(
+      hasFavorite({
+        ...entry,
+        quickCheckIns: [{ ...entry.quickCheckIns![0]!, favorite: true }],
+      })
+    ).toBe(true)
+    expect(hasFavorite({ ...entry, journalFavorite: true })).toBe(true)
+  })
   it("uses only the seven selected local days and preserves exact source text", () => {
     const excerpts = reviewExcerpts(
       {
@@ -40,6 +55,32 @@ describe("journal search and review", () => {
       "Lunch with Ada",
     ])
     expect(excerpts.at(-1)?.date).toBe("2026-09-15")
+  })
+  it("shows a weekly reflection without the saved date prefix", () => {
+    expect(
+      reviewNoteParts("Week in review (Sep 12 – Sep 18)\nKeep the walks")
+    ).toEqual({
+      period: "Sep 12 – Sep 18",
+      note: "Keep the walks",
+    })
+    expect(
+      reviewExcerpts(
+        {
+          "2026-09-15": {
+            date: "2026-09-15",
+            quickCheckIns: [
+              {
+                id: "week",
+                createdAt: "2026-09-15T20:00:00Z",
+                note: "Week in review (Sep 12 – Sep 18)\nKeep the walks",
+                nextStep: "",
+              },
+            ],
+          },
+        },
+        "2026-09-15"
+      )
+    ).toEqual([{ date: "2026-09-15", kind: "Week", text: "Keep the walks" }])
   })
   it("does not invent a reflection from empty days or mood-only entries", () => {
     expect(

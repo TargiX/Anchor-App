@@ -29,18 +29,18 @@ const MOOD_LABELS = {
 
 // Quadrant base colors (RGBA) - soft, quiet starting points
 const QUADRANT_COLORS = {
-  topLeft: [99, 130, 180],    // low/low — hazy blue
-  topRight: [255, 195, 80],  // high/high — sunny gold/yellow
+  topLeft: [99, 130, 180], // low/low — hazy blue
+  topRight: [255, 195, 80], // high/high — sunny gold/yellow
   bottomLeft: [140, 110, 140], // high energy/low valence — muted plum
   bottomRight: [120, 165, 130], // low energy/high valence — sage
 } as const
 
 // Corner points for each quadrant (0-1 scale) — max saturation at corners
 const QUADRANT_CORNERS = {
-  topLeft: { x: 0, y: 0 },      // high energy, unpleasant
-  topRight: { x: 1, y: 0 },     // high energy, pleasant
-  bottomLeft: { x: 0, y: 1 },   // low energy, unpleasant
-  bottomRight: { x: 1, y: 1 },  // low energy, pleasant
+  topLeft: { x: 0, y: 0 }, // high energy, unpleasant
+  topRight: { x: 1, y: 0 }, // high energy, pleasant
+  bottomLeft: { x: 0, y: 1 }, // low energy, unpleasant
+  bottomRight: { x: 1, y: 1 }, // low energy, pleasant
 } as const
 
 /**
@@ -75,12 +75,15 @@ function quadrantBoosts(point: MoodPoint) {
   }
 }
 
-export function StepMood({ entryKey, onNext, onBack, isMorning = true }: StepMoodProps) {
+export function StepMood({
+  entryKey,
+  onNext,
+  onBack,
+  isMorning = true,
+}: StepMoodProps) {
   const today = useEntry(entryKey)
-  // Default to grid center; effect syncs the hydrated mood point after
-  // useAppState finishes loading from storage. See step-sleep for the
-  // set-state-in-effect rationale.
-  const [point, setPoint] = useState<MoodPoint | null>({ valence: 0.5, energy: 0.5 })
+  // Empty until the person places a point or a saved mood hydrates.
+  const [point, setPoint] = useState<MoodPoint | null>(null)
   const [dragging, setDragging] = useState(false)
   const gridRef = useRef<HTMLDivElement>(null)
 
@@ -96,7 +99,10 @@ export function StepMood({ entryKey, onNext, onBack, isMorning = true }: StepMoo
     if (!el) return
     const rect = el.getBoundingClientRect()
     const valence = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
-    const energy = Math.max(0, Math.min(1, 1 - (clientY - rect.top) / rect.height))
+    const energy = Math.max(
+      0,
+      Math.min(1, 1 - (clientY - rect.top) / rect.height)
+    )
     setPoint({ valence, energy })
   }, [])
 
@@ -196,22 +202,32 @@ export function StepMood({ entryKey, onNext, onBack, isMorning = true }: StepMoo
     const boosts = quadrantBoosts(point)
 
     // Weighted blend of all quadrants
-    const totalWeight = boosts.topLeft + boosts.topRight + boosts.bottomLeft + boosts.bottomRight || 1
+    const totalWeight =
+      boosts.topLeft +
+        boosts.topRight +
+        boosts.bottomLeft +
+        boosts.bottomRight || 1
 
-    const r = (QUADRANT_COLORS.topLeft[0] * boosts.topLeft +
-               QUADRANT_COLORS.topRight[0] * boosts.topRight +
-               QUADRANT_COLORS.bottomLeft[0] * boosts.bottomLeft +
-               QUADRANT_COLORS.bottomRight[0] * boosts.bottomRight) / totalWeight
+    const r =
+      (QUADRANT_COLORS.topLeft[0] * boosts.topLeft +
+        QUADRANT_COLORS.topRight[0] * boosts.topRight +
+        QUADRANT_COLORS.bottomLeft[0] * boosts.bottomLeft +
+        QUADRANT_COLORS.bottomRight[0] * boosts.bottomRight) /
+      totalWeight
 
-    const g = (QUADRANT_COLORS.topLeft[1] * boosts.topLeft +
-               QUADRANT_COLORS.topRight[1] * boosts.topRight +
-               QUADRANT_COLORS.bottomLeft[1] * boosts.bottomLeft +
-               QUADRANT_COLORS.bottomRight[1] * boosts.bottomRight) / totalWeight
+    const g =
+      (QUADRANT_COLORS.topLeft[1] * boosts.topLeft +
+        QUADRANT_COLORS.topRight[1] * boosts.topRight +
+        QUADRANT_COLORS.bottomLeft[1] * boosts.bottomLeft +
+        QUADRANT_COLORS.bottomRight[1] * boosts.bottomRight) /
+      totalWeight
 
-    const b = (QUADRANT_COLORS.topLeft[2] * boosts.topLeft +
-               QUADRANT_COLORS.topRight[2] * boosts.topRight +
-               QUADRANT_COLORS.bottomLeft[2] * boosts.bottomLeft +
-               QUADRANT_COLORS.bottomRight[2] * boosts.bottomRight) / totalWeight
+    const b =
+      (QUADRANT_COLORS.topLeft[2] * boosts.topLeft +
+        QUADRANT_COLORS.topRight[2] * boosts.topRight +
+        QUADRANT_COLORS.bottomLeft[2] * boosts.bottomLeft +
+        QUADRANT_COLORS.bottomRight[2] * boosts.bottomRight) /
+      totalWeight
 
     return { r: Math.round(r), g: Math.round(g), b: Math.round(b) }
   }, [point])
@@ -221,16 +237,17 @@ export function StepMood({ entryKey, onNext, onBack, isMorning = true }: StepMoo
     return {
       left: `${point.valence * 100}%`,
       top: `${(1 - point.energy) * 100}%`,
-      transition: dragging ? "none" : "left 0.25s ease-out, top 0.25s ease-out",
     } as React.CSSProperties
-  }, [point, dragging])
+  }, [point])
 
   const pointStyle = useMemo(() => {
     if (!pointColor) return undefined
     return {
       backgroundColor: `rgb(${pointColor.r}, ${pointColor.g}, ${pointColor.b})`,
       boxShadow: `0 0 0 4px rgba(${pointColor.r}, ${pointColor.g}, ${pointColor.b}, 0.15), 0 4px 12px rgba(${pointColor.r}, ${pointColor.g}, ${pointColor.b}, 0.25)`,
-      transition: dragging ? "none" : "background-color 0.4s ease-out, box-shadow 0.4s ease-out",
+      transition: dragging
+        ? "none"
+        : "background-color 0.4s ease-out, box-shadow 0.4s ease-out",
     } as React.CSSProperties
   }, [pointColor, dragging])
 
@@ -257,152 +274,145 @@ export function StepMood({ entryKey, onNext, onBack, isMorning = true }: StepMoo
   /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
-    <div className="flex flex-col flex-1 gap-8">
+    <div className="flex flex-1 flex-col gap-8">
       <div className="flex flex-col gap-2 pt-4">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Mood</p>
-        <h2 className="font-[family-name:var(--font-display)] text-3xl font-medium text-foreground text-balance leading-tight lg:text-4xl">
+        <p className="text-xs font-medium text-muted-foreground">Mood</p>
+        <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight font-semibold text-balance text-foreground lg:text-4xl">
           Where are you right now?
         </h2>
-        <p className="text-sm text-muted-foreground">
-          {point ? "Drag to fine-tune — or tap anywhere." : "Drag or tap to place yourself in this moment."}
-        </p>
       </div>
 
-      {/* 2D Mood grid */}
       <div className="relative">
-        {/* Ambient mood word — the wrapper holds the live region so screen
-            readers track changes against a stable node (re-mounting the
-            live-region element itself is often silent). The inner span is
-            keyed only for the entry animation; the live announcement reads
-            the updated text via the parent's aria-live attribute. */}
         <div
-          className="flex justify-center mb-2 h-5"
+          className="mb-3 flex h-6 justify-center"
           aria-live="polite"
           aria-atomic="true"
         >
-          {word && (
+          {word ? (
             <span
               key={word}
-              className="text-xs font-[family-name:var(--font-display)] tracking-wide text-muted-foreground"
+              className="font-[family-name:var(--font-display)] text-base text-foreground"
               style={{
-                animation: reduceMotion ? undefined : "mood-word-enter 0.35s ease-out",
+                animation: reduceMotion
+                  ? undefined
+                  : "mood-word-enter 0.35s ease-out",
               }}
             >
               {word}
             </span>
+          ) : (
+            <span className="text-sm text-muted-foreground">
+              Tap a place that fits.
+            </span>
           )}
         </div>
 
-        <div className="flex justify-center mb-2">
-          <span className="text-xs text-muted-foreground font-medium tracking-wide">High energy</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground -rotate-90 whitespace-nowrap font-medium tracking-wide w-4">
-            Unpleasant
+        <div
+          ref={gridRef}
+          className="relative aspect-square cursor-grab touch-none overflow-hidden rounded-3xl border border-border bg-card outline-none select-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onKeyDown={handleKeyDown}
+          role="slider"
+          tabIndex={0}
+          aria-label="Mood grid — drag or tap to place your mood, arrow keys to nudge"
+          aria-valuetext={
+            point ? ariaValueTextForMood(point) : "Mood not yet set"
+          }
+          aria-valuenow={point ? Math.round(point.valence * 100) : 0}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-describedby="mood-grid-keyboard-hint"
+        >
+          <span id="mood-grid-keyboard-hint" className="sr-only">
+            {MOOD_GRID_KEYBOARD_HINT}
           </span>
 
-          <div
-            ref={gridRef}
-            className="flex-1 aspect-square rounded-3xl border border-border bg-card relative cursor-grab active:cursor-grabbing select-none overflow-hidden touch-none outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerUp}
-            onKeyDown={handleKeyDown}
-            role="slider"
-            tabIndex={0}
-            aria-label="Mood grid — drag or tap to place your mood, arrow keys to nudge"
-            aria-valuetext={
-              point ? ariaValueTextForMood(point) : "Mood not yet set"
-            }
-            aria-valuenow={point ? Math.round(point.valence * 100) : 0}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-describedby="mood-grid-keyboard-hint"
-          >
-            {/* Visually hidden but available to AT — surfaces the keyboard
-                interaction model so screen-reader users know about Shift,
-                PageUp/PageDown, and Home/End without having to discover them. */}
-            <span id="mood-grid-keyboard-hint" className="sr-only">
-              {MOOD_GRID_KEYBOARD_HINT}
-            </span>
-
-            {/* Quadrant grid — each breathes with saturation */}
-            <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
-              <div
-                className="transition-all duration-400 ease-out"
-                style={quadrantStyles?.topLeft ?? { backgroundColor: "rgba(99, 130, 180, 0.06)" }}
-              />
-              <div
-                className="transition-all duration-400 ease-out"
-                style={quadrantStyles?.topRight ?? { backgroundColor: "rgba(255, 195, 80, 0.06)" }}
-              />
-              <div
-                className="transition-all duration-400 ease-out"
-                style={quadrantStyles?.bottomLeft ?? { backgroundColor: "rgba(140, 110, 140, 0.06)" }}
-              />
-              <div
-                className="transition-all duration-400 ease-out"
-                style={quadrantStyles?.bottomRight ?? { backgroundColor: "rgba(120, 165, 130, 0.06)" }}
-              />
-            </div>
-
-            {/* Axis lines */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-full h-px bg-border/60" />
-            </div>
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="h-full w-px bg-border/60" />
-            </div>
-
-            {/* Corner labels */}
-            {Object.entries(MOOD_LABELS).map(([key, val]) => (
-              <span
-                key={key}
-                className="absolute text-[10px] text-muted-foreground/60 font-medium whitespace-pre-line leading-tight text-center w-16"
-                style={{
-                  left: `${val.x * 100}%`,
-                  top: `${val.y * 100}%`,
-                  transform: "translate(-50%, -50%)",
-                }}
-              >
-                {val.label}
-              </span>
-            ))}
-
-            {/* The mood dot */}
-            {point && pointStyle && (
-              <div
-                className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none size-5 rounded-full border-2 border-background"
-                style={{
-                  ...pointPos,
-                  ...pointStyle,
-                  animation: reduceMotion
-                    ? undefined
-                    : "mood-dot-enter 0.5s ease-out, mood-drift 4s ease-in-out 0.5s infinite",
-                }}
-              />
-            )}
+          <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
+            <div
+              className="transition-[background-color] duration-300 ease-out"
+              style={
+                quadrantStyles?.topLeft ?? {
+                  backgroundColor: "rgba(99, 130, 180, 0.06)",
+                }
+              }
+            />
+            <div
+              className="transition-[background-color] duration-300 ease-out"
+              style={
+                quadrantStyles?.topRight ?? {
+                  backgroundColor: "rgba(255, 195, 80, 0.06)",
+                }
+              }
+            />
+            <div
+              className="transition-[background-color] duration-300 ease-out"
+              style={
+                quadrantStyles?.bottomLeft ?? {
+                  backgroundColor: "rgba(140, 110, 140, 0.06)",
+                }
+              }
+            />
+            <div
+              className="transition-[background-color] duration-300 ease-out"
+              style={
+                quadrantStyles?.bottomRight ?? {
+                  backgroundColor: "rgba(120, 165, 130, 0.06)",
+                }
+              }
+            />
           </div>
 
-          <span className="text-xs text-muted-foreground rotate-90 whitespace-nowrap font-medium tracking-wide w-4">
-            Pleasant
-          </span>
-        </div>
-        <div className="flex justify-center mt-2">
-          <span className="text-xs text-muted-foreground font-medium tracking-wide">Low energy</span>
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="h-px w-full bg-border/60" />
+          </div>
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="h-full w-px bg-border/60" />
+          </div>
+
+          {Object.entries(MOOD_LABELS).map(([key, val]) => (
+            <span
+              key={key}
+              className="pointer-events-none absolute w-16 text-center text-[11px] leading-tight font-medium whitespace-pre-line text-muted-foreground/70"
+              style={{
+                left: `${val.x * 100}%`,
+                top: `${val.y * 100}%`,
+                transform: "translate(-50%, -50%)",
+              }}
+            >
+              {val.label}
+            </span>
+          ))}
+
+          {point && pointStyle && (
+            <div
+              className="pointer-events-none absolute size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background"
+              style={{
+                ...pointPos,
+                ...pointStyle,
+                animation: reduceMotion
+                  ? undefined
+                  : "mood-dot-enter 0.5s ease-out, mood-drift 4s ease-in-out 0.5s infinite",
+              }}
+            />
+          )}
         </div>
       </div>
 
-      {/* Nav */}
-      <div className="mt-auto pb-10 flex gap-3">
-        <Button variant="outline" onClick={onBack} className="flex-none rounded-2xl h-14 px-6">
+      <div className="mt-auto flex gap-3 pb-10">
+        <Button
+          variant="outline"
+          onClick={onBack}
+          className="h-14 flex-none rounded-2xl px-6"
+        >
           Back
         </Button>
         <Button
           onClick={handleNext}
           disabled={!point}
-          className="flex-1 rounded-2xl h-14 text-base font-medium"
+          className="h-14 flex-1 rounded-2xl text-base font-medium"
         >
           Continue
         </Button>

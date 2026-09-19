@@ -9,15 +9,17 @@ import {
   type ReactNode,
 } from "react"
 import { DropdownMenu } from "radix-ui"
-import { MoreHorizontal } from "lucide-react"
+import { MoreHorizontal, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   deleteJournalText,
   editJournalText,
+  setJournalFavorite,
   undoJournalDeletion,
   type JournalTarget,
   type JournalText,
 } from "@/lib/store/journal-editing"
+import { reviewNoteParts } from "@/lib/domain/journal"
 import {
   flushDeviceStorage,
   retryDeviceStorage,
@@ -25,6 +27,7 @@ import {
   subscribe,
 } from "@/lib/store/store"
 import { createDeletionOperation } from "@/lib/store/journal-deletion"
+import { journalPhotoSrc, type JournalPhoto } from "@/lib/domain/photo"
 import { LIMITS } from "@/lib/domain/validation"
 
 type DeletionOperation = ReturnType<typeof createDeletionOperation>
@@ -122,6 +125,10 @@ function DeletionNotice({
 export function JournalNote(props: {
   target: JournalTarget
   text: JournalText
+  favorite?: boolean
+  photo?: JournalPhoto
+  hideNextStep?: boolean
+  hidePeriod?: boolean
 }) {
   const identity = useSyncExternalStore(
     subscribe,
@@ -139,9 +146,17 @@ export function JournalNote(props: {
 function NoteEditor({
   target,
   text,
+  favorite = false,
+  photo,
+  hideNextStep = false,
+  hidePeriod = false,
 }: {
   target: JournalTarget
   text: JournalText
+  favorite?: boolean
+  photo?: JournalPhoto
+  hideNextStep?: boolean
+  hidePeriod?: boolean
 }) {
   const removeNote = useContext(DeletionContext)
   const [editing, setEditing] = useState(false)
@@ -181,8 +196,27 @@ function NoteEditor({
       )
     }
   }
+  async function toggleFavorite() {
+    if (pending.current) return
+    pending.current = true
+    setBusy(true)
+    setError("")
+    const identity = getStorageIdentity()
+    const saved = setJournalFavorite(target, baseline, !favorite)
+    const durable = saved && (await flushDeviceStorage())
+    pending.current = false
+    setBusy(false)
+    if (identity !== getStorageIdentity()) return
+    if (!saved || !durable)
+      setError(
+        saved
+          ? "This change is not saved yet. Keep this screen open and retry."
+          : "The note changed or could not be saved. Reopen it, then try again."
+      )
+  }
+  const display = reviewNoteParts(text.note)
   return (
-    <div className="space-y-3">
+    <div className={editing ? "space-y-3" : "relative space-y-3 pr-16"}>
       {editing ? (
         <>
           <label className="block text-sm">
@@ -230,55 +264,85 @@ function NoteEditor({
         </>
       ) : (
         <>
-          <p className="text-base leading-7 [overflow-wrap:anywhere] whitespace-pre-wrap">
-            {text.note}
-          </p>
-          {text.nextStep && (
-            <p className="text-sm [overflow-wrap:anywhere] text-muted-foreground">
-              Next step: {text.nextStep}
+          {display.period && !hidePeriod && (
+            <p className="text-xs text-muted-foreground">
+              Week of {display.period.replace(/, \d{4}/g, "")}
             </p>
           )}
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Note actions"
-                className="min-h-11 min-w-11"
-              >
-                <MoreHorizontal className="size-5" />
-              </Button>
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Portal>
-              <DropdownMenu.Content
-                align="end"
-                sideOffset={6}
-                className="z-[60] min-w-44 rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-lg"
-              >
-                <DropdownMenu.Item
-                  className="flex min-h-11 cursor-pointer items-center rounded-lg px-3 text-sm outline-none focus:bg-muted"
-                  onSelect={() => {
-                    setDraft(text)
-                    setBaseline(text)
-                    setEditing(true)
-                    setConfirmDelete(false)
-                    setError("")
-                  }}
+          <p className="text-base leading-7 [overflow-wrap:anywhere] whitespace-pre-wrap">
+            {display.note}
+          </p>
+          {photo && (
+            // Journal photos are local JPEG data URLs; next/image cannot optimize them.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={journalPhotoSrc(photo)}
+              alt="Photo attached to this note"
+              className="max-h-56 w-full rounded-xl bg-muted object-contain"
+            />
+          )}
+          {text.nextStep && !hideNextStep && (
+            <p className="text-sm leading-6 [overflow-wrap:anywhere]">
+              <span className="text-muted-foreground">Next: </span>
+              {text.nextStep}
+            </p>
+          )}
+          <div className="absolute top-0 right-0 flex items-center">
+            {favorite && (
+              <Star
+                className="size-4 text-accent"
+                fill="currentColor"
+                aria-hidden="true"
+              />
+            )}
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Note actions"
+                  className="min-h-11 min-w-11"
                 >
-                  Edit note
-                </DropdownMenu.Item>
-                <DropdownMenu.Item
-                  className="flex min-h-11 cursor-pointer items-center rounded-lg px-3 text-sm text-destructive outline-none focus:bg-muted"
-                  onSelect={() => {
-                    setBaseline(text)
-                    setConfirmDelete(true)
-                  }}
+                  <MoreHorizontal className="size-5" />
+                </Button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content
+                  align="end"
+                  sideOffset={6}
+                  className="z-[60] min-w-44 rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-lg"
                 >
-                  Delete note
-                </DropdownMenu.Item>
-              </DropdownMenu.Content>
-            </DropdownMenu.Portal>
-          </DropdownMenu.Root>
+                  <DropdownMenu.Item
+                    className="flex min-h-11 cursor-pointer items-center rounded-lg px-3 text-sm outline-none focus:bg-muted"
+                    onSelect={() => void toggleFavorite()}
+                  >
+                    {favorite ? "Remove from favorites" : "Add to favorites"}
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    className="flex min-h-11 cursor-pointer items-center rounded-lg px-3 text-sm outline-none focus:bg-muted"
+                    onSelect={() => {
+                      setDraft(text)
+                      setBaseline(text)
+                      setEditing(true)
+                      setConfirmDelete(false)
+                      setError("")
+                    }}
+                  >
+                    Edit note
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    className="flex min-h-11 cursor-pointer items-center rounded-lg px-3 text-sm text-destructive outline-none focus:bg-muted"
+                    onSelect={() => {
+                      setBaseline(text)
+                      setConfirmDelete(true)
+                    }}
+                  >
+                    Delete note
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+          </div>
         </>
       )}
       {confirmDelete && (

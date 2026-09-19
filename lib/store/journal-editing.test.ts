@@ -120,6 +120,29 @@ it("supports evening journal editing and undo without clearing rituals", () => {
   expect(editing.undoJournalDeletion(token)).toBe(true)
   expect(store.getSnapshot().entries[day]!.journal).toBe("Revised evening")
 })
+it("stars and unstars a memory without changing the text", () => {
+  expect(editing.setJournalFavorite(target, text, true)).toBe(true)
+  expect(store.getSnapshot().entries[day]?.quickCheckIns?.[0]?.favorite).toBe(
+    true
+  )
+  expect(editing.readJournalText(target)).toEqual(text)
+  expect(editing.setJournalFavorite(target, text, false)).toBe(true)
+  expect(
+    store.getSnapshot().entries[day]?.quickCheckIns?.[0]?.favorite
+  ).toBeUndefined()
+})
+it("restores an evening favorite with undo", () => {
+  expect(
+    editing.setJournalFavorite({ day }, { note: "Evening", nextStep: "" }, true)
+  ).toBe(true)
+  const token = editing.deleteJournalText(
+    { day },
+    { note: "Evening", nextStep: "" }
+  )!
+  expect(store.getSnapshot().entries[day]?.journalFavorite).toBeUndefined()
+  expect(editing.undoJournalDeletion(token)).toBe(true)
+  expect(store.getSnapshot().entries[day]?.journalFavorite).toBe(true)
+})
 it("does not publish changes when synchronous storage rejects the write", () => {
   adapter.write.mockReturnValue(false)
   expect(

@@ -17,10 +17,7 @@ interface CloudInboundSyncOptions {
   userId: string
   initialBaselineState: AppState | null
   getLocalState: () => AppState
-  replaceLocalState: (
-    state: AppState,
-    options: { persistCloud: false }
-  ) => void
+  replaceLocalState: (state: AppState, options: { persistCloud: false }) => void
   isActive: () => boolean
   loadState?: typeof loadCloudState
   onError?: (error: unknown) => void
@@ -60,6 +57,7 @@ export async function saveCloudState(
 }
 
 export function mergeCloudState(local: AppState, remote: AppState): AppState {
+  const weeklyDirection = local.weeklyDirection ?? remote.weeklyDirection
   return {
     entries: { ...remote.entries, ...local.entries },
     habits: hasCustomHabits(local) ? local.habits : remote.habits,
@@ -71,6 +69,7 @@ export function mergeCloudState(local: AppState, remote: AppState): AppState {
       local.notificationEvening === INITIAL_STATE.notificationEvening
         ? remote.notificationEvening
         : local.notificationEvening,
+    ...(weeklyDirection ? { weeklyDirection } : {}),
   }
 }
 
@@ -202,9 +201,11 @@ export function createCloudInboundSync({
       const activeChannel = channel
       channel = null
       if (activeChannel) {
-        void Promise.resolve(client.removeChannel(activeChannel)).catch((error) => {
-          onError?.(error)
-        })
+        void Promise.resolve(client.removeChannel(activeChannel)).catch(
+          (error) => {
+            onError?.(error)
+          }
+        )
       }
     },
   }
@@ -231,6 +232,13 @@ function reconcileInboundCloudState(
     if (entry !== undefined) entries[date] = entry
   }
 
+  const weeklyDirection = structurallyEqual(
+    local.weeklyDirection,
+    baseline.weeklyDirection
+  )
+    ? remote.weeklyDirection
+    : local.weeklyDirection
+
   return {
     entries,
     habits: structurallyEqual(local.habits, baseline.habits)
@@ -248,6 +256,7 @@ function reconcileInboundCloudState(
     )
       ? remote.notificationEvening
       : local.notificationEvening,
+    ...(weeklyDirection !== undefined ? { weeklyDirection } : {}),
   }
 }
 

@@ -184,8 +184,8 @@ function LoginForm() {
             {confirmationEmail
               ? "Confirm your account before signing in."
               : mode === "signin"
-                ? "Sign in to sync your rituals across devices."
-                : "Start syncing your rituals across devices."}
+                ? "Sign in to sync your days."
+                : "Create an account to sync."}
           </p>
         </div>
 

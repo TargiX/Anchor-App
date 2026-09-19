@@ -6,15 +6,11 @@ import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
 import { updateEntry } from "@/lib/store/actions"
 import { useEntry } from "@/hooks/use-store"
-import { type SleepQuality } from "@/lib/domain/entry"
+import { SLEEP_QUALITY_LABEL, type SleepQuality } from "@/lib/domain/entry"
 
-const SLEEP_OPTIONS: { value: SleepQuality; label: string; glyph: string }[] = [
-  { value: "terrible", label: "Rough", glyph: "😶" },
-  { value: "poor", label: "Poor", glyph: "😔" },
-  { value: "okay", label: "Okay", glyph: "😌" },
-  { value: "good", label: "Good", glyph: "🌙" },
-  { value: "great", label: "Great", glyph: "✨" },
-]
+const SLEEP_OPTIONS = (
+  Object.entries(SLEEP_QUALITY_LABEL) as [SleepQuality, string][]
+).map(([value, label]) => ({ value, label }))
 
 interface StepSleepProps {
   entryKey: string
@@ -47,12 +43,10 @@ export function StepSleep({ entryKey, onNext, onBack }: StepSleepProps) {
   }
 
   return (
-    <div className="flex flex-col flex-1 gap-8">
+    <div className="flex flex-1 flex-col gap-8">
       <div className="flex flex-col gap-2 pt-4">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
-          Sleep
-        </p>
-        <h2 className="font-[family-name:var(--font-display)] text-3xl font-medium text-foreground text-balance leading-tight lg:text-4xl">
+        <p className="text-xs font-medium text-muted-foreground">Sleep</p>
+        <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight font-semibold text-balance text-foreground lg:text-4xl">
           How did last night feel?
         </h2>
       </div>
@@ -64,22 +58,21 @@ export function StepSleep({ entryKey, onNext, onBack }: StepSleepProps) {
             key={opt.value}
             onClick={() => setQuality(opt.value)}
             className={cn(
-              "flex flex-col items-center gap-2 flex-1 py-4 rounded-2xl border transition-all duration-200",
+              "flex min-h-11 flex-1 items-center justify-center py-2 text-sm transition-colors duration-200",
               quality === opt.value
-                ? "border-accent bg-accent/10 scale-105"
-                : "border-border bg-card hover:border-primary/40"
+                ? "font-medium text-foreground"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <span className="text-2xl">{opt.glyph}</span>
-            <span className="text-xs text-muted-foreground font-medium">{opt.label}</span>
+            {opt.label}
           </button>
         ))}
       </div>
 
       {/* Hours slider */}
-      <div className="bg-card rounded-2xl border border-border px-5 py-6 flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <p className="text-sm text-foreground font-medium">Hours slept</p>
+          <p className="text-sm font-medium text-foreground">Hours slept</p>
           <p className="font-[family-name:var(--font-display)] text-2xl font-medium text-foreground">
             {hours}h
           </p>
@@ -99,14 +92,18 @@ export function StepSleep({ entryKey, onNext, onBack }: StepSleepProps) {
       </div>
 
       {/* Nav */}
-      <div className="mt-auto pb-10 flex gap-3">
-        <Button variant="outline" onClick={onBack} className="flex-none rounded-2xl h-14 px-6">
+      <div className="mt-auto flex gap-3 pb-10">
+        <Button
+          variant="outline"
+          onClick={onBack}
+          className="h-14 flex-none rounded-2xl px-6"
+        >
           Back
         </Button>
         <Button
           onClick={handleNext}
           disabled={!quality}
-          className="flex-1 rounded-2xl h-14 text-base font-medium"
+          className="h-14 flex-1 rounded-2xl text-base font-medium"
         >
           Continue
         </Button>

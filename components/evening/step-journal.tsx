@@ -54,7 +54,7 @@ export function StepJournal({ entryKey, onNext, onBack }: StepJournalProps) {
   )
 
   const prompt = intention
-    ? `You started the day wanting to ${intention.toLowerCase()}. ${selectedLens?.prompt ?? "How did that land?"}`
+    ? (selectedLens?.prompt ?? "How did that land?")
     : FALLBACK_PROMPTS[promptIndex]
   const [text, setText] = useState(today?.journal ?? "")
 
@@ -77,61 +77,50 @@ export function StepJournal({ entryKey, onNext, onBack }: StepJournalProps) {
   return (
     <div className="flex flex-1 flex-col gap-8">
       <div className="flex flex-col gap-2 pt-4">
-        <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
-          Reflection
-        </p>
-        <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight font-medium text-balance text-foreground lg:text-4xl">
-          {prompt}
+        <p className="text-xs font-medium text-muted-foreground">Reflection</p>
+        <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight font-semibold text-balance text-foreground lg:text-4xl">
+          {intention ? "How did today land?" : prompt}
         </h2>
+        {intention ? (
+          <p className="text-sm leading-6 text-muted-foreground">{prompt}</p>
+        ) : null}
       </div>
 
       {intention && (
-        <section
-          aria-labelledby="intention-anchor-title"
-          className="rounded-2xl border border-accent/30 bg-accent/5 px-5 py-4"
-        >
-          <p
-            id="intention-anchor-title"
-            className="text-xs font-medium tracking-widest text-muted-foreground uppercase"
-          >
+        <section aria-labelledby="intention-anchor-title">
+          <p id="intention-anchor-title" className="sr-only">
             This morning&apos;s intention
           </p>
-          <p className="mt-2 font-[family-name:var(--font-display)] text-base leading-relaxed text-foreground italic">
+          <p className="font-[family-name:var(--font-display)] text-lg leading-relaxed text-foreground">
             &ldquo;{intention}&rdquo;
           </p>
           <div
-            className="mt-4"
+            className="mt-3 flex flex-wrap gap-2"
             role="group"
             aria-label="Choose a reflection lens"
           >
-            <p className="text-xs text-muted-foreground">Choose a lens</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {INTENTION_LENSES.map((lens) => (
-                <button
-                  key={lens.id}
-                  type="button"
-                  aria-pressed={intentionLens === lens.id}
-                  onClick={() => setIntentionLens(lens.id)}
-                  className={cn(
-                    "rounded-full border px-3 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none",
-                    intentionLens === lens.id
-                      ? "border-accent bg-accent/15 text-foreground"
-                      : "border-border bg-card text-muted-foreground hover:border-accent/50 hover:text-foreground"
-                  )}
-                >
-                  {lens.label}
-                </button>
-              ))}
-            </div>
+            {INTENTION_LENSES.map((lens) => (
+              <button
+                key={lens.id}
+                type="button"
+                aria-pressed={intentionLens === lens.id}
+                onClick={() => setIntentionLens(lens.id)}
+                className={cn(
+                  "min-h-11 px-1 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-ring",
+                  intentionLens === lens.id
+                    ? "font-medium text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {lens.label}
+              </button>
+            ))}
           </div>
         </section>
       )}
 
       <div className="relative flex flex-1 flex-col gap-2">
-        <label
-          htmlFor="journal-reflection"
-          className="text-xs font-medium tracking-widest text-muted-foreground uppercase"
-        >
+        <label htmlFor="journal-reflection" className="sr-only">
           Your reflection
         </label>
         <textarea
@@ -141,15 +130,15 @@ export function StepJournal({ entryKey, onNext, onBack }: StepJournalProps) {
           placeholder="Write whatever wants to come out..."
           rows={8}
           className={cn(
-            "min-h-[200px] w-full flex-1 resize-none rounded-2xl border border-border bg-card",
-            "px-5 py-4 text-base text-foreground placeholder:text-muted-foreground",
-            "transition-shadow focus:ring-2 focus:ring-ring focus:outline-none",
-            "font-[family-name:var(--font-display)] leading-relaxed"
+            "min-h-[200px] w-full flex-1 resize-none border-0 border-b border-border bg-transparent p-0 pb-3",
+            "text-xl leading-8 text-foreground placeholder:text-muted-foreground/70",
+            "outline-none focus-visible:border-foreground focus-visible:ring-0",
+            "font-[family-name:var(--font-display)]"
           )}
           maxLength={LIMITS.journalMax}
         />
         {text.trim().length > 0 && (
-          <span className="absolute right-4 bottom-3 text-xs text-muted-foreground">
+          <span className="absolute right-0 bottom-0 text-xs text-muted-foreground">
             {countWords(text)} {countWords(text) === 1 ? "word" : "words"}
           </span>
         )}
