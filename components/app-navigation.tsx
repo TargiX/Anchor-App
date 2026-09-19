@@ -5,14 +5,23 @@ import { usePathname } from "next/navigation"
 import { BookOpen, CalendarDays, Sun } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export function AppNavigation() {
+const TAB_ROOTS = new Set(["/app", "/timeline", "/review"])
+
+export function AppChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  // Rituals keep their own next/back controls and return to Today on completion.
-  if (!["/app", "/timeline", "/review"].includes(pathname.replace(/\/$/, "")))
-    return null
+  const tabRoot = TAB_ROOTS.has(pathname.replace(/\/$/, ""))
+  return (
+    <div className={tabRoot ? "pb-28" : undefined}>
+      {children}
+      {tabRoot ? <AppNavigation pathname={pathname} /> : null}
+    </div>
+  )
+}
+
+function AppNavigation({ pathname }: { pathname: string }) {
   return (
     <nav
-      aria-label="Your Anchor"
+      aria-label="Main"
       className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md"
     >
       <div className="mx-auto grid max-w-2xl grid-cols-3 gap-2 px-4 pt-2">
@@ -30,7 +39,7 @@ export function AppNavigation() {
             className={cn(
               "flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl text-xs focus-visible:outline-2 focus-visible:outline-ring",
               pathname.replace(/\/$/, "") === href
-                ? "bg-primary/10 font-semibold text-primary"
+                ? "font-medium text-foreground"
                 : "text-muted-foreground hover:bg-muted"
             )}
           >

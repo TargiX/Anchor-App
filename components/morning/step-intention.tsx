@@ -60,10 +60,8 @@ export function StepIntention({
   return (
     <div className="flex flex-1 flex-col gap-8">
       <div className="flex flex-col gap-2 pt-4">
-        <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
-          Intention
-        </p>
-        <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight font-medium text-balance text-foreground lg:text-4xl">
+        <p className="text-xs font-medium text-muted-foreground">Intention</p>
+        <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight font-semibold text-balance text-foreground lg:text-4xl">
           Today I want to&hellip;
         </h2>
       </div>
@@ -76,32 +74,32 @@ export function StepIntention({
           placeholder="Write your intention for today..."
           rows={3}
           className={cn(
-            "w-full resize-none rounded-2xl border border-border bg-card",
-            "px-5 py-4 text-base text-foreground placeholder:text-muted-foreground",
-            "transition-shadow focus:ring-2 focus:ring-ring focus:outline-none",
-            "font-[family-name:var(--font-display)] leading-relaxed"
+            "w-full resize-none border-0 border-b border-border bg-transparent p-0 pb-3",
+            "text-xl leading-8 text-foreground placeholder:text-muted-foreground/70",
+            "outline-none focus-visible:border-foreground focus-visible:ring-0",
+            "font-[family-name:var(--font-display)]"
           )}
           maxLength={LIMITS.intentionMax}
         />
-        <span className="absolute right-4 bottom-3 text-xs text-muted-foreground">
-          {text.length}/{LIMITS.intentionMax}
-        </span>
+        {text.length > 0 ? (
+          <span className="absolute right-0 bottom-0 text-xs text-muted-foreground">
+            {text.length}/{LIMITS.intentionMax}
+          </span>
+        ) : null}
       </div>
 
       {/* AI-style suggestions */}
       <div className="flex flex-col gap-2">
-        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          Or try one of these
-        </p>
+        <p className="text-xs text-muted-foreground">Or try one of these</p>
         {suggestions.map((s) => (
           <button
             key={s}
             onClick={() => setText(s)}
             className={cn(
-              "rounded-xl border px-4 py-3.5 text-left text-sm text-foreground transition-all duration-200",
+              "min-h-11 py-2 text-left text-sm transition-colors duration-200",
               text === s
-                ? "border-accent bg-accent/10"
-                : "border-border bg-card hover:border-primary/40 hover:bg-muted/50"
+                ? "font-medium text-foreground"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             {s}

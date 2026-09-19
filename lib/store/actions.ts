@@ -12,6 +12,7 @@ import {
   type DayEntry,
 } from "@/lib/domain/entry"
 import type { Habit } from "@/lib/domain/habit"
+import { WeeklyDirectionSchema } from "@/lib/domain/weekly-direction"
 import {
   LIMITS,
   validateHabitName,
@@ -54,16 +55,23 @@ export function updateTodayEntry(patch: Partial<DayEntry>): void {
 /** Append a check-in without replacing journal text or earlier check-ins. */
 export function saveQuickCheckIn(
   input: unknown,
-  key = getTodayKey()
+  key = getTodayKey(),
+  options?: { weeklyReviewEnd?: string }
 ): ValidationResult {
   const parsed = QuickCheckInSchema.safeParse(input)
   if (!parsed.success || !DayKeySchema.safeParse(key).success) {
+    const photoIssue = parsed.success
+      ? false
+      : parsed.error.issues.some((issue) => issue.path.includes("photo"))
     return {
       ok: false,
-      error: "Add a short note and keep your next step under 200 characters.",
+      error: photoIssue
+        ? "That photo couldn’t be saved. Try a smaller image."
+        : "Add a short note and keep your next step under 200 characters.",
     }
   }
   const checkIn = parsed.data
+  const reviewEnd = DayKeySchema.safeParse(options?.weeklyReviewEnd)
   const saved = commitLocalState((previous) => {
     const entry = previous.entries[key] ?? emptyEntry(key)
     if (entry.quickCheckIns?.some((item) => item.id === checkIn.id))
@@ -75,9 +83,24 @@ export function saveQuickCheckIn(
         [key]: {
           ...entry,
           quickCheckIns: [...(entry.quickCheckIns ?? []), checkIn],
-          ...(checkIn.nextStep ? { intention: checkIn.nextStep } : {}),
+          ...(checkIn.nextStep && !reviewEnd.success
+            ? { intention: checkIn.nextStep }
+            : {}),
         },
       },
+      ...(reviewEnd.success &&
+      checkIn.nextStep &&
+      previous.weeklyDirection?.status !== "open"
+        ? {
+            weeklyDirection: {
+              text: checkIn.nextStep,
+              weekEnd: reviewEnd.data,
+              sourceDay: key,
+              sourceId: checkIn.id,
+              status: "open" as const,
+            },
+          }
+        : {}),
     }
   })
   return saved
@@ -87,6 +110,46 @@ export function saveQuickCheckIn(
         error:
           "Could not save on this device. Your text is still here. Free up storage or copy it before leaving, then try again.",
       }
+}
+
+function commitOpenWeeklyDirection(
+  updater: (
+    direction: NonNullable<AppState["weeklyDirection"]>
+  ) => AppState["weeklyDirection"]
+): boolean {
+  if (getSnapshot().weeklyDirection?.status !== "open") return false
+  return commitLocalState((previous) => {
+    if (previous.weeklyDirection?.status !== "open") return previous
+    const weeklyDirection = updater(previous.weeklyDirection)
+    if (!WeeklyDirectionSchema.safeParse(weeklyDirection).success)
+      return previous
+    return { ...previous, weeklyDirection }
+  })
+}
+
+export function finishWeeklyDirection(): boolean {
+  return commitOpenWeeklyDirection((direction) => ({
+    ...direction,
+    status: "finished",
+    resolvedOn: getTodayKey(),
+  }))
+}
+
+export function releaseWeeklyDirection(): boolean {
+  return commitOpenWeeklyDirection((direction) => ({
+    ...direction,
+    status: "released",
+    resolvedOn: getTodayKey(),
+  }))
+}
+
+export function changeWeeklyDirection(text: string): boolean {
+  const next = text.trim()
+  if (!next || next.length > LIMITS.intentionMax) return false
+  return commitOpenWeeklyDirection((direction) => ({
+    ...direction,
+    text: next,
+  }))
 }
 
 type RitualKind = "morning" | "evening"

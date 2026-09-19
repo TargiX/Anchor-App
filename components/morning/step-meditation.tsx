@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { updateEntry } from "@/lib/store/actions"
 import { useEntry } from "@/hooks/use-store"
-import { motion } from "framer-motion"
-import { Pause, Play } from "lucide-react"
+import { motion, useReducedMotion } from "framer-motion"
 import { captureEvent } from "@/lib/analytics/client"
 
 const DURATIONS = [2, 5, 10]
@@ -23,6 +22,7 @@ export function StepMeditation({
   onBack,
 }: StepMeditationProps) {
   const today = useEntry(entryKey)
+  const shouldReduceMotion = useReducedMotion()
   // Defaults for first render; effect syncs the hydrated meditationMinutes
   // once useAppState finishes loading from storage. See step-sleep for the
   // set-state-in-effect rationale.
@@ -93,27 +93,26 @@ export function StepMeditation({
   return (
     <div className="flex flex-1 flex-col gap-8">
       <div className="flex flex-col gap-2 pt-4">
-        <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
-          Stillness
-        </p>
-        <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight font-medium text-balance text-foreground lg:text-4xl">
+        <p className="text-xs font-medium text-muted-foreground">Stillness</p>
+        <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight font-semibold text-balance text-foreground lg:text-4xl">
           Want to start with a moment of stillness?
         </h2>
       </div>
 
-      {/* Duration picker */}
       {!selected && (
-        <div className="flex gap-3">
+        <div className="grid grid-cols-3 gap-2">
           {DURATIONS.map((d) => (
             <button
               key={d}
               onClick={() => startTimer(d)}
-              className="flex flex-1 flex-col items-center gap-1 rounded-2xl border border-border bg-card py-5 transition-all hover:border-accent hover:bg-accent/5"
+              className="rounded-xl py-3 text-center transition-colors hover:bg-muted/60"
             >
-              <span className="font-[family-name:var(--font-display)] text-2xl font-medium text-foreground">
+              <span className="block font-[family-name:var(--font-display)] text-2xl font-medium text-foreground">
                 {d}
               </span>
-              <span className="text-xs text-muted-foreground">min</span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                min
+              </span>
             </button>
           ))}
         </div>
@@ -164,7 +163,7 @@ export function StepMeditation({
           {/* Breathing guide */}
           {running && (
             <motion.div
-              animate={{ scale: [1, 1.15, 1] }}
+              animate={shouldReduceMotion ? undefined : { scale: [1, 1.15, 1] }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
               className="text-sm text-muted-foreground"
             >
@@ -178,11 +177,6 @@ export function StepMeditation({
               onClick={() => setRunning((r) => !r)}
               className="h-12 flex-1 rounded-2xl"
             >
-              {running ? (
-                <Pause className="size-4" />
-              ) : (
-                <Play className="size-4" />
-              )}
               {running ? "Pause" : "Start"}
             </Button>
             <Button

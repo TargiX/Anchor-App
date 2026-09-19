@@ -3,18 +3,15 @@
 import { CalendarDays } from "lucide-react"
 import { AppScreenShell } from "@/components/app-screen-shell"
 import { RitualHistoryExport } from "@/components/ritual-history-export"
-import { JournalBackupControls } from "@/components/journal-backup-controls"
 import { TimelineView } from "@/components/timeline-view"
 
 export default function TimelinePage() {
   return (
     <AppScreenShell
       title="Journal"
-      eyebrow="Your own words"
-      description="Find a thought, revisit a moment, or see how a day unfolded."
-      backHref="/app"
+      description="Find a thought or open a day."
       railTitle="Your days, gathered."
-      railBody="The timeline is meant for scanning patterns, not judging streaks. Open a day when you want the detail."
+      railBody="Scan the days. Open one when you want the detail."
       railMeta={
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <CalendarDays className="size-4 text-accent" />
@@ -25,7 +22,6 @@ export default function TimelinePage() {
     >
       <TimelineView />
       <RitualHistoryExport />
-      <JournalBackupControls />
     </AppScreenShell>
   )
 }

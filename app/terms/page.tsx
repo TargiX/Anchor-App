@@ -30,9 +30,7 @@ export default function TermsPage() {
       <div className="mb-8 flex items-center gap-3">
         <AnchorMotif size={32} className="text-primary" />
         <div>
-          <p className="text-xs tracking-widest text-muted-foreground uppercase">
-            Anchor
-          </p>
+          <p className="text-xs font-medium text-muted-foreground">Anchor</p>
           <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold">
             Terms
           </h1>
@@ -47,9 +45,8 @@ export default function TermsPage() {
             Beta software
           </h2>
           <p>
-            Anchor is provided as beta software for personal journaling,
-            reflection, and daily ritual tracking. Features may change while the
-            beta is active.
+            Anchor is provided as beta software for personal journaling and
+            reflection. Features may change while the beta is active.
           </p>
         </section>
 

@@ -30,9 +30,7 @@ export default function PrivacyPage() {
       <div className="mb-8 flex items-center gap-3">
         <AnchorMotif size={32} className="text-primary" />
         <div>
-          <p className="text-xs tracking-widest text-muted-foreground uppercase">
-            Anchor
-          </p>
+          <p className="text-xs font-medium text-muted-foreground">Anchor</p>
           <h1 className="font-[family-name:var(--font-display)] text-3xl font-semibold">
             Privacy Policy
           </h1>
@@ -47,7 +45,7 @@ export default function PrivacyPage() {
             Local-first data
           </h2>
           <p>
-            Anchor stores your ritual entries, mood notes, habits, settings, and
+            Anchor stores your journal notes, mood, habits, settings, and
             reminders locally on your device by default. The app is designed to
             work without an account.
           </p>
@@ -71,8 +69,8 @@ export default function PrivacyPage() {
           </h2>
           <p>
             If you enable reminders, Anchor asks your device or browser for
-            notification permission and schedules local ritual reminders. You
-            can disable notifications in browser, iOS, or system settings.
+            notification permission and schedules local reminders. You can
+            disable notifications in browser, iOS, or system settings.
           </p>
         </section>
 

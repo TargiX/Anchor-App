@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { AnchorMotif } from "@/components/anchor-motif"
 import { useAuth } from "@/components/auth-provider"
@@ -20,12 +20,12 @@ const COPY: Record<
 > = {
   morning: {
     title: "You're anchored.",
-    subtitle: "The thread is set. Carry it gently into the day.",
+    subtitle: "Into the rest of the day.",
     cta: "Back to app",
   },
   evening: {
     title: "Day closed.",
-    subtitle: "You closed the loop. Rest now — tomorrow begins fresh.",
+    subtitle: "Rest is next.",
     cta: "Done",
   },
 }
@@ -33,73 +33,57 @@ const COPY: Record<
 export function StepComplete({ variant, onNext, onBack }: StepCompleteProps) {
   const { status } = useAuth()
   const copy = COPY[variant]
+  const shouldReduceMotion = useReducedMotion()
   // Show the save-prompt only to anonymous visitors: their progress is already
   // saved locally (see SyncProvider), this just nudges them toward cloud sync.
   const showSavePrompt = status === "anon"
 
   return (
-    <div className="flex flex-col flex-1 gap-8">
-      <div className="flex flex-1 flex-col items-center justify-center gap-5 text-center pt-4">
+    <div className="flex flex-1 flex-col gap-8">
+      <div className="flex flex-1 flex-col items-center justify-center gap-5 pt-4 text-center">
         <motion.div
-          initial={{ opacity: 0, scale: 0.85 }}
+          initial={
+            shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.85 }
+          }
           animate={{ opacity: 0.7, scale: 1 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+          transition={{
+            duration: shouldReduceMotion ? 0.2 : 0.6,
+            ease: "easeOut",
+          }}
         >
           <AnchorMotif size={120} className="text-primary" />
         </motion.div>
         <div className="flex flex-col gap-3">
-          <h2 className="font-[family-name:var(--font-display)] text-3xl font-medium text-foreground text-balance leading-tight">
+          <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight font-medium text-balance text-foreground">
             {copy.title}
           </h2>
-          <p className="text-sm leading-relaxed text-muted-foreground max-w-[280px]">
+          <p className="max-w-[280px] text-sm leading-relaxed text-muted-foreground">
             {copy.subtitle}
           </p>
         </div>
       </div>
 
       {showSavePrompt && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.4 }}
-          className="rounded-2xl border border-accent/30 bg-accent/5 px-5 py-4 flex flex-col gap-3 text-center"
-        >
-          <p className="text-sm leading-relaxed text-foreground">
-            <span className="font-medium">Want to save your progress</span>{" "}
-            <span className="text-muted-foreground">
-              across devices and never lose a ritual?
-            </span>
-          </p>
-          <div className="flex gap-2.5">
-            <Link href="/login?mode=signup" className="flex-1">
-              <Button className="w-full rounded-2xl h-12 text-sm font-medium">
-                Create account
-              </Button>
-            </Link>
-            <Link href="/login?mode=signin" className="flex-1">
-              <Button
-                variant="outline"
-                className="w-full rounded-2xl h-12 text-sm font-medium"
-              >
-                Sign in
-              </Button>
-            </Link>
-          </div>
-        </motion.div>
+        <p className="text-center text-sm leading-6 text-muted-foreground">
+          <Link href="/login?mode=signin" className="text-foreground underline">
+            Sign in
+          </Link>{" "}
+          if you want this on other devices.
+        </p>
       )}
 
       {/* Nav */}
-      <div className="mt-auto pb-10 flex gap-3">
+      <div className="mt-auto flex gap-3 pb-10">
         <Button
           variant="outline"
           onClick={onBack}
-          className="flex-none rounded-2xl h-14 px-6"
+          className="h-14 flex-none rounded-2xl px-6"
         >
           Back
         </Button>
         <Button
           onClick={onNext}
-          className="flex-1 rounded-2xl h-14 text-base font-medium"
+          className="h-14 flex-1 rounded-2xl text-base font-medium"
         >
           {copy.cta}
         </Button>

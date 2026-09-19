@@ -1,10 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { AnchorMotif } from "@/components/anchor-motif"
-import { cn } from "@/lib/utils"
 import { motion, useReducedMotion } from "framer-motion"
 import { getGreeting } from "@/lib/time/context"
 import { updateEntry } from "@/lib/store/actions"
@@ -46,7 +43,6 @@ export function StepAffirmation({
   const [index, setIndex] = useState(0)
   const [dateLabel, setDateLabel] = useState("Today")
   const [greeting, setGreeting] = useState(getGreeting(12))
-  const [spinning, setSpinning] = useState(false)
   const shouldReduceMotion = useReducedMotion()
 
   /* eslint-disable react-hooks/set-state-in-effect -- hydration guard: client-only date and random affirmation must not affect the first client render */
@@ -59,11 +55,7 @@ export function StepAffirmation({
 
   function regenerate() {
     captureEvent("affirmation_regenerated")
-    setSpinning(true)
-    setTimeout(() => {
-      setIndex((prev) => (prev + 1) % AFFIRMATIONS.length)
-      setSpinning(false)
-    }, 400)
+    setIndex((prev) => (prev + 1) % AFFIRMATIONS.length)
   }
 
   function beginRitual() {
@@ -76,53 +68,34 @@ export function StepAffirmation({
     <div className="flex flex-1 flex-col gap-8">
       {/* Header */}
       <div className="flex flex-col gap-1 pt-4">
-        <p className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
-          {dateLabel}
-        </p>
+        <p className="text-sm text-muted-foreground">{dateLabel}</p>
         <h1 className="font-[family-name:var(--font-display)] text-3xl leading-snug font-semibold text-balance text-foreground">
           {greeting}
           {userName ? `, ${userName}` : ""}.
         </h1>
       </div>
 
-      {/* Brand motif + affirmation, centered in the space the CTA leaves open */}
-      <div className="flex flex-1 flex-col justify-center gap-8">
-        <div className="flex justify-center">
-          <AnchorMotif size={140} animate className="text-primary opacity-70 lg:hidden" />
-          <AnchorMotif
-            size={180}
-            animate
-            className="hidden text-primary opacity-70 lg:block"
-          />
-        </div>
-
-        <div className="relative rounded-2xl border border-border bg-card px-6 py-7">
-          <p className="mb-4 text-xs font-medium tracking-widest text-muted-foreground uppercase">
-            Today&apos;s affirmation
-          </p>
-          <motion.p
-            key={index}
-            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: shouldReduceMotion ? 0.15 : 0.35 }}
-            className="font-[family-name:var(--font-display)] text-xl leading-relaxed text-balance text-foreground"
-          >
-            &ldquo;{AFFIRMATIONS[index]}&rdquo;
-          </motion.p>
-          <button
-            onClick={regenerate}
-            className="mt-3 -ml-2 flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-            aria-label="Generate another affirmation"
-          >
-            <RefreshCw
-              className={cn(
-                "size-3.5 transition-transform duration-500",
-                spinning && "rotate-180"
-              )}
-            />
-            another one
-          </button>
-        </div>
+      {/* Affirmation */}
+      <div className="flex flex-1 flex-col justify-start pt-2">
+        <p className="text-xs font-medium text-muted-foreground">
+          Today&apos;s affirmation
+        </p>
+        <motion.p
+          key={index}
+          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: shouldReduceMotion ? 0.15 : 0.35 }}
+          className="mt-5 font-[family-name:var(--font-display)] text-2xl leading-snug text-balance text-foreground lg:text-3xl"
+        >
+          &ldquo;{AFFIRMATIONS[index]}&rdquo;
+        </motion.p>
+        <button
+          onClick={regenerate}
+          className="mt-4 inline-flex min-h-11 items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
+          aria-label="Generate another affirmation"
+        >
+          Another
+        </button>
       </div>
 
       {/* CTA */}

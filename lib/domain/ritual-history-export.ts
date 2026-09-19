@@ -1,5 +1,6 @@
 import type { DayEntry } from "./entry"
 import type { Habit } from "./habit"
+import { journalPhotoSrc } from "./photo"
 
 export interface RitualHistoryExportInput {
   entries: Record<string, DayEntry>
@@ -18,7 +19,8 @@ function hasRecordedField(
   configuredHabitIds: Set<string>
 ): boolean {
   return Object.entries(entry).some(([field, value]) => {
-    if (field === "date" || value === undefined) return false
+    if (field === "date" || field === "journalFavorite" || value === undefined)
+      return false
     if (field === "quickCheckIns")
       return Array.isArray(value) && value.length > 0
     if (field === "habitsCompleted") {
@@ -79,6 +81,12 @@ function entryMarkdown(entry: DayEntry, habits: Habit[]): string {
     sections.push(textSection(`Check-in · ${checkIn.createdAt}`, checkIn.note))
     if (checkIn.nextStep)
       sections.push(textSection("Next step", checkIn.nextStep))
+    if (checkIn.favorite) sections.push("**Favorite memory**")
+    if (checkIn.photo) {
+      sections.push(
+        `![Photo attached to this note](${journalPhotoSrc(checkIn.photo)})`
+      )
+    }
   }
 
   if (entry.morningMood) {
@@ -119,6 +127,7 @@ function entryMarkdown(entry: DayEntry, habits: Habit[]): string {
 
   if (entry.journal?.trim()) {
     sections.push(textSection("Journal", entry.journal))
+    if (entry.journalFavorite) sections.push("**Favorite memory**")
   }
 
   if (entry.habitsCompleted !== undefined) {

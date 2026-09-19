@@ -70,6 +70,28 @@ describe("mergeCloudState", () => {
       notificationEvening: "22:00",
     })
   })
+
+  it("keeps a local weekly direction and inherits a remote one when local has none", () => {
+    const direction = {
+      text: "Call Ada",
+      weekEnd: "2026-09-18",
+      sourceDay: "2026-09-18",
+      sourceId: "b054f9f9-e276-43fe-9663-d7f0071aa431",
+      status: "open" as const,
+    }
+    expect(
+      mergeCloudState(
+        { ...INITIAL_STATE, weeklyDirection: direction },
+        INITIAL_STATE
+      ).weeklyDirection
+    ).toEqual(direction)
+    expect(
+      mergeCloudState(INITIAL_STATE, {
+        ...INITIAL_STATE,
+        weeklyDirection: direction,
+      }).weeklyDirection
+    ).toEqual(direction)
+  })
 })
 
 describe("cloud inbound sync", () => {

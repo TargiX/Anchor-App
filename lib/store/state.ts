@@ -5,6 +5,7 @@ import {
   type DayEntry,
 } from "@/lib/domain/entry"
 import { HabitSchema, DEFAULT_HABITS } from "@/lib/domain/habit"
+import { WeeklyDirectionSchema } from "@/lib/domain/weekly-direction"
 
 /**
  * Persisted application state.
@@ -18,6 +19,7 @@ export const AppStateSchema = z.object({
   habits: z.array(HabitSchema),
   notificationMorning: TimeOfDaySchema,
   notificationEvening: TimeOfDaySchema,
+  weeklyDirection: WeeklyDirectionSchema.optional(),
 })
 export type AppState = z.infer<typeof AppStateSchema>
 
@@ -99,6 +101,7 @@ function recover(candidate: unknown): AppState {
   const habits = z.array(HabitSchema).safeParse(obj.habits)
   const morning = TimeOfDaySchema.safeParse(obj.notificationMorning)
   const evening = TimeOfDaySchema.safeParse(obj.notificationEvening)
+  const weeklyDirection = WeeklyDirectionSchema.safeParse(obj.weeklyDirection)
 
   return {
     entries,
@@ -109,5 +112,8 @@ function recover(candidate: unknown): AppState {
     notificationEvening: evening.success
       ? evening.data
       : INITIAL_STATE.notificationEvening,
+    ...(weeklyDirection.success
+      ? { weeklyDirection: weeklyDirection.data }
+      : {}),
   }
 }

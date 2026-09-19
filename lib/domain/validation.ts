@@ -11,6 +11,9 @@ export const LIMITS = {
   habitsMax: 12,
   morningRitualSteps: 6,
   eveningRitualSteps: 5,
+  photoMaxBytes: 180_000,
+  photoMaxEdge: 1280,
+  photoBase64Max: 240_008,
 } as const
 
 export type ValidationResult = { ok: true } | { ok: false; error: string }

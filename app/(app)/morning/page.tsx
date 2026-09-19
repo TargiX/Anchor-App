@@ -50,13 +50,17 @@ export default function MorningRitual() {
       step={step}
       totalSteps={TOTAL_STEPS}
       title="Morning ritual"
-      description="Start with sleep, mood, intention, and a short stillness practice before the day gets loud."
+      description="Sleep, mood, an intention, and a little stillness."
     >
       {step === 0 && (
         <StepAffirmation entryKey={entryKey} onNext={next} onBack={back} />
       )}
-      {step === 1 && <StepSleep entryKey={entryKey} onNext={next} onBack={back} />}
-      {step === 2 && <StepMood entryKey={entryKey} onNext={next} onBack={back} isMorning />}
+      {step === 1 && (
+        <StepSleep entryKey={entryKey} onNext={next} onBack={back} />
+      )}
+      {step === 2 && (
+        <StepMood entryKey={entryKey} onNext={next} onBack={back} isMorning />
+      )}
       {step === 3 && (
         <StepIntention
           entryKey={entryKey}
@@ -65,7 +69,9 @@ export default function MorningRitual() {
           onBack={back}
         />
       )}
-      {step === 4 && <StepMeditation entryKey={entryKey} onNext={next} onBack={back} />}
+      {step === 4 && (
+        <StepMeditation entryKey={entryKey} onNext={next} onBack={back} />
+      )}
       {step === 5 && (
         <StepComplete variant="morning" onNext={next} onBack={back} />
       )}

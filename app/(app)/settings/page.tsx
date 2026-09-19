@@ -48,11 +48,10 @@ export default function SettingsPage() {
   return (
     <AppScreenShell
       title="Settings"
-      eyebrow="Preferences"
-      description="Habits, reminders, and appearance — all kept on this device."
+      description="Habits, reminders, and appearance."
       backHref="/app"
-      railTitle="Make Anchor fit the way you check in."
-      railBody="Keep the ritual light: only the habits, notification times, and visual tone that help you return."
+      railTitle="Adjust what you use."
+      railBody="Habits, reminders, and appearance."
       railMeta={
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <SlidersHorizontal className="size-4 text-accent" />
@@ -61,18 +60,15 @@ export default function SettingsPage() {
       }
       contentClassName="lg:max-w-4xl"
     >
-      <Tabs defaultValue="habits" className="flex-1">
+      <Tabs defaultValue="habits">
         <TabsList className="w-full justify-start lg:w-fit lg:min-w-[520px]">
           <TabsTrigger value="habits">Habits</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="theme">Theme</TabsTrigger>
         </TabsList>
 
-        <TabsContent
-          value="habits"
-          className="mt-6 flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start"
-        >
-          <Card className="lg:min-h-[360px]">
+        <TabsContent value="habits" className="mt-6 flex flex-col gap-4">
+          <Card>
             <CardHeader>
               <CardTitle className="text-base font-medium">
                 Your habits
@@ -80,9 +76,9 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
               {state.habits.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
-                  No habits yet. Add your first one below.
-                </div>
+                <p className="px-1 py-2 text-sm text-muted-foreground">
+                  No habits yet. Add one below.
+                </p>
               ) : (
                 state.habits.map((habit) => (
                   <div
@@ -106,51 +102,47 @@ export default function SettingsPage() {
                   </div>
                 ))
               )}
+              <div className="mt-2 flex gap-2">
+                <input
+                  type="text"
+                  value={newHabit}
+                  onChange={(e) => {
+                    setNewHabit(e.target.value)
+                    if (habitError) setHabitError(null)
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddHabit()}
+                  placeholder="Add a new habit..."
+                  aria-label="New habit"
+                  maxLength={LIMITS.habitNameMax}
+                  aria-invalid={habitError ? true : undefined}
+                  aria-describedby={habitError ? "habit-error" : undefined}
+                  className={cn(
+                    "min-w-0 flex-1 rounded-xl border bg-card px-4 py-3",
+                    "text-base text-foreground placeholder:text-muted-foreground",
+                    "focus:ring-2 focus:ring-ring focus:outline-none",
+                    habitError ? "border-destructive" : "border-border"
+                  )}
+                />
+                <Button
+                  onClick={handleAddHabit}
+                  aria-label="Add habit"
+                  className="rounded-xl px-4"
+                  disabled={!newHabit.trim()}
+                >
+                  <Plus className="size-4" />
+                </Button>
+              </div>
+              {habitError && (
+                <p
+                  id="habit-error"
+                  role="alert"
+                  className="px-1 text-xs text-destructive"
+                >
+                  {habitError}
+                </p>
+              )}
             </CardContent>
           </Card>
-
-          <div className="flex flex-col gap-1.5 rounded-2xl border border-border bg-card/60 p-4 lg:sticky lg:top-8">
-            <p className="text-sm font-medium text-foreground">Add a habit</p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newHabit}
-                onChange={(e) => {
-                  setNewHabit(e.target.value)
-                  if (habitError) setHabitError(null)
-                }}
-                onKeyDown={(e) => e.key === "Enter" && handleAddHabit()}
-                placeholder="Add a new habit..."
-                aria-label="New habit"
-                maxLength={LIMITS.habitNameMax}
-                aria-invalid={habitError ? true : undefined}
-                aria-describedby={habitError ? "habit-error" : undefined}
-                className={cn(
-                  "min-w-0 flex-1 rounded-xl border bg-card px-4 py-3",
-                  "text-base text-foreground placeholder:text-muted-foreground",
-                  "focus:ring-2 focus:ring-ring focus:outline-none",
-                  habitError ? "border-destructive" : "border-border"
-                )}
-              />
-              <Button
-                onClick={handleAddHabit}
-                aria-label="Add habit"
-                className="rounded-xl px-4"
-                disabled={!newHabit.trim()}
-              >
-                <Plus className="size-4" />
-              </Button>
-            </div>
-            {habitError && (
-              <p
-                id="habit-error"
-                role="alert"
-                className="px-1 text-xs text-destructive"
-              >
-                {habitError}
-              </p>
-            )}
-          </div>
         </TabsContent>
 
         <TabsContent value="notifications" className="mt-6 flex flex-col gap-4">
@@ -182,7 +174,7 @@ export default function SettingsPage() {
                         ? "This browser can't show notifications."
                         : nativeReminders
                           ? "Scheduled by iOS."
-                          : "Fire while Anchor is open."}
+                          : "Only while Anchor is open."}
                   </span>
                 </div>
                 {permission === "granted" ? (
@@ -209,12 +201,6 @@ export default function SettingsPage() {
                 ) : null}
               </div>
 
-              <p className="rounded-lg bg-muted/50 px-3 py-2 text-xs leading-relaxed text-muted-foreground lg:col-span-2">
-                {nativeReminders
-                  ? "On iOS, Anchor schedules OS-level daily reminders so they keep working when the app is closed."
-                  : "On the web, reminders only fire while Anchor is open. Install the iOS app for reliable background reminders."}
-              </p>
-
               <Separator className="lg:col-span-2" />
 
               <div className="flex flex-col gap-2">
@@ -222,7 +208,7 @@ export default function SettingsPage() {
                   htmlFor="morning-reminder"
                   className="text-sm font-medium text-muted-foreground"
                 >
-                  Morning ritual
+                  Morning
                 </label>
                 <input
                   id="morning-reminder"
@@ -246,7 +232,7 @@ export default function SettingsPage() {
                   htmlFor="evening-reminder"
                   className="text-sm font-medium text-muted-foreground"
                 >
-                  Evening ritual
+                  Evening
                 </label>
                 <input
                   id="evening-reminder"
@@ -280,7 +266,7 @@ export default function SettingsPage() {
                   onClick={() => setTheme(t)}
                   aria-pressed={theme === t}
                   className={cn(
-                    "min-h-11 rounded-xl border px-4 py-3 text-left text-sm capitalize transition-all",
+                    "min-h-11 rounded-xl border px-4 py-3 text-left text-sm capitalize transition-colors",
                     theme === t
                       ? "border-accent bg-accent/10 font-medium text-foreground"
                       : "border-border bg-card text-muted-foreground hover:border-primary/30"
@@ -299,7 +285,7 @@ export default function SettingsPage() {
       {status === "anon" && (
         <Link
           href="/login"
-          className="inline-flex min-h-11 items-center underline"
+          className="mt-6 inline-flex min-h-11 items-center text-sm text-muted-foreground"
         >
           Sign in for sync
         </Link>
@@ -307,24 +293,15 @@ export default function SettingsPage() {
 
       <nav
         aria-label="Help and privacy"
-        className="mt-6 flex flex-wrap gap-x-6"
+        className="mt-4 flex flex-wrap gap-x-5 text-sm text-muted-foreground"
       >
-        <Link
-          href="/support"
-          className="inline-flex min-h-11 items-center underline"
-        >
+        <Link href="/support" className="inline-flex min-h-11 items-center">
           Support
         </Link>
-        <Link
-          href="/privacy"
-          className="inline-flex min-h-11 items-center underline"
-        >
+        <Link href="/privacy" className="inline-flex min-h-11 items-center">
           Privacy Policy
         </Link>
-        <Link
-          href="/terms"
-          className="inline-flex min-h-11 items-center underline"
-        >
+        <Link href="/terms" className="inline-flex min-h-11 items-center">
           Terms
         </Link>
       </nav>
@@ -332,7 +309,7 @@ export default function SettingsPage() {
       {status === "authed" && (
         <div className="mt-6 flex items-center justify-between rounded-2xl border border-border bg-card px-5 py-4">
           <div className="flex flex-col">
-            <span className="text-xs tracking-widest text-muted-foreground uppercase">
+            <span className="text-xs font-medium text-muted-foreground">
               Signed in as
             </span>
             <span className="truncate text-sm font-medium text-foreground">

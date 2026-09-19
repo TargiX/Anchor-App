@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { saveQuickCheckIn } from "./actions"
+import {
+  changeWeeklyDirection,
+  finishWeeklyDirection,
+  releaseWeeklyDirection,
+  saveQuickCheckIn,
+} from "./actions"
 import { localStorageAdapter } from "./persistence"
 import {
   clearCloudPersistence,
@@ -135,5 +140,87 @@ describe("quick check-in persistence", () => {
         entries: { [day]: { date: day, journal: "Legacy" } },
       }).entries[day]?.journal
     ).toBe("Legacy")
+  })
+
+  it("keeps a review next step on Today without rewriting the morning anchor", () => {
+    setState((s) => ({
+      ...s,
+      entries: { [day]: { date: day, intention: "Write one paragraph" } },
+    }))
+    expect(
+      saveQuickCheckIn(
+        {
+          ...first,
+          note: "Week in review",
+          nextStep: "Call Ada",
+        },
+        day,
+        { weeklyReviewEnd: day }
+      )
+    ).toEqual({ ok: true })
+    expect(getSnapshot().entries[day]?.intention).toBe("Write one paragraph")
+    expect(getSnapshot().weeklyDirection).toEqual({
+      text: "Call Ada",
+      weekEnd: day,
+      sourceDay: day,
+      sourceId: first.id,
+      status: "open",
+    })
+  })
+
+  it("lets the person finish, change, or let go without making a new day", () => {
+    saveQuickCheckIn({ ...first, nextStep: "Call Ada" }, day, {
+      weeklyReviewEnd: day,
+    })
+    expect(changeWeeklyDirection("Send the note")).toBe(true)
+    expect(getSnapshot().weeklyDirection?.text).toBe("Send the note")
+    expect(finishWeeklyDirection()).toBe(true)
+    expect(getSnapshot().weeklyDirection?.status).toBe("finished")
+    expect(getSnapshot().weeklyDirection?.resolvedOn).toBeDefined()
+    expect(Object.keys(getSnapshot().entries)).toEqual([day])
+    expect(releaseWeeklyDirection()).toBe(false)
+  })
+
+  it("preserves an open weekly direction when a later review has a next step", () => {
+    saveQuickCheckIn({ ...first, nextStep: "Call Ada" }, day, {
+      weeklyReviewEnd: day,
+    })
+    const existingDirection = getSnapshot().weeklyDirection
+
+    expect(
+      saveQuickCheckIn(
+        {
+          ...first,
+          id: "d054f9f9-e276-43fe-9663-d7f0071aa431",
+          nextStep: "Replace the existing direction",
+        },
+        "2026-09-16",
+        { weeklyReviewEnd: "2026-09-16" }
+      )
+    ).toEqual({ ok: true })
+    expect(getSnapshot().weeklyDirection).toEqual(existingDirection)
+  })
+
+  it("lets the person let go without creating another day", () => {
+    saveQuickCheckIn({ ...first, nextStep: "Call Ada" }, day, {
+      weeklyReviewEnd: day,
+    })
+    expect(releaseWeeklyDirection()).toBe(true)
+    expect(getSnapshot().weeklyDirection?.status).toBe("released")
+    expect(Object.keys(getSnapshot().entries)).toEqual([day])
+  })
+
+  it("persists a photo on the note and round-trips it", () => {
+    const photo = { mime: "image/jpeg" as const, data: "/9j/2Q==" }
+    expect(saveQuickCheckIn({ ...first, nextStep: "", photo }, day).ok).toBe(
+      true
+    )
+    expect(getSnapshot().entries[day]?.quickCheckIns?.[0]?.photo).toEqual(photo)
+    const restored = migrate(JSON.parse(disk.get(ANON_STORAGE_KEY)!))
+    expect(restored.entries[day]?.quickCheckIns?.[0]?.photo).toEqual(photo)
+    const output = createRitualHistoryExport({ ...restored, exportedOn: day })
+    expect(output?.markdown).toContain(
+      `![Photo attached to this note](data:image/jpeg;base64,${photo.data})`
+    )
   })
 })

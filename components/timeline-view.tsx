@@ -4,9 +4,17 @@ import { useEffect, useState } from "react"
 import { useAppState } from "@/hooks/use-store"
 import { JournalNote } from "@/components/journal-note"
 import { revealDayFragment } from "@/lib/ui/day-fragment"
-import { matchesJournal } from "@/lib/domain/journal"
+import {
+  matchesJournal,
+  hasFavorite,
+  reviewNoteParts,
+} from "@/lib/domain/journal"
 import { cn } from "@/lib/utils"
-import { type DayEntry, type MoodPoint } from "@/lib/domain/entry"
+import {
+  SLEEP_QUALITY_LABEL,
+  type DayEntry,
+  type MoodPoint,
+} from "@/lib/domain/entry"
 import type { Habit } from "@/lib/domain/habit"
 import {
   activeDays,
@@ -17,8 +25,7 @@ import {
   weeklyTrendSeries,
 } from "@/lib/domain/reflection"
 import { getTodayKey, parseEntryDate } from "@/lib/time/today"
-import { ChevronDown, ChevronUp } from "lucide-react"
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
+import { ChevronDown, ChevronUp, Star } from "lucide-react"
 
 const MOOD_DIRECTION_COPY: Record<MoodDirection, string> = {
   rising: "Lifting",
@@ -42,13 +49,21 @@ export function WeeklyReflection({
   const trend = weeklyTrendSeries(entries, todayKey)
   const hasSupportingMetrics =
     mood !== null || sleep !== null || topHabit !== null
+  const showChart = trend.some(
+    (point) => point.mood || point.sleepHours !== undefined
+  )
+  if (!hasSupportingMetrics && !showChart) {
+    if (activity.count === 0) return null
+    return (
+      <p className="mb-2 text-xs text-muted-foreground">
+        {activity.count} of {activity.of} days recorded
+      </p>
+    )
+  }
 
   return (
-    <section
-      aria-labelledby="weekly-reflection-title"
-      className="overflow-hidden rounded-2xl border border-border bg-card"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+    <section aria-labelledby="weekly-reflection-title">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2
           id="weekly-reflection-title"
           className="font-[family-name:var(--font-display)] text-xl"
@@ -62,12 +77,12 @@ export function WeeklyReflection({
           days recorded
         </p>
       </div>
-      <div className="px-5 pb-4">
-        {hasSupportingMetrics ? (
-          <dl className="grid min-w-0 grid-cols-2 gap-4 border-t border-border pt-4 sm:grid-cols-3">
+      {hasSupportingMetrics ? (
+        <div className="pt-4">
+          <dl className="grid min-w-0 grid-cols-2 gap-4 sm:grid-cols-3">
             {mood !== null ? (
               <div className="min-w-0">
-                <dt className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+                <dt className="text-xs font-medium text-muted-foreground">
                   Mood direction
                 </dt>
                 <dd className="mt-2 font-[family-name:var(--font-display)] text-lg leading-6 text-foreground">
@@ -77,7 +92,7 @@ export function WeeklyReflection({
             ) : null}
             {sleep !== null ? (
               <div className="min-w-0">
-                <dt className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+                <dt className="text-xs font-medium text-muted-foreground">
                   Average sleep
                 </dt>
                 <dd className="mt-2 font-[family-name:var(--font-display)] text-lg leading-6 text-foreground">
@@ -87,7 +102,7 @@ export function WeeklyReflection({
             ) : null}
             {topHabit !== null ? (
               <div className="min-w-0">
-                <dt className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+                <dt className="text-xs font-medium text-muted-foreground">
                   Most repeated
                 </dt>
                 <dd className="mt-2 font-[family-name:var(--font-display)] text-lg leading-6 [overflow-wrap:anywhere] text-foreground">
@@ -99,15 +114,11 @@ export function WeeklyReflection({
               </div>
             ) : null}
           </dl>
-        ) : (
-          <p className="text-sm leading-6 text-muted-foreground">
-            Your notes are gathered below. Mood and sleep appear when recorded.
-          </p>
-        )}
-      </div>
-      {trend.some((point) => point.mood || point.sleepHours !== undefined) ? (
-        <details className="border-t border-border">
-          <summary className="min-h-11 cursor-pointer px-5 py-3 text-sm text-primary">
+        </div>
+      ) : null}
+      {showChart ? (
+        <details>
+          <summary className="min-h-11 cursor-pointer py-3 text-sm text-primary">
             Mood and sleep trends
           </summary>
           <WeeklyTrendChart trend={trend} />
@@ -178,7 +189,7 @@ function WeeklyTrendChart({
     <div className="border-t border-border px-5 py-6 sm:px-7 lg:px-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+          <p className="text-xs font-medium text-muted-foreground">
             Seven-day signal
           </p>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">
@@ -339,7 +350,6 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
     () => revealDayFragment(entry.date, () => setExpanded(true)),
     [entry.date]
   )
-  const shouldReduceMotion = useReducedMotion()
   const date = parseEntryDate(entry.date)
   const weekday = date.toLocaleDateString("en-US", { weekday: "short" })
   const detailsId = `timeline-day-${entry.date}`
@@ -349,12 +359,15 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
     day: "numeric",
     year: "numeric",
   })
+  const snippet = entry.journal
+    ? entry.journal
+    : reviewNoteParts(entry.quickCheckIns?.[0]?.note ?? "").note
 
   return (
     <div
       id={`day-${entry.date}`}
       className={cn(
-        "scroll-mt-8 rounded-2xl border bg-card transition-all lg:rounded-3xl",
+        "scroll-mt-8 rounded-2xl border bg-card transition-colors lg:rounded-3xl",
         isToday ? "border-accent/40" : "border-border"
       )}
     >
@@ -400,17 +413,19 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
           </div>
         )}
 
-        {/* Journal snippet */}
-        {(entry.journal || entry.quickCheckIns?.[0]?.note) && (
+        {snippet ? (
           <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground italic lg:text-sm">
-            {(entry.journal || entry.quickCheckIns?.[0]?.note || "").slice(
-              0,
-              60
-            )}
-            {(entry.journal || entry.quickCheckIns?.[0]?.note || "").length > 60
-              ? "…"
-              : ""}
+            {snippet.slice(0, 60)}
+            {snippet.length > 60 ? "…" : ""}
           </p>
+        ) : null}
+
+        {hasFavorite(entry) && (
+          <Star
+            className="size-4 flex-none text-accent"
+            fill="currentColor"
+            aria-hidden="true"
+          />
         )}
 
         <div className="ml-auto flex-none text-muted-foreground">
@@ -422,93 +437,86 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
         </div>
       </button>
 
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            id={detailsId}
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{
-              duration: shouldReduceMotion ? 0 : 0.3,
-              ease: "easeInOut",
-            }}
-            className="overflow-hidden"
-          >
-            <div className="flex flex-col gap-4 border-t border-border px-5 pt-4 pb-5 lg:grid lg:grid-cols-2 lg:px-6 lg:pb-6">
-              {entry.quickCheckIns?.map((checkIn) => (
-                <div key={checkIn.id} className="lg:col-span-2">
+      {expanded && (
+        <div id={detailsId}>
+          <div className="flex flex-col gap-4 border-t border-border px-5 pt-4 pb-5 lg:grid lg:grid-cols-2 lg:px-6 lg:pb-6">
+            {entry.quickCheckIns?.map((checkIn) => (
+              <div key={checkIn.id} className="lg:col-span-2">
+                <p className="mb-1 text-xs font-medium text-muted-foreground">
+                  {reviewNoteParts(checkIn.note).period ? "Week" : "Check-in"} ·{" "}
+                  {new Date(checkIn.createdAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+                <JournalNote
+                  target={{ day: entry.date, id: checkIn.id }}
+                  text={{ note: checkIn.note, nextStep: checkIn.nextStep }}
+                  favorite={checkIn.favorite}
+                  photo={checkIn.photo}
+                  hidePeriod
+                />
+              </div>
+            ))}
+            {entry.intention && (
+              <div>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">
+                  Intention
+                </p>
+                <p className="font-[family-name:var(--font-display)] text-sm text-foreground">
+                  {entry.intention}
+                </p>
+              </div>
+            )}
+            {entry.affirmation && (
+              <div>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">
+                  Morning affirmation
+                </p>
+                <p className="font-[family-name:var(--font-display)] text-sm leading-relaxed text-foreground italic">
+                  &ldquo;{entry.affirmation}&rdquo;
+                </p>
+              </div>
+            )}
+            {entry.journal && (
+              <div className="lg:col-span-2">
+                <p className="mb-1 text-xs font-medium text-muted-foreground">
+                  Journal
+                </p>
+                <JournalNote
+                  target={{ day: entry.date }}
+                  text={{ note: entry.journal, nextStep: "" }}
+                  favorite={entry.journalFavorite}
+                />
+              </div>
+            )}
+            <div className="flex gap-6 lg:col-span-2">
+              {entry.sleepQuality && (
+                <div>
                   <p className="mb-1 text-xs font-medium text-muted-foreground">
-                    Check-in ·{" "}
-                    {new Date(checkIn.createdAt).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    Sleep
                   </p>
-                  <JournalNote
-                    target={{ day: entry.date, id: checkIn.id }}
-                    text={{ note: checkIn.note, nextStep: checkIn.nextStep }}
-                  />
-                </div>
-              ))}
-              {entry.intention && (
-                <div>
-                  <p className="mb-1 text-xs font-medium tracking-widest text-muted-foreground uppercase">
-                    Intention
-                  </p>
-                  <p className="font-[family-name:var(--font-display)] text-sm text-foreground">
-                    {entry.intention}
+                  <p className="text-sm text-foreground capitalize">
+                    {SLEEP_QUALITY_LABEL[entry.sleepQuality]} ·{" "}
+                    {entry.sleepHours}h
                   </p>
                 </div>
               )}
-              {entry.affirmation && (
-                <div>
-                  <p className="mb-1 text-xs font-medium tracking-widest text-muted-foreground uppercase">
-                    Morning affirmation
-                  </p>
-                  <p className="font-[family-name:var(--font-display)] text-sm leading-relaxed text-foreground italic">
-                    &ldquo;{entry.affirmation}&rdquo;
-                  </p>
-                </div>
-              )}
-              {entry.journal && (
-                <div className="lg:col-span-2">
-                  <p className="mb-1 text-xs font-medium tracking-widest text-muted-foreground uppercase">
-                    Journal
-                  </p>
-                  <JournalNote
-                    target={{ day: entry.date }}
-                    text={{ note: entry.journal, nextStep: "" }}
-                  />
-                </div>
-              )}
-              <div className="flex gap-6 lg:col-span-2">
-                {entry.sleepQuality && (
+              {entry.meditationMinutes != null &&
+                entry.meditationMinutes > 0 && (
                   <div>
-                    <p className="mb-1 text-xs font-medium tracking-widest text-muted-foreground uppercase">
-                      Sleep
+                    <p className="mb-1 text-xs font-medium text-muted-foreground">
+                      Meditation
                     </p>
-                    <p className="text-sm text-foreground capitalize">
-                      {entry.sleepQuality} · {entry.sleepHours}h
+                    <p className="text-sm text-foreground">
+                      {entry.meditationMinutes} min
                     </p>
                   </div>
                 )}
-                {entry.meditationMinutes != null &&
-                  entry.meditationMinutes > 0 && (
-                    <div>
-                      <p className="mb-1 text-xs font-medium tracking-widest text-muted-foreground uppercase">
-                        Meditation
-                      </p>
-                      <p className="text-sm text-foreground">
-                        {entry.meditationMinutes} min
-                      </p>
-                    </div>
-                  )}
-              </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -516,17 +524,17 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
 export function TimelineView() {
   const state = useAppState()
   const [query, setQuery] = useState("")
+  const [favoritesOnly, setFavoritesOnly] = useState(false)
   const todayKey = getTodayKey()
+  const hasStoredDays = Object.keys(state.entries).length > 0
   const entries = Object.values(state.entries)
+    .filter((entry) => !favoritesOnly || hasFavorite(entry))
     .filter((entry) => matchesJournal(entry, query))
     .sort((a, b) => b.date.localeCompare(a.date))
   return (
     <div className="space-y-5 pb-8">
       <div>
-        <label
-          htmlFor="journal-search"
-          className="mb-2 block text-sm font-medium"
-        >
+        <label htmlFor="journal-search" className="sr-only">
           Find something in your journal
         </label>
         <input
@@ -535,12 +543,47 @@ export function TimelineView() {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="A word, a feeling, a date…"
-          className="min-h-12 w-full rounded-xl border border-border bg-card px-4 text-base focus-visible:outline-2 focus-visible:outline-ring"
+          className="min-h-12 w-full border-0 border-b border-border bg-transparent px-0 text-base outline-none placeholder:text-muted-foreground focus-visible:border-foreground focus-visible:ring-0"
         />
-        <p role="status" className="mt-2 text-xs text-muted-foreground">
-          {entries.length} {entries.length === 1 ? "day" : "days"}
-          {query.trim() ? " matching your search" : " in your journal"}
-        </p>
+        <div
+          className={cn(
+            "flex items-center justify-between gap-3",
+            hasStoredDays || query.trim() || favoritesOnly ? "mt-3" : "sr-only"
+          )}
+        >
+          <p
+            role="status"
+            className={
+              entries.length === 0 && !query.trim() && !favoritesOnly
+                ? "sr-only"
+                : "text-xs text-muted-foreground"
+            }
+          >
+            {entries.length} {entries.length === 1 ? "day" : "days"}
+            {favoritesOnly ? " favorited" : ""}
+            {query.trim() ? " matching your search" : ""}
+          </p>
+          {(hasStoredDays || favoritesOnly) && (
+            <button
+              type="button"
+              aria-pressed={favoritesOnly}
+              onClick={() => setFavoritesOnly((value) => !value)}
+              className={cn(
+                "inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm",
+                favoritesOnly
+                  ? "font-medium text-foreground"
+                  : "text-muted-foreground"
+              )}
+            >
+              <Star
+                className="size-4"
+                fill={favoritesOnly ? "currentColor" : "none"}
+                aria-hidden="true"
+              />
+              Favorites
+            </button>
+          )}
+        </div>
       </div>
       {entries.length ? (
         entries.map((entry) => (
@@ -551,9 +594,9 @@ export function TimelineView() {
           />
         ))
       ) : (
-        <p className="py-12 text-center text-muted-foreground">
-          {query.trim()
-            ? "No matching entries. Try another word or clear the search."
+        <p className="mt-4 text-sm leading-6 text-muted-foreground">
+          {query.trim() || favoritesOnly
+            ? "No matching entries. Try another word or show every day."
             : "Your days will gather here. Start with a note on Today."}
         </p>
       )}

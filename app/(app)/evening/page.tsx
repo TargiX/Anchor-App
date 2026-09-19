@@ -45,12 +45,20 @@ export default function EveningRitual() {
       step={step}
       totalSteps={TOTAL_STEPS}
       title="Evening ritual"
-      description="Close the loop with mood, reflection, habits, and tomorrow's sleep target."
+      description="Mood, a few words, habits, and rest."
     >
-      {step === 0 && <StepEveningMood entryKey={entryKey} onNext={next} onBack={back} />}
-      {step === 1 && <StepJournal entryKey={entryKey} onNext={next} onBack={back} />}
-      {step === 2 && <StepHabits entryKey={entryKey} onNext={next} onBack={back} />}
-      {step === 3 && <StepSleepTarget entryKey={entryKey} onNext={next} onBack={back} />}
+      {step === 0 && (
+        <StepEveningMood entryKey={entryKey} onNext={next} onBack={back} />
+      )}
+      {step === 1 && (
+        <StepJournal entryKey={entryKey} onNext={next} onBack={back} />
+      )}
+      {step === 2 && (
+        <StepHabits entryKey={entryKey} onNext={next} onBack={back} />
+      )}
+      {step === 3 && (
+        <StepSleepTarget entryKey={entryKey} onNext={next} onBack={back} />
+      )}
       {step === 4 && (
         <StepComplete variant="evening" onNext={next} onBack={back} />
       )}

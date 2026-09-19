@@ -102,6 +102,22 @@ describe("migrate", () => {
     expect(result.notificationMorning).toBe("08:00")
   })
 
+  it("keeps a weekly direction through the current envelope", () => {
+    const weeklyDirection = {
+      text: "Call Ada",
+      weekEnd: "2026-09-18",
+      sourceDay: "2026-09-18",
+      sourceId: "b054f9f9-e276-43fe-9663-d7f0071aa431",
+      status: "open" as const,
+    }
+    expect(
+      migrate({
+        version: STATE_VERSION,
+        data: { ...INITIAL_STATE, weeklyDirection },
+      }).weeklyDirection
+    ).toEqual(weeklyDirection)
+  })
+
   it("recovers partial state by filling defaults", () => {
     const result = migrate({ habits: [] })
     expect(result.habits).toEqual([])

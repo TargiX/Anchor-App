@@ -7,17 +7,17 @@ export default function NotFound() {
     <div className="flex min-h-app flex-col items-center justify-center gap-6 px-6 text-center">
       <AnchorMotif size={96} className="text-primary opacity-80" />
       <div className="space-y-2">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground">404</p>
+        <p className="text-xs font-medium text-muted-foreground">404</p>
         <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-foreground">
-          This page drifted off
+          This page isn&apos;t here.
         </h1>
         <p className="mx-auto max-w-xs text-sm text-muted-foreground">
-          The page you&apos;re looking for isn&apos;t here. Let&apos;s get you back to solid ground.
+          The address doesn&apos;t match anything in Anchor.
         </p>
       </div>
       <div className="flex gap-3">
         <Button asChild className="rounded-2xl">
-          <Link href="/app">Go to app</Link>
+          <Link href="/app">Open the journal</Link>
         </Button>
         <Button asChild variant="outline" className="rounded-2xl">
           <Link href="/">Home</Link>

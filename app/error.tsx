@@ -26,11 +26,9 @@ export default function Error({
     <div className="flex min-h-app flex-col items-center justify-center gap-6 px-6 text-center">
       <AnchorMotif size={96} className="text-primary opacity-80" />
       <div className="space-y-2">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground">
-          Something broke
-        </p>
+        <p className="text-xs font-medium text-muted-foreground">Error</p>
         <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-foreground">
-          We lost the thread for a moment
+          Something went wrong.
         </h1>
         <p className="mx-auto max-w-xs text-sm text-muted-foreground">
           An unexpected error interrupted this screen. Your saved data is safe.

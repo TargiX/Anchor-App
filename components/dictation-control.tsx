@@ -14,10 +14,14 @@ const subscribePlatform = () => () => {}
 const isIOS = () => Capacitor.getPlatform() === "ios"
 const serverPlatform = () => false
 
+export function useIosDictation() {
+  return useSyncExternalStore(subscribePlatform, isIOS, serverPlatform)
+}
+
 export function DictationControl(
   props: Parameters<typeof NativeDictationControl>[0]
 ) {
-  const native = useSyncExternalStore(subscribePlatform, isIOS, serverPlatform)
+  const native = useIosDictation()
   return native ? <NativeDictationControl {...props} /> : null
 }
 
