@@ -71,6 +71,12 @@ app.get("/health", async (_request, reply) => {
   }
 })
 
+// Account and journal responses must never be stored in browser/shared caches.
+app.addHook("onSend", async (request, reply, payload) => {
+  if (request.url.startsWith("/api/")) reply.header("Cache-Control", "private, no-store")
+  return payload
+})
+
 // --- Better Auth mount -------------------------------------------------------
 
 function toFetchRequest(request: FastifyRequest): Request {
