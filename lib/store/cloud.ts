@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js"
+import { apiFetch } from "@/lib/backend/client"
 import {
   AppStateSchema,
   INITIAL_STATE,
@@ -6,54 +6,105 @@ import {
   type AppState,
 } from "@/lib/store/state"
 
-const TABLE = "anchor_user_states"
-
-interface AnchorStateRow {
-  state: unknown
+/**
+ * Transport seam between the store and the Anchor backend. The backend scopes
+ * every query to the authenticated session, so the transport carries no
+ * user id — only the state payload and optimistic-concurrency base version.
+ */
+export interface CloudStateSnapshot {
+  state: AppState | null
+  updatedAt: string | null
 }
 
+export interface CloudSaveResult {
+  updatedAt: string | null
+  /** True when the server row was newer than our base; the write was
+   *  superseded and inbound reconciliation owns convergence. */
+  conflict: boolean
+}
+
+export interface CloudTransport {
+  load(): Promise<CloudStateSnapshot>
+  save(state: AppState): Promise<CloudSaveResult>
+  /** Cheap version probe used by inbound polling. */
+  version(): Promise<string | null>
+  /** Server version this client has last written or observed. */
+  readonly lastVersion: string | null
+}
+
+const DEFAULT_POLL_INTERVAL_MS = 30_000
+
 interface CloudInboundSyncOptions {
-  client: SupabaseClient
-  userId: string
+  transport: CloudTransport
   initialBaselineState: AppState | null
   getLocalState: () => AppState
   replaceLocalState: (state: AppState, options: { persistCloud: false }) => void
   isActive: () => boolean
-  loadState?: typeof loadCloudState
+  pollIntervalMs?: number
   onError?: (error: unknown) => void
   onStateApplied?: (state: AppState) => void
   onRecoverySaveNeeded?: (state: AppState) => void
 }
 
-export async function loadCloudState(
-  client: SupabaseClient,
-  userId: string
-): Promise<AppState | null> {
-  const { data, error } = await client
-    .from(TABLE)
-    .select("state")
-    .eq("user_id", userId)
-    .maybeSingle<AnchorStateRow>()
+/**
+ * HTTP transport over the backend's /api/data/state routes. `lastVersion`
+ * tracks the newest server version this client wrote or observed, which is
+ * both the optimistic-concurrency base for saves and the self-echo filter
+ * for polling: a version() result equal to lastVersion is our own write.
+ */
+export function createHttpTransport(
+  fetcher: typeof apiFetch = apiFetch
+): CloudTransport {
+  let lastVersion: string | null = null
 
-  if (error) throw error
-  return data ? migrate(data.state) : null
-}
-
-export async function saveCloudState(
-  client: SupabaseClient,
-  userId: string,
-  state: AppState
-): Promise<void> {
-  const safeState = AppStateSchema.parse(state)
-  const { error } = await client.from(TABLE).upsert(
-    {
-      user_id: userId,
-      state: safeState,
+  return {
+    get lastVersion() {
+      return lastVersion
     },
-    { onConflict: "user_id" }
-  )
 
-  if (error) throw error
+    async load() {
+      const res = await fetcher("/api/data/state")
+      if (!res.ok) throw new Error(`Cloud load failed (${res.status})`)
+      const body = (await res.json()) as {
+        state: unknown
+        updatedAt?: string | null
+      }
+      lastVersion = body.updatedAt ?? null
+      return {
+        state: body.state == null ? null : migrate(body.state),
+        updatedAt: lastVersion,
+      }
+    },
+
+    async save(state) {
+      const safeState = AppStateSchema.parse(state)
+      const res = await fetcher("/api/data/state", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          state: safeState,
+          baseUpdatedAt: lastVersion ?? undefined,
+        }),
+      })
+      if (res.status === 409) {
+        // Do not adopt the server's version: the next version() probe must
+        // still see the row as remote-newer so inbound reconciliation pulls
+        // it. The recovery save then converges with the fresh base.
+        return { updatedAt: lastVersion, conflict: true }
+      }
+      if (!res.ok) throw new Error(`Cloud save failed (${res.status})`)
+      const body = (await res.json()) as { updatedAt?: string | null }
+      lastVersion = body.updatedAt ?? lastVersion
+      return { updatedAt: lastVersion, conflict: false }
+    },
+
+    async version() {
+      const res = await fetcher("/api/data/state/version")
+      if (!res.ok) throw new Error(`Cloud version check failed (${res.status})`)
+      const body = (await res.json()) as { updatedAt?: string | null }
+      return body.updatedAt ?? null
+    },
+  }
 }
 
 export function mergeCloudState(local: AppState, remote: AppState): AppState {
@@ -74,31 +125,30 @@ export function mergeCloudState(local: AppState, remote: AppState): AppState {
 }
 
 /**
- * Treats Realtime messages as invalidation notifications. The row is always
- * reloaded through loadCloudState's migration boundary, then reconciled
+ * Polls the backend's version endpoint as an invalidation signal. The row is
+ * always reloaded through the transport's migration boundary, then reconciled
  * against the last observed cloud baseline and a post-await local snapshot.
  * Until a cloud-confirmed baseline exists, the initial local-wins merge keeps
  * potentially unsynced hydrated work. Local values that later diverge from a
  * known baseline remain pending work.
  */
 export function createCloudInboundSync({
-  client,
-  userId,
+  transport,
   initialBaselineState,
   getLocalState,
   replaceLocalState,
   isActive,
-  loadState = loadCloudState,
+  pollIntervalMs = DEFAULT_POLL_INTERVAL_MS,
   onError,
   onStateApplied,
   onRecoverySaveNeeded,
 }: CloudInboundSyncOptions) {
-  let channel: ReturnType<SupabaseClient["channel"]> | null = null
   let disposed = false
   let started = false
   let refreshRequested = false
   let refreshPromise: Promise<void> | null = null
   let cloudBaseline = initialBaselineState
+  let pollTimer: ReturnType<typeof setInterval> | null = null
 
   function refresh(): Promise<void> {
     if (disposed || !isActive()) return Promise.resolve()
@@ -112,7 +162,8 @@ export function createCloudInboundSync({
 
         let remoteState: AppState | null
         try {
-          remoteState = await loadState(client, userId)
+          const snapshot = await transport.load()
+          remoteState = snapshot.state
         } catch (error) {
           if (!disposed && isActive()) onError?.(error)
           continue
@@ -158,54 +209,50 @@ export function createCloudInboundSync({
     return refreshPromise
   }
 
+  async function checkForRemoteChanges() {
+    if (disposed || !isActive()) return
+    try {
+      const remoteVersion = await transport.version()
+      // lastVersion is bumped by our own loads and saves, so a mismatch
+      // means another session wrote the row.
+      if (remoteVersion !== transport.lastVersion) {
+        void refresh()
+      }
+    } catch (error) {
+      if (!disposed && isActive()) onError?.(error)
+    }
+  }
+
+  function onVisibilityChange() {
+    if (typeof document !== "undefined" && document.visibilityState === "visible") {
+      void checkForRemoteChanges()
+    }
+  }
+
   return {
     start() {
       if (started || disposed || !isActive()) return
       started = true
 
-      try {
-        channel = client
-          .channel(`anchor-user-state:${userId}`)
-          .on(
-            "postgres_changes",
-            {
-              event: "*",
-              schema: "public",
-              table: TABLE,
-              filter: `user_id=eq.${userId}`,
-            },
-            () => {
-              void refresh()
-            }
-          )
-          .subscribe((status) => {
-            // This fires for the initial connection and again after reconnect.
-            // Reconcile both times to recover notifications missed while away.
-            if (status === "SUBSCRIBED") {
-              void refresh()
-            } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-              if (!disposed && isActive()) {
-                onError?.(new Error(`Anchor realtime channel ${status}`))
-              }
-            }
-          })
-      } catch (error) {
-        channel = null
-        if (!disposed && isActive()) onError?.(error)
+      pollTimer = setInterval(() => {
+        void checkForRemoteChanges()
+      }, pollIntervalMs)
+      if (typeof document !== "undefined") {
+        document.addEventListener("visibilitychange", onVisibilityChange)
       }
+      // Initial reconcile: recovers anything missed while the app was closed.
+      void refresh()
     },
     refresh,
     dispose() {
       disposed = true
       refreshRequested = false
-      const activeChannel = channel
-      channel = null
-      if (activeChannel) {
-        void Promise.resolve(client.removeChannel(activeChannel)).catch(
-          (error) => {
-            onError?.(error)
-          }
-        )
+      if (pollTimer) {
+        clearInterval(pollTimer)
+        pollTimer = null
+      }
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisibilityChange)
       }
     },
   }
@@ -216,22 +263,30 @@ function reconcileInboundCloudState(
   baseline: AppState,
   remote: AppState
 ): AppState {
-  const entries: AppState["entries"] = {}
-  const dates = new Set([
-    ...Object.keys(baseline.entries),
-    ...Object.keys(local.entries),
-    ...Object.keys(remote.entries),
-  ])
-
-  for (const date of dates) {
-    const localEntry = local.entries[date]
-    const baselineEntry = baseline.entries[date]
-    const entry = structurallyEqual(localEntry, baselineEntry)
-      ? remote.entries[date]
-      : localEntry
-    if (entry !== undefined) entries[date] = entry
+  const mergedEntries = { ...remote.entries }
+  for (const [dayKey, localEntry] of Object.entries(local.entries)) {
+    const baselineEntry = baseline.entries[dayKey]
+    const remoteEntry = remote.entries[dayKey]
+    if (structurallyEqual(localEntry, baselineEntry)) continue
+    if (structurallyEqual(localEntry, remoteEntry)) continue
+    mergedEntries[dayKey] = localEntry
   }
 
+  const habits = structurallyEqual(local.habits, baseline.habits)
+    ? remote.habits
+    : local.habits
+  const notificationMorning = structurallyEqual(
+    local.notificationMorning,
+    baseline.notificationMorning
+  )
+    ? remote.notificationMorning
+    : local.notificationMorning
+  const notificationEvening = structurallyEqual(
+    local.notificationEvening,
+    baseline.notificationEvening
+  )
+    ? remote.notificationEvening
+    : local.notificationEvening
   const weeklyDirection = structurallyEqual(
     local.weeklyDirection,
     baseline.weeklyDirection
@@ -240,23 +295,11 @@ function reconcileInboundCloudState(
     : local.weeklyDirection
 
   return {
-    entries,
-    habits: structurallyEqual(local.habits, baseline.habits)
-      ? remote.habits
-      : local.habits,
-    notificationMorning: structurallyEqual(
-      local.notificationMorning,
-      baseline.notificationMorning
-    )
-      ? remote.notificationMorning
-      : local.notificationMorning,
-    notificationEvening: structurallyEqual(
-      local.notificationEvening,
-      baseline.notificationEvening
-    )
-      ? remote.notificationEvening
-      : local.notificationEvening,
-    ...(weeklyDirection !== undefined ? { weeklyDirection } : {}),
+    entries: mergedEntries,
+    habits,
+    notificationMorning,
+    notificationEvening,
+    ...(weeklyDirection ? { weeklyDirection } : {}),
   }
 }
 
@@ -268,31 +311,27 @@ function structurallyEqual(left: unknown, right: unknown): boolean {
   if (Object.is(left, right)) return true
   if (
     typeof left !== "object" ||
-    left === null ||
     typeof right !== "object" ||
+    left === null ||
     right === null
   ) {
     return false
   }
+  if (Array.isArray(left) !== Array.isArray(right)) return false
 
-  if (Array.isArray(left) || Array.isArray(right)) {
-    if (!Array.isArray(left) || !Array.isArray(right)) return false
-    return (
-      left.length === right.length &&
-      left.every((value, index) => structurallyEqual(value, right[index]))
-    )
+  if (Array.isArray(left) && Array.isArray(right)) {
+    if (left.length !== right.length) return false
+    return left.every((value, index) => structurallyEqual(value, right[index]))
   }
 
   const leftRecord = left as Record<string, unknown>
   const rightRecord = right as Record<string, unknown>
   const leftKeys = Object.keys(leftRecord)
   const rightKeys = Object.keys(rightRecord)
-  return (
-    leftKeys.length === rightKeys.length &&
-    leftKeys.every(
-      (key) =>
-        Object.hasOwn(rightRecord, key) &&
-        structurallyEqual(leftRecord[key], rightRecord[key])
-    )
+  if (leftKeys.length !== rightKeys.length) return false
+  return leftKeys.every(
+    (key) =>
+      Object.prototype.hasOwnProperty.call(rightRecord, key) &&
+      structurallyEqual(leftRecord[key], rightRecord[key])
   )
 }

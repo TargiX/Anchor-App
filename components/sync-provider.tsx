@@ -2,12 +2,10 @@
 
 import { useEffect, useRef } from "react"
 import { useAuth } from "@/components/auth-provider"
-import { supabase } from "@/lib/supabase/client"
 import {
   createCloudInboundSync,
-  loadCloudState,
+  createHttpTransport,
   mergeCloudState,
-  saveCloudState,
 } from "@/lib/store/cloud"
 import {
   cloudSyncStatus,
@@ -42,7 +40,6 @@ export function SyncProvider() {
   const userId = user?.id ?? null
 
   useEffect(() => {
-    const client = supabase
     const previousStatus = previousStatusRef.current
     previousStatusRef.current = status
 
@@ -52,8 +49,7 @@ export function SyncProvider() {
     }
     clearCloudPersistence()
     cloudSyncStatus.end()
-
-    // Unconfigured (no Supabase env) is a fully-supported local-only mode:
+    // Unconfigured (no backend env) is a fully-supported local-only mode:
     // local persistence must work even though there is no cloud to sync to.
     // Use a local-only scope so legacy local data can migrate without being
     // treated as anonymous sign-in progress for a future cloud account.
@@ -96,9 +92,8 @@ export function SyncProvider() {
 
     if (status !== "authed" || !userId) return
 
-    if (!client) return
-    const configuredClient = client
     const authenticatedUserId = userId
+    const transport = createHttpTransport()
 
     const syncSession = cloudSyncStatus.begin(authenticatedUserId)
 
@@ -132,8 +127,7 @@ export function SyncProvider() {
     const saveCoordinator = createCloudSaveCoordinator<AppState>({
       session: syncSession,
       status: cloudSyncStatus,
-      save: (nextState) =>
-        saveCloudState(configuredClient, authenticatedUserId, nextState),
+      save: (nextState) => transport.save(nextState).then(() => undefined),
       onError: (error) => {
         console.error("Anchor cloud persistence failed", error)
       },
@@ -158,8 +152,7 @@ export function SyncProvider() {
       }
 
       inboundSync = createCloudInboundSync({
-        client: configuredClient,
-        userId: authenticatedUserId,
+        transport,
         initialBaselineState,
         getLocalState: getSnapshot,
         replaceLocalState: applyInboundCloudState,
@@ -184,10 +177,7 @@ export function SyncProvider() {
     async function syncInitialState() {
       let remoteState: AppState | null
       try {
-        remoteState = await loadCloudState(
-          configuredClient,
-          authenticatedUserId
-        )
+        remoteState = (await transport.load()).state
       } catch (error) {
         if (!cancelled && cloudSyncStatus.isCurrent(syncSession)) {
           console.error("Anchor cloud sync failed", error)
@@ -221,7 +211,7 @@ export function SyncProvider() {
 
       replaceState(syncedState, { persistCloud: false })
       try {
-        await saveCloudState(configuredClient, authenticatedUserId, syncedState)
+        await transport.save(syncedState)
       } catch (error) {
         if (!cancelled && cloudSyncStatus.isCurrent(syncSession)) {
           console.error("Anchor initial cloud persistence failed", error)

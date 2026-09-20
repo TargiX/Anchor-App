@@ -1,10 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "ignoreCommand": "node scripts/vercel-ignore-build.mjs",
-  "crons": [
+  "rewrites": [
     {
-      "path": "/api/cron/supabase-keepalive",
-      "schedule": "17 3 * * *"
+      "source": "/api/auth/:path*",
+      "destination": "https://api.anchorapp.cc/api/auth/:path*"
+    },
+    {
+      "source": "/api/data/:path*",
+      "destination": "https://api.anchorapp.cc/api/data/:path*"
     }
   ],
   "installCommand": "npm ci"
