@@ -153,6 +153,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!res.ok) return { error: readErrorMessage(data, "Sign-in failed.") }
         const nextUser = (data as SessionResponse | null)?.user ?? null
         if (nextUser?.id) {
+          setUser(nextUser)
+          setStatus("authed")
           identifyUser(nextUser.id)
           captureEvent("account_signed_in", { method: "email" })
         }
@@ -188,6 +190,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         const nextUser = (data as SessionResponse | null)?.user ?? null
         if (nextUser?.id) {
+          setUser(nextUser)
+          setStatus("authed")
           identifyUser(nextUser.id)
           captureEvent("account_signed_up", {
             method: "email",

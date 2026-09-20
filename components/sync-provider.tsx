@@ -127,7 +127,10 @@ export function SyncProvider() {
     const saveCoordinator = createCloudSaveCoordinator<AppState>({
       session: syncSession,
       status: cloudSyncStatus,
-      save: (nextState) => transport.save(nextState).then(() => undefined),
+      save: async (nextState) => {
+        const result = await transport.save(nextState)
+        if (result.conflict) throw new Error("Cloud save conflict; reconciliation pending")
+      },
       onError: (error) => {
         console.error("Anchor cloud persistence failed", error)
       },
@@ -211,7 +214,8 @@ export function SyncProvider() {
 
       replaceState(syncedState, { persistCloud: false })
       try {
-        await transport.save(syncedState)
+        const result = await transport.save(syncedState)
+        if (result.conflict) throw new Error("Initial cloud save conflict; reconciliation pending")
       } catch (error) {
         if (!cancelled && cloudSyncStatus.isCurrent(syncSession)) {
           console.error("Anchor initial cloud persistence failed", error)
