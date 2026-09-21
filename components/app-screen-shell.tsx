@@ -49,9 +49,9 @@ export function AppScreenShell({
             <h1 className="mt-3 font-[family-name:var(--font-display)] text-4xl leading-tight font-semibold text-balance text-foreground">
               {railTitle ?? title}
             </h1>
-            {(railBody ?? description) ? (
+            {railBody ? (
               <p className="mt-5 max-w-[260px] text-sm leading-7 text-muted-foreground">
-                {railBody ?? description}
+                {railBody}
               </p>
             ) : null}
           </div>
@@ -87,7 +87,7 @@ export function AppScreenShell({
                 {title}
               </h1>
               {description ? (
-                <p className="mt-2 hidden max-w-2xl text-sm leading-6 text-muted-foreground lg:block">
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground lg:hidden">
                   {description}
                 </p>
               ) : null}
@@ -97,5 +97,23 @@ export function AppScreenShell({
         </section>
       </div>
     </main>
+  )
+}
+
+/** Small stat block for the desktop rail — real data, not decoration. */
+export function RailStat({
+  value,
+  label,
+}: {
+  value: React.ReactNode
+  label: string
+}) {
+  return (
+    <div>
+      <p className="font-[family-name:var(--font-display)] text-2xl font-medium text-foreground">
+        {value}
+      </p>
+      <p className="mt-1 text-xs text-muted-foreground">{label}</p>
+    </div>
   )
 }

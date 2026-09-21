@@ -8,8 +8,8 @@ import { JournalComposer } from "@/components/journal-composer"
 import { DailyPaths } from "@/components/daily-paths"
 import { SyncStatusIndicator } from "@/components/sync-status-indicator"
 import { WeeklyDirectionCard } from "@/components/weekly-direction-card"
-import { useTodayEntry } from "@/hooks/use-store"
-
+import { useAppState, useTodayEntry } from "@/hooks/use-store"
+import { parseEntryDate } from "@/lib/time/today"
 export default function Home() {
   const { status, user } = useAuth()
   // Remount the input on identity changes so private drafts never cross accounts.
@@ -24,6 +24,16 @@ export default function Home() {
 
 function Today({ ready, signedIn }: { ready: boolean; signedIn: boolean }) {
   const today = useTodayEntry()
+  const state = useAppState()
+  // First run = nothing saved yet. The empty state is the onboarding:
+  // date, one prompt, the composer. Everything else appears after the
+  // first entry exists.
+  const firstRun = Object.keys(state.entries).length === 0
+  const dateLabel = parseEntryDate(today.date).toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  })
 
   return (
     <main className="mx-auto min-h-app max-w-2xl px-5 pt-6 pb-8 sm:px-8">
@@ -46,68 +56,79 @@ function Today({ ready, signedIn }: { ready: boolean; signedIn: boolean }) {
         </nav>
       </header>
 
-      <section className="pt-6 pb-4">
-        <h1 className="font-[family-name:var(--font-display)] text-3xl sm:text-4xl">
-          Keep a little of today.
+      <section className="pt-8 pb-6">
+        <h1 className="font-[family-name:var(--font-display)] text-3xl tracking-tight text-balance sm:text-4xl">
+          {dateLabel}
         </h1>
-        {signedIn && (
+        {firstRun ? (
+          <p className="mt-3 text-base leading-7 text-muted-foreground">
+            Write one sentence about today. That&apos;s the whole ritual.
+          </p>
+        ) : signedIn ? (
           <div className="mt-2">
             <SyncStatusIndicator />
           </div>
-        )}
+        ) : null}
       </section>
 
       <JournalComposer ready={ready} signedIn={signedIn} />
 
-      <WeeklyDirectionCard />
+      {firstRun ? null : (
+        <>
+          <WeeklyDirectionCard />
 
-      {today.intention && (
-        <section aria-label="Your current anchor" className="mt-8">
-          <p className="text-xs font-medium text-muted-foreground">
-            Today&apos;s focus
-          </p>
-          <div className="mt-1 flex items-baseline justify-between gap-4">
-            <p className="min-w-0 font-[family-name:var(--font-display)] text-lg leading-snug [overflow-wrap:anywhere]">
-              {today.intention}
-            </p>
-            <Link
-              href="/focus"
-              className="inline-flex min-h-11 shrink-0 items-center text-sm text-muted-foreground"
-            >
-              Pause
-            </Link>
-          </div>
-        </section>
-      )}
-
-      {Boolean(today.quickCheckIns?.length) && (
-        <section aria-label="Today's notes" className="mt-8">
-          <h2 className="text-xs font-medium text-muted-foreground">
-            Today&apos;s notes
-          </h2>
-          <div className="mt-3 space-y-3">
-            {today.quickCheckIns
-              ?.slice()
-              .reverse()
-              .map((checkIn) => (
-                <article
-                  key={checkIn.id}
-                  className="rounded-2xl border border-border p-4"
+          {today.intention && (
+            <section aria-label="Your current anchor" className="mt-10">
+              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                Focus
+              </p>
+              <div className="mt-2 flex items-baseline justify-between gap-4">
+                <p className="min-w-0 font-[family-name:var(--font-display)] text-xl leading-snug [overflow-wrap:anywhere]">
+                  {today.intention}
+                </p>
+                <Link
+                  href="/focus"
+                  className="inline-flex min-h-11 shrink-0 items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  <JournalNote
-                    target={{ day: today.date, id: checkIn.id }}
-                    text={{ note: checkIn.note, nextStep: checkIn.nextStep }}
-                    favorite={checkIn.favorite}
-                    photo={checkIn.photo}
-                    hideNextStep
-                  />
-                </article>
-              ))}
-          </div>
-        </section>
-      )}
+                  Pause
+                </Link>
+              </div>
+            </section>
+          )}
 
-      <DailyPaths entry={today} />
+          {Boolean(today.quickCheckIns?.length) && (
+            <section aria-label="Today's notes" className="mt-10">
+              <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                Notes
+              </h2>
+              <div className="mt-1 divide-y divide-border/70">
+                {today.quickCheckIns
+                  ?.slice()
+                  .reverse()
+                  .map((checkIn) => (
+                    <article key={checkIn.id} className="py-4">
+                      <p className="mb-1.5 text-xs text-muted-foreground/80 tabular-nums">
+                        {new Date(checkIn.createdAt).toLocaleTimeString(
+                          "en-US",
+                          { hour: "numeric", minute: "2-digit" }
+                        )}
+                      </p>
+                      <JournalNote
+                        target={{ day: today.date, id: checkIn.id }}
+                        text={{ note: checkIn.note, nextStep: checkIn.nextStep }}
+                        favorite={checkIn.favorite}
+                        photo={checkIn.photo}
+                        hideNextStep
+                      />
+                    </article>
+                  ))}
+              </div>
+            </section>
+          )}
+
+          <DailyPaths entry={today} />
+        </>
+      )}
     </main>
   )
 }

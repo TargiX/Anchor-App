@@ -4,8 +4,7 @@ import { PulseCheck } from "@/components/pulse/pulse-check"
 export default function PulsePage() {
   return (
     <AppScreenShell
-      title="Check-in"
-      description="How the day is landing."
+      title="Pause"
       backHref="/app"
       railTitle="One pause."
       railBody="Notice where you are, then choose one next step."

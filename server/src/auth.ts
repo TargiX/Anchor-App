@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth"
 import { bearer } from "better-auth/plugins"
 import pg from "pg"
+import { sendEmail } from "./email.js"
 
 /**
  * The surface the HTTP layer consumes: the fetch-style handler mounted at
@@ -38,7 +39,13 @@ export function createAuth(pool: pg.Pool): AnchorAuth {
     database: pool,
     secret,
     baseURL: process.env.BETTER_AUTH_URL,
-    trustedOrigins: [...trustedOrigins, "capacitor://localhost", "ionic://localhost", "http://localhost", "https://localhost"],
+    trustedOrigins: [
+      ...trustedOrigins,
+      "capacitor://localhost",
+      "ionic://localhost",
+      "http://localhost",
+      "https://localhost",
+    ],
     advanced: {
       cookiePrefix: "anchor",
       useSecureCookies: process.env.NODE_ENV === "production",
@@ -46,8 +53,21 @@ export function createAuth(pool: pg.Pool): AnchorAuth {
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 8,
+      // The link better-auth builds points at this backend's
+      // /api/auth/reset-password/:token callback, which verifies the token and
+      // redirects to the frontend's callbackURL (?token= or ?error=).
+      sendResetPassword: async ({ user, url }) => {
+        await sendEmail({
+          to: user.email,
+          subject: "Reset your Anchor password",
+          text: `Reset your Anchor password:\n\n${url}\n\nIf you didn't ask for this, ignore this email.`,
+        })
+      },
+      revokeSessionsOnPasswordReset: true,
+    },
+    user: {
+      deleteUser: { enabled: true },
     },
     plugins: [bearer()],
   })
 }
-

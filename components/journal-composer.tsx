@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState, useSyncExternalStore } from "react"
+import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import {
   DictationControl,
   useIosDictation,
@@ -77,6 +77,16 @@ function Composer({
   const [retryOnly, setRetryOnly] = useState(false)
   const pendingId = useRef<string | null>(initial?.id ?? null)
   const savingRef = useRef(false)
+  const noteRef = useRef<HTMLTextAreaElement>(null)
+
+  // Grow with content; collapse back when emptied. Runs on every `note`
+  // change so dictation inserts and post-save resets resize too.
+  useEffect(() => {
+    const el = noteRef.current
+    if (!el) return
+    el.style.height = "auto"
+    el.style.height = `${el.scrollHeight}px`
+  }, [note])
 
   function remember(nextNote: string, step: string) {
     pendingId.current ??= crypto.randomUUID()
@@ -146,18 +156,17 @@ function Composer({
 
   return (
     <>
-      <form id="journal-composer" onSubmit={save} className="space-y-4">
+      <form id="journal-composer" onSubmit={save} className="space-y-3">
         <div>
           <label
             htmlFor="checkin-note"
-            className="block text-sm text-muted-foreground"
+            className="block text-xs font-medium text-muted-foreground"
           >
-            {reviewPeriod
-              ? "What should next week keep?"
-              : "What would you like to remember?"}
+            {reviewPeriod ? "What should next week keep?" : "New note"}
           </label>
           <textarea
             id="checkin-note"
+            ref={noteRef}
             value={note}
             onChange={(event) => {
               remember(event.target.value, nextStep)
@@ -167,13 +176,13 @@ function Composer({
             disabled={saving || voiceBusy || photoBusy || retryOnly}
             required
             maxLength={noteLimit}
-            rows={4}
+            rows={2}
             placeholder={
               reviewPeriod
                 ? "Something I want to keep doing…"
                 : "Today, I noticed…"
             }
-            className="mt-3 w-full resize-none border-0 border-b border-border bg-transparent p-0 pb-3 font-[family-name:var(--font-display)] text-xl leading-8 outline-none placeholder:text-muted-foreground/70 focus-visible:border-foreground focus-visible:ring-0"
+            className="mt-2 w-full resize-none overflow-hidden border-0 border-b border-border bg-transparent p-0 pb-3 font-[family-name:var(--font-display)] text-xl leading-8 outline-none placeholder:text-muted-foreground/70 focus-visible:border-foreground focus-visible:ring-0"
           />
         </div>
         {error && (
@@ -181,14 +190,63 @@ function Composer({
             {error}
           </p>
         )}
-        <Button
-          type="submit"
-          variant={note.trim() ? "default" : "ghost"}
-          disabled={saving || voiceBusy || photoBusy || !ready || !note.trim()}
-          className={`min-h-12 w-full rounded-xl text-base ${note.trim() ? "" : "text-muted-foreground disabled:opacity-100"}`}
-        >
-          {saving ? "Saving…" : "Save check-in"}
-        </Button>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-5">
+            {!stepExpanded && (
+              <button
+                type="button"
+                onClick={() => setStepExpanded(true)}
+                className="inline-flex min-h-11 items-center text-sm text-muted-foreground transition-colors hover:text-foreground active:opacity-60"
+              >
+                Next step
+              </button>
+            )}
+            <label className="inline-flex min-h-11 cursor-pointer items-center text-sm text-muted-foreground transition-colors hover:text-foreground active:opacity-60">
+              {photoBusy
+                ? "Preparing photo…"
+                : photo
+                  ? "Photo added"
+                  : "Photo"}
+              <input
+                id="checkin-photo"
+                type="file"
+                accept="image/*"
+                disabled={saving || voiceBusy || photoBusy || retryOnly}
+                onChange={(event) => {
+                  const file = event.target.files?.[0]
+                  event.currentTarget.value = ""
+                  if (!file) return
+                  const identity = getStorageIdentity()
+                  setError("")
+                  setPhotoBusy(true)
+                  void encodeJournalPhoto(file).then((result) => {
+                    if (identity !== getStorageIdentity()) return
+                    setPhotoBusy(false)
+                    if (!result.ok || !result.photo) {
+                      setError(
+                        result.ok
+                          ? "This photo couldn’t be added. Try another image."
+                          : result.error
+                      )
+                      return
+                    }
+                    setPhoto(result.photo)
+                    setMessage("")
+                  })
+                }}
+                className="sr-only"
+              />
+            </label>
+          </div>
+          <Button
+            type="submit"
+            variant="ghost"
+            disabled={saving || voiceBusy || photoBusy || !ready || !note.trim()}
+            className="min-h-11 shrink-0 rounded-xl px-4 text-sm font-medium text-foreground transition-opacity disabled:opacity-30"
+          >
+            {saving ? "Saving…" : reviewPeriod ? "Save reflection" : "Save"}
+          </Button>
+        </div>
         {iosDictation && (
           <details
             className="group"
@@ -238,53 +296,6 @@ function Composer({
             </p>
           </div>
         )}
-        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:gap-x-6">
-          {!stepExpanded && (
-            <button
-              type="button"
-              onClick={() => setStepExpanded(true)}
-              className="inline-flex min-h-11 items-center text-left text-sm leading-5 text-muted-foreground"
-            >
-              Add a next step (optional)
-            </button>
-          )}
-          <label className="inline-flex min-h-11 cursor-pointer items-center text-left text-sm leading-5 text-muted-foreground">
-            {photoBusy
-              ? "Preparing photo…"
-              : photo
-                ? "Photo added"
-                : "Add a photo (optional)"}
-            <input
-              id="checkin-photo"
-              type="file"
-              accept="image/*"
-              disabled={saving || voiceBusy || photoBusy || retryOnly}
-              onChange={(event) => {
-                const file = event.target.files?.[0]
-                event.currentTarget.value = ""
-                if (!file) return
-                const identity = getStorageIdentity()
-                setError("")
-                setPhotoBusy(true)
-                void encodeJournalPhoto(file).then((result) => {
-                  if (identity !== getStorageIdentity()) return
-                  setPhotoBusy(false)
-                  if (!result.ok || !result.photo) {
-                    setError(
-                      result.ok
-                        ? "This photo couldn’t be added. Try another image."
-                        : result.error
-                    )
-                    return
-                  }
-                  setPhoto(result.photo)
-                  setMessage("")
-                })
-              }}
-              className="sr-only"
-            />
-          </label>
-        </div>
         {photo && (
           <div>
             {/* Journal photos are local JPEG data URLs; next/image cannot optimize them. */}

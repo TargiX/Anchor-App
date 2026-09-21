@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { useAppState } from "@/hooks/use-store"
 import { JournalNote } from "@/components/journal-note"
 import { revealDayFragment } from "@/lib/ui/day-fragment"
@@ -442,10 +443,9 @@ function DayCard({ entry, isToday }: { entry: DayEntry; isToday: boolean }) {
           <div className="flex flex-col gap-4 border-t border-border px-5 pt-4 pb-5 lg:grid lg:grid-cols-2 lg:px-6 lg:pb-6">
             {entry.quickCheckIns?.map((checkIn) => (
               <div key={checkIn.id} className="lg:col-span-2">
-                <p className="mb-1 text-xs font-medium text-muted-foreground">
-                  {reviewNoteParts(checkIn.note).period ? "Week" : "Check-in"} ·{" "}
-                  {new Date(checkIn.createdAt).toLocaleTimeString([], {
-                    hour: "2-digit",
+                <p className="mb-1 text-xs font-medium text-muted-foreground tabular-nums">
+                  {new Date(checkIn.createdAt).toLocaleTimeString("en-US", {
+                    hour: "numeric",
                     minute: "2-digit",
                   })}
                 </p>
@@ -553,11 +553,14 @@ export function TimelineView() {
         >
           <p
             role="status"
-            className={
+            className={cn(
+              "text-xs text-muted-foreground",
               entries.length === 0 && !query.trim() && !favoritesOnly
                 ? "sr-only"
-                : "text-xs text-muted-foreground"
-            }
+                : query.trim() || favoritesOnly
+                  ? ""
+                  : "lg:hidden"
+            )}
           >
             {entries.length} {entries.length === 1 ? "day" : "days"}
             {favoritesOnly ? " favorited" : ""}
@@ -593,12 +596,25 @@ export function TimelineView() {
             isToday={entry.date === todayKey}
           />
         ))
-      ) : (
+      ) : query.trim() || favoritesOnly ? (
         <p className="mt-4 text-sm leading-6 text-muted-foreground">
-          {query.trim() || favoritesOnly
-            ? "No matching entries. Try another word or show every day."
-            : "Your days will gather here. Start with a note on Today."}
+          No matching entries. Try another word or show every day.
         </p>
+      ) : (
+        <div className="mt-16 flex flex-col items-center text-center">
+          <p className="font-[family-name:var(--font-display)] text-xl text-foreground">
+            Nothing here yet.
+          </p>
+          <p className="mt-2 max-w-xs text-sm leading-6 text-muted-foreground">
+            Every note you save on Today lands here, day by day.
+          </p>
+          <Link
+            href="/app"
+            className="mt-6 inline-flex min-h-11 items-center rounded-xl border border-border px-5 text-sm font-medium transition-colors hover:bg-muted"
+          >
+            Write today&apos;s note
+          </Link>
+        </div>
       )}
     </div>
   )

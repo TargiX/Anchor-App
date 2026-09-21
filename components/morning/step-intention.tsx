@@ -60,7 +60,6 @@ export function StepIntention({
   return (
     <div className="flex flex-1 flex-col gap-8">
       <div className="flex flex-col gap-2 pt-4">
-        <p className="text-xs font-medium text-muted-foreground">Intention</p>
         <h2 className="font-[family-name:var(--font-display)] text-3xl leading-tight font-semibold text-balance text-foreground lg:text-4xl">
           Today I want to&hellip;
         </h2>

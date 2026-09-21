@@ -23,7 +23,8 @@ iOS (Capacitor) ──bearer token, direct──▶            │
   `updated_at`). `PUT` accepts `baseUpdatedAt` for optimistic conflict
   detection → `409` returns the server row. The version check and write are
   serialized by a per-user row lock, including concurrent first writes. An
-  omitted base is accepted only when no server state exists. `GET /api/data/state/version` is
+  omitted base is accepted only when no server state exists.
+  `GET /api/data/state/version` is
   the cheap polling endpoint that replaced Supabase realtime.
 
 ## Files
@@ -40,20 +41,22 @@ iOS (Capacitor) ──bearer token, direct──▶            │
 
 Backend (Coolify runtime secrets — never in the image or repo):
 
-| Var | Value |
-|---|---|
-| `DATABASE_URL` | `postgresql://anchor:<password>@xbeb28ab2vmmbquowjt1pvt2:5432/anchor` |
-| `BETTER_AUTH_SECRET` | 64-hex secret (owner's secret manager) |
-| `BETTER_AUTH_URL` | `https://api.anchorapp.cc` |
+| Var                    | Value                                                                            |
+| ---------------------- | -------------------------------------------------------------------------------- |
+| `DATABASE_URL`         | `postgresql://anchor:<password>@xbeb28ab2vmmbquowjt1pvt2:5432/anchor`            |
+| `BETTER_AUTH_SECRET`   | 64-hex secret (owner's secret manager)                                           |
+| `BETTER_AUTH_URL`      | `https://api.anchorapp.cc`                                                       |
 | `AUTH_TRUSTED_ORIGINS` | `https://anchorapp.cc,https://www.anchorapp.cc,https://anchor.ilyamoskovkin.com` |
-| `PORT` | `3000` |
+| `PORT`                 | `3000`                                                                           |
+| `RESEND_API_KEY`       | Resend sending key; without it emails are skipped (nothing is logged)        |
+| `AUTH_EMAIL_FROM`      | Verified sender, for example `Anchor <no-reply@phosphene.cc>`                    |
 
 Frontend (Vercel env):
 
-| Var | Value |
-|---|---|
+| Var                       | Value                                                                                   |
+| ------------------------- | --------------------------------------------------------------------------------------- |
 | `NEXT_PUBLIC_BACKEND_URL` | `https://api.anchorapp.cc` (required to enable auth/sync in both web and native builds) |
-| `BACKEND_URL` | `https://api.anchorapp.cc` (server-side session check in the anchor-checkins route) |
+| `BACKEND_URL`             | `https://api.anchorapp.cc` (server-side session check in the anchor-checkins route)     |
 
 ## Local development
 
@@ -72,6 +75,9 @@ origin to `AUTH_TRUSTED_ORIGINS`. Do not assume a fixed localhost port.
 `NEXT_PUBLIC_BACKEND_URL` gates `isBackendConfigured`: unset means local-only
 mode (no login gate, no sync). Web auth/data requests go through same-origin
 rewrites; native builds use the configured URL directly.
+
+Without `RESEND_API_KEY` and `AUTH_EMAIL_FROM`, email delivery is skipped and a
+token-free notice is logged — reset links never appear in logs.
 
 ## Deploy (Coolify, manual)
 
@@ -122,8 +128,10 @@ sync proof. Browser automation was unavailable during this deployment pass.
 
 - Test actual signed-in browser sessions and physical devices, including
   conflicting edits and 30-second polling convergence, before advertising sync.
-- Add password reset and email verification; no Resend key is wired.
-- Add in-app account deletion before App Store submission.
+- Deploy and verify password-reset email delivery with `RESEND_API_KEY` and
+  `AUTH_EMAIL_FROM`; email verification remains deferred.
+- Verify in-app account deletion against the deployed backend before App Store
+  submission.
 - Google sign-in is disabled and hidden.
 - Resolve anonymous edits made while authentication is still loading.
 - Validate visible syncing/offline/conflict status in the actual product UI.

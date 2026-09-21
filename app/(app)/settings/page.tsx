@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Trash2, Plus, LogOut, SlidersHorizontal } from "lucide-react"
 import { AppScreenShell } from "@/components/app-screen-shell"
 import { Button } from "@/components/ui/button"
@@ -28,7 +29,7 @@ const THEMES = ["light", "dark", "sepia"] as const
 
 export default function SettingsPage() {
   const state = useAppState()
-  const { status, user, signOut } = useAuth()
+  const { status, user, signOut, deleteAccount } = useAuth()
   const { theme, setTheme } = useTheme()
   const [newHabit, setNewHabit] = useState("")
   const [habitError, setHabitError] = useState<string | null>(null)
@@ -307,6 +308,7 @@ export default function SettingsPage() {
       </nav>
 
       {status === "authed" && (
+        <>
         <div className="mt-6 flex items-center justify-between rounded-2xl border border-border bg-card px-5 py-4">
           <div className="flex flex-col">
             <span className="text-xs font-medium text-muted-foreground">
@@ -327,7 +329,99 @@ export default function SettingsPage() {
             Sign out
           </Button>
         </div>
+        <DeleteAccountCard onDelete={deleteAccount} />
+        </>
       )}
     </AppScreenShell>
+  )
+}
+
+function DeleteAccountCard({
+  onDelete,
+}: {
+  onDelete: (password: string) => Promise<{ error: string | null }>
+}) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleDelete() {
+    if (!password) {
+      setError("Enter your password to confirm.")
+      return
+    }
+    setError(null)
+    setDeleting(true)
+    const { error: deleteError } = await onDelete(password)
+    setDeleting(false)
+    if (deleteError) {
+      setError(deleteError)
+      return
+    }
+    router.replace("/")
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mt-4 text-sm text-muted-foreground underline"
+      >
+        Delete account
+      </button>
+    )
+  }
+
+  return (
+    <div className="mt-4 rounded-2xl border border-destructive/40 bg-card px-5 py-4">
+      <p className="text-sm font-medium text-foreground">
+        Delete your account and cloud data?
+      </p>
+      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+        Your synced journal is removed from the server. Export first if you
+        want to keep a copy. This cannot be undone.
+      </p>
+      <input
+        type="password"
+        autoComplete="current-password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="Your password"
+        aria-label="Confirm password to delete account"
+        className="mt-3 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+      />
+      {error && (
+        <p role="alert" className="mt-2 text-xs text-destructive">
+          {error}
+        </p>
+      )}
+      <div className="mt-3 flex gap-2">
+        <Button
+          variant="destructive"
+          size="sm"
+          className="rounded-xl"
+          disabled={deleting}
+          onClick={handleDelete}
+        >
+          {deleting ? "Deleting…" : "Delete permanently"}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="rounded-xl"
+          disabled={deleting}
+          onClick={() => {
+            setOpen(false)
+            setPassword("")
+            setError(null)
+          }}
+        >
+          Cancel
+        </Button>
+      </div>
+    </div>
   )
 }

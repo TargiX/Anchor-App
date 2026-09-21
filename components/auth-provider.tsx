@@ -43,6 +43,12 @@ interface AuthValue {
     password: string
   ) => Promise<{ error: string | null; needsConfirmation: boolean }>
   resendConfirmation: (email: string) => Promise<{ error: string | null }>
+  requestPasswordReset: (email: string) => Promise<{ error: string | null }>
+  resetPassword: (
+    token: string,
+    password: string
+  ) => Promise<{ error: string | null }>
+  deleteAccount: (password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
 }
 
@@ -109,7 +115,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
         await captureTokenFromResponse(res)
-        const data = (await res.json().catch(() => null)) as SessionResponse | null
+        const data = (await res
+          .json()
+          .catch(() => null)) as SessionResponse | null
         if (cancelled) return
         const nextUser = data?.user ?? null
         setUser(nextUser)
@@ -141,7 +149,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     googleEnabled,
     async signIn(email, password) {
-      if (!isBackendConfigured) return { error: "Accounts are not configured yet." }
+      if (!isBackendConfigured)
+        return { error: "Accounts are not configured yet." }
       try {
         const res = await apiFetch("/api/auth/sign-in/email", {
           method: "POST",
@@ -211,6 +220,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // the login page's resend flow renders an honest no-op.
       captureEvent("account_resend_confirmation_noop")
       return { error: null }
+    },
+    async requestPasswordReset(email) {
+      if (!isBackendConfigured)
+        return { error: "Accounts are not configured yet." }
+      try {
+        const res = await apiFetch("/api/auth/request-password-reset", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            email,
+            redirectTo: `${window.location.origin}/reset-password`,
+          }),
+        })
+        const data = await res.json().catch(() => null)
+        if (!res.ok)
+          return {
+            error: readErrorMessage(data, "Could not send reset email."),
+          }
+        return { error: null }
+      } catch {
+        return { error: "Could not send reset email. Check your connection." }
+      }
+    },
+    async resetPassword(token, password) {
+      if (!isBackendConfigured)
+        return { error: "Accounts are not configured yet." }
+      try {
+        const res = await apiFetch("/api/auth/reset-password", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ token, newPassword: password }),
+        })
+        const data = await res.json().catch(() => null)
+        if (!res.ok)
+          return {
+            error: readErrorMessage(
+              data,
+              "This reset link is invalid or expired."
+            ),
+          }
+        return { error: null }
+      } catch {
+        return { error: "Reset failed. Check your connection and try again." }
+      }
+    },
+    async deleteAccount(password) {
+      if (!isBackendConfigured)
+        return { error: "Accounts are not configured yet." }
+      try {
+        const res = await apiFetch("/api/auth/delete-user", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ password }),
+        })
+        const data = await res.json().catch(() => null)
+        if (!res.ok)
+          return {
+            error: readErrorMessage(data, "Could not delete the account."),
+          }
+        await setSessionToken(null)
+        setUser(null)
+        setStatus("anon")
+        resetAnalyticsUser()
+        return { error: null }
+      } catch {
+        return { error: "Could not delete the account. Check your connection." }
+      }
     },
     async signOut() {
       captureEvent("account_signed_out")

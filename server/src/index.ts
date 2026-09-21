@@ -73,10 +73,10 @@ app.get("/health", async (_request, reply) => {
 
 // Account and journal responses must never be stored in browser/shared caches.
 app.addHook("onSend", async (request, reply, payload) => {
-  if (request.url.startsWith("/api/")) reply.header("Cache-Control", "private, no-store")
+  if (request.url.startsWith("/api/"))
+    reply.header("Cache-Control", "private, no-store")
   return payload
 })
-
 // --- Better Auth mount -------------------------------------------------------
 
 function toFetchRequest(request: FastifyRequest): Request {
@@ -196,13 +196,17 @@ app.put("/api/data/state", async (request, reply) => {
     await client.query("BEGIN")
     // Lock the parent row, which exists even before the first state save.
     // Concurrent first writes and updates must use the same version check.
-    await client.query('select "id" from "user" where "id" = $1 for update', [user.id])
+    await client.query('select "id" from "user" where "id" = $1 for update', [
+      user.id,
+    ])
     const { rows: currentRows } = await client.query<StateRow>(
       'select "state", "updated_at" from "anchor_user_states" where "user_id" = $1',
       [user.id]
     )
     const current = currentRows[0]
-    if ((current?.updated_at.toISOString() ?? null) !== (baseUpdatedAt ?? null)) {
+    if (
+      (current?.updated_at.toISOString() ?? null) !== (baseUpdatedAt ?? null)
+    ) {
       await client.query("ROLLBACK")
       return reply.status(409).send({
         state: current?.state ?? null,
@@ -230,7 +234,6 @@ app.put("/api/data/state", async (request, reply) => {
 })
 
 // --- Boot --------------------------------------------------------------------
-
 
 try {
   await app.listen({ port: PORT, host: HOST })
