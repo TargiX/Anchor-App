@@ -91,12 +91,13 @@ export default function PrivacyPage() {
             Analytics and crash reporting
           </h2>
           <p>
-            Anchor uses PostHog to understand page visits, account actions, and
-            whether core features are completed or fail. Analytics never include
-            journal text, intentions, voice transcripts, or the content of your
-            check-ins. Session replay is disabled. Anchor does not sell personal
-            data or use analytics to track you across unrelated apps and
-            websites.
+            On the website, self-hosted Umami measures page visits using general
+            page categories, referral websites, browser language, and screen size.
+            We do not send account identifiers, journal text, intentions, voice
+            transcripts, check-in content, or URL query parameters. Session replay
+            is disabled. Do Not Track and Global Privacy Control are respected.
+            This website tracker does not run in the native app. Anchor does not
+            sell personal data or track you across unrelated apps and websites.
           </p>
         </section>
 
