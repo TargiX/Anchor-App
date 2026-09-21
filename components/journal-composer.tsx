@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState, useSyncExternalStore } from "react"
+import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import {
   DictationControl,
   useIosDictation,
@@ -77,6 +77,16 @@ function Composer({
   const [retryOnly, setRetryOnly] = useState(false)
   const pendingId = useRef<string | null>(initial?.id ?? null)
   const savingRef = useRef(false)
+  const noteRef = useRef<HTMLTextAreaElement>(null)
+
+  // Grow with content; collapse back when emptied. Runs on every `note`
+  // change so dictation inserts and post-save resets resize too.
+  useEffect(() => {
+    const el = noteRef.current
+    if (!el) return
+    el.style.height = "auto"
+    el.style.height = `${el.scrollHeight}px`
+  }, [note])
 
   function remember(nextNote: string, step: string) {
     pendingId.current ??= crypto.randomUUID()
@@ -156,14 +166,12 @@ function Composer({
           </label>
           <textarea
             id="checkin-note"
+            ref={noteRef}
             value={note}
             onChange={(event) => {
               remember(event.target.value, nextStep)
               setNote(event.target.value)
               setMessage("")
-              // Grow with content; collapse back when emptied.
-              event.target.style.height = "auto"
-              event.target.style.height = `${event.target.scrollHeight}px`
             }}
             disabled={saving || voiceBusy || photoBusy || retryOnly}
             required

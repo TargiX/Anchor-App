@@ -1,20 +1,23 @@
+import { z } from "zod"
+
+export const EmailMessageSchema = z.object({
+  to: z.email(),
+  subject: z.string(),
+  text: z.string(),
+})
+
+type EmailMessage = z.infer<typeof EmailMessageSchema>
+
 /**
- * Transactional email via Resend. Without RESEND_API_KEY the message is logged
- * instead of sent — that keeps local dev and CI honest without a mail account,
- * and the reset URL stays reachable in server logs.
+ * Transactional email via Resend. Without RESEND_API_KEY delivery is skipped —
+ * reset links are credentials and must never be written to logs.
  */
-export async function sendEmail(message: {
-  to: string
-  subject: string
-  text: string
-}): Promise<void> {
+export async function sendEmail(message: EmailMessage): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY
   const from = process.env.AUTH_EMAIL_FROM
 
   if (!apiKey || !from) {
-    console.log(
-      `[email:not-configured] to=${message.to} subject=${message.subject}\n${message.text}`
-    )
+    console.log("[email:not-configured] delivery skipped")
     return
   }
 

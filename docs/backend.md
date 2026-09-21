@@ -48,7 +48,7 @@ Backend (Coolify runtime secrets — never in the image or repo):
 | `BETTER_AUTH_URL`      | `https://api.anchorapp.cc`                                                       |
 | `AUTH_TRUSTED_ORIGINS` | `https://anchorapp.cc,https://www.anchorapp.cc,https://anchor.ilyamoskovkin.com` |
 | `PORT`                 | `3000`                                                                           |
-| `RESEND_API_KEY`       | Resend sending key; without it reset links are logged, not sent                  |
+| `RESEND_API_KEY`       | Resend sending key; without it emails are skipped (nothing is logged)        |
 | `AUTH_EMAIL_FROM`      | Verified sender, for example `Anchor <no-reply@phosphene.cc>`                    |
 
 Frontend (Vercel env):
@@ -76,8 +76,8 @@ origin to `AUTH_TRUSTED_ORIGINS`. Do not assume a fixed localhost port.
 mode (no login gate, no sync). Web auth/data requests go through same-origin
 rewrites; native builds use the configured URL directly.
 
-Without `RESEND_API_KEY` and `AUTH_EMAIL_FROM`, password-reset links are logged
-rather than sent.
+Without `RESEND_API_KEY` and `AUTH_EMAIL_FROM`, email delivery is skipped and a
+token-free notice is logged — reset links never appear in logs.
 
 ## Deploy (Coolify, manual)
 
