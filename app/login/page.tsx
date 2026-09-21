@@ -61,7 +61,7 @@ function LoginForm() {
   const [googleSubmitting, setGoogleSubmitting] = useState(false)
   const [resending, setResending] = useState(false)
 
-  // Already signed in, or local dev has no Supabase env yet.
+  // Already signed in, or local dev has no backend configured yet.
   useEffect(() => {
     if (status === "authed" || status === "unconfigured") router.replace("/app")
   }, [status, router])

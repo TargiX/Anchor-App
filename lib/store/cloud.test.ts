@@ -1,37 +1,33 @@
-import type { SupabaseClient } from "@supabase/supabase-js"
-import { describe, expect, it, vi } from "vitest"
-import { createCloudInboundSync, mergeCloudState } from "./cloud"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import {
+  createCloudInboundSync,
+  mergeCloudState,
+  type CloudStateSnapshot,
+  type CloudTransport,
+} from "./cloud"
 import { INITIAL_STATE, type AppState } from "./state"
 
-function createRealtimeClient() {
-  let postgresChangesCallback: (() => void) | undefined
-  let statusCallback: ((status: string) => void) | undefined
-  const channel = {
-    on: vi.fn(
-      (
-        _type: string,
-        _filter: object,
-        callback: () => void
-      ) => {
-        postgresChangesCallback = callback
-        return channel
-      }
-    ),
-    subscribe: vi.fn((callback: (status: string) => void) => {
-      statusCallback = callback
-      return channel
-    }),
+function createFakeTransport() {
+  const load = vi.fn<() => Promise<CloudStateSnapshot>>()
+  const save = vi.fn()
+  const version = vi.fn<() => Promise<string | null>>()
+  const transport: CloudTransport & {
+    load: typeof load
+    save: typeof save
+    version: typeof version
+  } = {
+    load,
+    save,
+    version,
+    lastVersion: null,
   }
-  const client = {
-    channel: vi.fn(() => channel),
-    removeChannel: vi.fn().mockResolvedValue("ok"),
-  }
-
   return {
-    client: client as unknown as SupabaseClient,
-    channel,
-    emitChange: () => postgresChangesCallback?.(),
-    emitStatus: (status: string) => statusCallback?.(status),
+    transport,
+    load,
+    version,
+    respond(state: AppState | null, updatedAt = "2026-09-20T00:00:00.000Z") {
+      return { state, updatedAt }
+    },
   }
 }
 
@@ -95,56 +91,57 @@ describe("mergeCloudState", () => {
 })
 
 describe("cloud inbound sync", () => {
-  it("registers the user-filtered channel, reconciles on subscribe, and disposes it", async () => {
-    const realtime = createRealtimeClient()
-    const loadState = vi.fn().mockResolvedValue(INITIAL_STATE)
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it("reconciles on start and polls only when the server version differs", async () => {
+    const { transport, load, version, respond } = createFakeTransport()
+    load.mockResolvedValue(respond(INITIAL_STATE))
+    version.mockResolvedValue("v1")
     const onError = vi.fn()
     const inbound = createCloudInboundSync({
-      client: realtime.client,
-      userId: "user-a",
+      transport,
       initialBaselineState: INITIAL_STATE,
       getLocalState: () => INITIAL_STATE,
       replaceLocalState: vi.fn(),
       isActive: () => true,
-      loadState,
+      pollIntervalMs: 1_000,
       onError,
     })
 
     inbound.start()
+    await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(1))
 
-    expect(realtime.client.channel).toHaveBeenCalledWith(
-      "anchor-user-state:user-a"
-    )
-    expect(realtime.channel.on).toHaveBeenCalledWith(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "anchor_user_states",
-        filter: "user_id=eq.user-a",
-      },
-      expect.any(Function)
-    )
+    // Poll with a matching version → self-echo, no reload.
+    ;(transport as { lastVersion: string | null }).lastVersion = "v1"
+    await vi.advanceTimersByTimeAsync(1_000)
+    expect(version).toHaveBeenCalledTimes(1)
+    expect(load).toHaveBeenCalledTimes(1)
 
-    realtime.emitStatus("SUBSCRIBED")
-    await vi.waitFor(() => expect(loadState).toHaveBeenCalledTimes(1))
+    // Poll with a newer server version → remote change, reload.
+    version.mockResolvedValue("v2")
+    await vi.advanceTimersByTimeAsync(1_000)
+    await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(2))
 
-    realtime.emitStatus("CLOSED")
-    realtime.emitStatus("SUBSCRIBED")
-    await vi.waitFor(() => expect(loadState).toHaveBeenCalledTimes(2))
-
-    realtime.emitStatus("CHANNEL_ERROR")
-    realtime.emitStatus("TIMED_OUT")
-    expect(onError).toHaveBeenCalledTimes(2)
+    // Poll failure surfaces through onError without killing the loop.
+    version.mockRejectedValueOnce(new Error("offline"))
+    await vi.advanceTimersByTimeAsync(1_000)
+    expect(onError).toHaveBeenCalledTimes(1)
 
     inbound.dispose()
-    expect(realtime.client.removeChannel).toHaveBeenCalledWith(realtime.channel)
+    version.mockClear()
+    await vi.advanceTimersByTimeAsync(5_000)
+    expect(version).not.toHaveBeenCalled()
   })
 
   it("replaces an unchanged same-date local entry with the newer remote value", async () => {
-    const realtime = createRealtimeClient()
-    let resolveLoad!: (state: AppState) => void
-    const loadPromise = new Promise<AppState>((resolve) => {
+    const { transport, respond } = createFakeTransport()
+    let resolveLoad!: (snapshot: CloudStateSnapshot) => void
+    const loadPromise = new Promise<CloudStateSnapshot>((resolve) => {
       resolveLoad = resolve
     })
     const baseline: AppState = {
@@ -164,20 +161,19 @@ describe("cloud inbound sync", () => {
     const replaceLocalState = vi.fn()
     const onStateApplied = vi.fn()
     const inbound = createCloudInboundSync({
-      client: realtime.client,
-      userId: "user-a",
+      transport,
       initialBaselineState: baseline,
       getLocalState: () => local,
       replaceLocalState,
       isActive: () => true,
-      loadState: vi.fn().mockReturnValue(loadPromise),
       onStateApplied,
     })
-    inbound.start()
+    transport.load.mockReturnValue(loadPromise)
 
-    realtime.emitChange()
+    const refreshPromise = inbound.refresh()
     local = structuredClone(baseline)
-    resolveLoad(remote)
+    resolveLoad(respond(remote))
+    await refreshPromise
     await vi.waitFor(() => expect(replaceLocalState).toHaveBeenCalledOnce())
 
     expect(replaceLocalState).toHaveBeenCalledWith(
@@ -195,7 +191,7 @@ describe("cloud inbound sync", () => {
   })
 
   it("hands merged offline and remote work off when an unknown baseline recovers", async () => {
-    const realtime = createRealtimeClient()
+    const { transport, respond } = createFakeTransport()
     const pendingHabit = { id: "write", name: "Write", icon: "pencil" }
     const offlineLocal: AppState = {
       ...INITIAL_STATE,
@@ -235,18 +231,15 @@ describe("cloud inbound sync", () => {
       local = state
     })
     const onRecoverySaveNeeded = vi.fn()
-    const loadState = vi
-      .fn()
-      .mockResolvedValueOnce(olderRemote)
-      .mockResolvedValueOnce(concurrentRemote)
+    transport.load
+      .mockResolvedValueOnce(respond(olderRemote))
+      .mockResolvedValueOnce(respond(concurrentRemote))
     const inbound = createCloudInboundSync({
-      client: realtime.client,
-      userId: "user-a",
+      transport,
       initialBaselineState: null,
       getLocalState: () => local,
       replaceLocalState,
       isActive: () => true,
-      loadState,
       onRecoverySaveNeeded,
     })
 
@@ -275,7 +268,7 @@ describe("cloud inbound sync", () => {
   })
 
   it("hands protected local work off when an unknown baseline recovers to an empty row", async () => {
-    const realtime = createRealtimeClient()
+    const { transport, respond } = createFakeTransport()
     const local: AppState = {
       ...INITIAL_STATE,
       entries: {
@@ -286,18 +279,15 @@ describe("cloud inbound sync", () => {
     const replaceLocalState = vi.fn()
     const onStateApplied = vi.fn()
     const onRecoverySaveNeeded = vi.fn()
-    const loadState = vi
-      .fn()
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(local)
+    transport.load
+      .mockResolvedValueOnce(respond(null))
+      .mockResolvedValueOnce(respond(local))
     const inbound = createCloudInboundSync({
-      client: realtime.client,
-      userId: "user-a",
+      transport,
       initialBaselineState: null,
       getLocalState: () => local,
       replaceLocalState,
       isActive: () => true,
-      loadState,
       onStateApplied,
       onRecoverySaveNeeded,
     })
@@ -314,7 +304,7 @@ describe("cloud inbound sync", () => {
   })
 
   it("preserves pending local dates and whole fields that diverged from baseline", async () => {
-    const realtime = createRealtimeClient()
+    const { transport, respond } = createFakeTransport()
     const baseline: AppState = {
       ...INITIAL_STATE,
       entries: {
@@ -340,14 +330,13 @@ describe("cloud inbound sync", () => {
       notificationEvening: "21:30",
     }
     const replaceLocalState = vi.fn()
+    transport.load.mockResolvedValue(respond(remote))
     const inbound = createCloudInboundSync({
-      client: realtime.client,
-      userId: "user-a",
+      transport,
       initialBaselineState: baseline,
       getLocalState: () => local,
       replaceLocalState,
       isActive: () => true,
-      loadState: vi.fn().mockResolvedValue(remote),
     })
 
     await inbound.refresh()
@@ -364,7 +353,7 @@ describe("cloud inbound sync", () => {
   })
 
   it("advances the baseline for a self echo without rerendering", async () => {
-    const realtime = createRealtimeClient()
+    const { transport, respond } = createFakeTransport()
     const baseline: AppState = {
       ...INITIAL_STATE,
       notificationMorning: "08:00",
@@ -382,17 +371,15 @@ describe("cloud inbound sync", () => {
       local = state
     })
     const onStateApplied = vi.fn()
+    transport.load
+      .mockResolvedValueOnce(respond(echoed))
+      .mockResolvedValueOnce(respond(nextRemote))
     const inbound = createCloudInboundSync({
-      client: realtime.client,
-      userId: "user-a",
+      transport,
       initialBaselineState: baseline,
       getLocalState: () => local,
       replaceLocalState,
       isActive: () => true,
-      loadState: vi
-        .fn()
-        .mockResolvedValueOnce(echoed)
-        .mockResolvedValueOnce(nextRemote),
       onStateApplied,
     })
 
@@ -408,37 +395,35 @@ describe("cloud inbound sync", () => {
   })
 
   it("does not apply a refetch that becomes stale or start after disposal", async () => {
-    const realtime = createRealtimeClient()
+    const { transport, respond } = createFakeTransport()
     let active = true
-    let resolveLoad!: (state: AppState) => void
-    const loadPromise = new Promise<AppState>((resolve) => {
+    let resolveLoad!: (snapshot: CloudStateSnapshot) => void
+    const loadPromise = new Promise<CloudStateSnapshot>((resolve) => {
       resolveLoad = resolve
     })
     const replaceLocalState = vi.fn()
-    const loadState = vi.fn().mockReturnValue(loadPromise)
+    transport.load.mockReturnValue(loadPromise)
     const inbound = createCloudInboundSync({
-      client: realtime.client,
-      userId: "user-a",
+      transport,
       initialBaselineState: INITIAL_STATE,
       getLocalState: () => INITIAL_STATE,
       replaceLocalState,
       isActive: () => active,
-      loadState,
     })
     inbound.start()
 
-    realtime.emitChange()
-    await vi.waitFor(() => expect(loadState).toHaveBeenCalledTimes(1))
+    await vi.waitFor(() => expect(transport.load).toHaveBeenCalledTimes(1))
     active = false
-    resolveLoad({ ...INITIAL_STATE, notificationMorning: "07:00" })
+    resolveLoad(
+      respond({ ...INITIAL_STATE, notificationMorning: "07:00" })
+    )
     await Promise.resolve()
     await Promise.resolve()
     expect(replaceLocalState).not.toHaveBeenCalled()
 
     active = true
     inbound.dispose()
-    realtime.emitChange()
-    await Promise.resolve()
-    expect(loadState).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(transport.load).toHaveBeenCalledTimes(1)
   })
 })

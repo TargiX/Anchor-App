@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next"
+import Script from "next/script"
 import { Cormorant_Garamond, DM_Sans } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -66,6 +67,7 @@ export default function RootLayout({
           process.env.NEXT_PUBLIC_NATIVE_BUILD === "true" && "native-app"
         )}
       >
+        <Script src="/traffic.js" strategy="afterInteractive" />
         <ThemeProvider>
           <DeviceStorageProvider>
             <AuthProvider>
