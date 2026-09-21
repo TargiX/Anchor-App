@@ -22,45 +22,34 @@ type CheckInRequest = {
   durationSec?: unknown
 }
 
-function getSupabaseAuthConfig() {
-  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL
-  const publishableKey =
-    process.env.SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  return { publishableKey, url }
-}
-
-function isValidSupabaseUrl(value: string | undefined): value is string {
-  if (!value) return false
-
+function getBackendUrl(): string | undefined {
+  const url = process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL
+  if (!url) return undefined
   try {
-    return new URL(value).protocol === "https:"
+    return new URL(url).protocol === "https:" || new URL(url).hostname === "localhost" || new URL(url).hostname === "127.0.0.1"
+      ? url.replace(/\/+$/, "")
+      : undefined
   } catch {
-    return false
+    return undefined
   }
 }
 
 type SessionAccess = { error: NextResponse } | { userId: string | null }
 
 async function requireSession(request: Request): Promise<SessionAccess> {
-  const { publishableKey, url } = getSupabaseAuthConfig()
+  const backendUrl = getBackendUrl()
 
-  // Keep the documented local-only fallback working when Supabase is absent.
-  if (!url && !publishableKey) return { userId: null }
+  // Keep the documented local-only fallback working when no backend exists.
+  if (!backendUrl) return { userId: null }
 
-  if (!isValidSupabaseUrl(url) || !publishableKey) {
-    return {
-      error: NextResponse.json(
-        { error: "Supabase environment is not configured" },
-        { status: 500 }
-      ),
-    }
-  }
-
-  const authHeader = request.headers.get("authorization")
-  if (!authHeader?.startsWith("Bearer ")) {
+  // Forward the caller's credentials: bearer token (native) or session
+  // cookie (web, same-origin via rewrite). The backend resolves the session.
+  const headers = new Headers()
+  const authorization = request.headers.get("authorization")
+  const cookie = request.headers.get("cookie")
+  if (authorization) headers.set("authorization", authorization)
+  if (cookie) headers.set("cookie", cookie)
+  if (!authorization && !cookie) {
     return {
       error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
     }
@@ -68,13 +57,10 @@ async function requireSession(request: Request): Promise<SessionAccess> {
 
   let response: Response
   try {
-    response = await fetch(new URL("/auth/v1/user", url), {
+    response = await fetch(`${backendUrl}/api/auth/get-session`, {
       cache: "no-store",
       signal: AbortSignal.timeout(AUTH_CHECK_TIMEOUT_MS),
-      headers: {
-        apikey: publishableKey,
-        Authorization: authHeader,
-      },
+      headers,
     })
   } catch {
     return {
@@ -82,28 +68,22 @@ async function requireSession(request: Request): Promise<SessionAccess> {
     }
   }
 
-  if (response.status === 401 || response.status === 403) {
+  if (!response.ok) {
     return {
       error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
     }
   }
 
-  if (!response.ok) {
-    return {
-      error: NextResponse.json({ error: "Auth check failed" }, { status: 502 }),
-    }
-  }
-
-  const user = (await response.json().catch(() => null)) as {
-    id?: unknown
+  const session = (await response.json().catch(() => null)) as {
+    user?: { id?: unknown } | null
   } | null
-  if (typeof user?.id !== "string" || user.id.length === 0) {
+  if (typeof session?.user?.id !== "string" || session.user.id.length === 0) {
     return {
-      error: NextResponse.json({ error: "Auth check failed" }, { status: 502 }),
+      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
     }
   }
 
-  return { userId: user.id }
+  return { userId: session.user.id }
 }
 
 function storageOptionsForUser(userId: string | null) {

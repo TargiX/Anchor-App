@@ -156,7 +156,7 @@ export function PulseCheck() {
         disabled={!selected}
         onClick={saveCheckIn}
       >
-        {isReset ? "Save and breathe" : "Save this check-in"}
+        {isReset ? "Save and breathe" : "Save"}
       </Button>
     </div>
   )

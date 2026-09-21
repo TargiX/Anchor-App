@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, ArrowRight } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
-import { AppScreenShell } from "@/components/app-screen-shell"
+import { AppScreenShell, RailStat } from "@/components/app-screen-shell"
 import { WeeklyReflection } from "@/components/timeline-view"
 import { JournalComposer } from "@/components/journal-composer"
 import { useAppState } from "@/hooks/use-store"
@@ -50,6 +50,14 @@ export default function ReviewPage() {
       description="Revisit what mattered and choose something to carry forward."
       railTitle="A little perspective."
       railBody="Your words and the things you chose to record. Missing days stay blank; there’s nothing to make up."
+      railMeta={
+        <div className="flex gap-8">
+          <RailStat
+            value={excerpts.length}
+            label={excerpts.length === 1 ? "entry this week" : "entries this week"}
+          />
+        </div>
+      }
       contentClassName="lg:max-w-4xl"
     >
       <div className="mb-6 flex items-center justify-between gap-2">
@@ -117,9 +125,6 @@ export default function ReviewPage() {
         )}
       </section>
       <section aria-label="Reflect on the week">
-        <p className="mb-3 text-xs font-medium text-muted-foreground">
-          Next week
-        </p>
         <JournalComposer
           key={`${status}:${user?.id ?? "guest"}:${end}`}
           ready={status !== "loading"}

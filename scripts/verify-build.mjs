@@ -5,7 +5,6 @@ import { fileURLToPath } from "node:url"
 
 const serverRoutes = [
   "/api/anchor-checkins/route",
-  "/api/cron/supabase-keepalive/route",
   "/(protected)/voice-checkin/page",
 ]
 

@@ -6,7 +6,7 @@ import { Mic, Send, Sparkles, BarChart3, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { AnchorCheckIn, CheckInKind } from "@/lib/anchor-checkin/checkin"
 import { saveFocusResetContextFrom } from "@/lib/focus/reset-context"
-import { isSupabaseConfigured, supabase } from "@/lib/supabase/client"
+import { getSessionToken, isNativePlatform } from "@/lib/backend/client"
 import {
   captureClientException,
   captureEvent,
@@ -53,10 +53,10 @@ function lines(text: string | undefined): string[] {
 }
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
-  if (!isSupabaseConfigured || !supabase) return {}
+  // Web sessions ride the same-origin cookie; native sends the bearer token.
+  if (!isNativePlatform) return {}
 
-  const { data } = await supabase.auth.getSession()
-  const token = data.session?.access_token
+  const token = await getSessionToken()
   if (!token) throw new Error("Нужно войти, чтобы читать и писать чек-ины.")
 
   return { Authorization: `Bearer ${token}` }

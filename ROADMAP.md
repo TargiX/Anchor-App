@@ -32,11 +32,11 @@ lib/
   domain/      zod schemas + inferred types (entry, habit), selectors
                (isMorningComplete, computeStreak…), validation. Pure + tested.
   store/       state.ts (AppState schema + migrate), persistence.ts (StoragePort
-               — localStorage cache), cloud.ts (Supabase sync), store.ts
+               — localStorage cache), cloud.ts (backend sync), store.ts
                (reactive, useSyncExternalStore), actions.ts (the only mutators).
   notifications/ port.ts (web adapter + Capacitor seam), schedule.ts (pure +
                tested), index.ts (reactive permission).
-  supabase/    client.ts (production auth/sync; null only as local dev fallback).
+  backend/     client.ts (self-hosted backend client; bearer on native).
   auth/        credentials.ts (zod validators, tested).
 components/    ui/ (shadcn primitives), feature components, providers.
 app/           / (landing), /login, (protected)/ group = gated app routes.
@@ -50,8 +50,8 @@ Rules:
 - **Day keys are local** (`lib/time/today`), never `toISOString()`.
 - **Radix data-attrs**: target `data-[orientation=…]` / `data-[state=…]`, never
   the legacy `data-horizontal`/`data-active` (that bug class bit us twice).
-- **Graceful degradation**: missing Supabase env may keep local dev usable, but
-  production must configure Supabase because journal/progress data is user-owned.
+- **Graceful degradation**: missing backend env may keep local dev usable, but
+  production must configure the backend because journal data is user-owned.
 - **No slop**: every screen handles empty/loading/error; no fake/cosmetic
   features; review AI output.
 
@@ -71,17 +71,19 @@ Quality gate (must pass before "done"): `typecheck` clean, `lint` 0 errors,
 - **Input validation** wired (intention/journal limits, habit dedupe/cap, real word count).
 - **Reminders** (honest): `lib/notifications` + `ReminderScheduler` + settings UI.
   Web fires while open; native (Capacitor) seam documented.
-- **Supabase Auth + cloud sync**: client, `AuthProvider`/`useAuth`, `/login`
-  (email+password, validated), `(protected)` route-group gate, sign-out in
-  settings, `SyncProvider`, `anchor_user_states` migration with RLS.
+- **Self-hosted backend + cloud sync**: `server/` (Better Auth + Postgres on the
+  shared apps server), `AuthProvider`/`useAuth`, `/login` (email+password,
+  validated), `(protected)` route-group gate, sign-out in settings,
+  `SyncProvider`, `anchor_user_states` table. See `docs/backend.md`.
 
 ## Blocked / needs the human
 
-- **Supabase project + keys** → create/select an Anchor Supabase project, run
-  `supabase/migrations/20260607161931_create_anchor_user_states.sql`, then set
-  `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` locally
-  and in Vercel production. Without these, production cannot persist journals
-  across devices.
+- **Backend deploy** → create the Coolify app from `server/Dockerfile`, attach
+  to the `coolify` network, set the runtime secrets (see `docs/backend.md`),
+  add the `api.anchorapp.cc` DNS record, set `NEXT_PUBLIC_BACKEND_URL` +
+  `BACKEND_URL` in Vercel, and add the `anchor` DB to the R2 backup schedule.
+  DB + role are already provisioned; credentials live in the owner's secret
+  manager (`~/.ssh/hetzner-apps/`).
 - **Decision**: Sentry DSN — wire now (no-op without DSN) or wait?
 
 ---
@@ -92,11 +94,11 @@ Each is self-contained. **To avoid collisions, run each in its own git
 worktree/branch.** "Touches" lists the files; streams that touch `lib/store`
 must not run concurrently with each other.
 
-### WS-1 · Supabase cloud sync hardening
-- Implemented baseline: whole-state row per user, RLS, initial local/remote merge,
-  debounced cloud save.
-- Next hardening: add visible sync status/errors, cross-tab realtime refresh,
-  conflict timestamps per entry, and browser smoke with two signed-in sessions.
+### WS-1 · Backend cloud sync hardening
+- Implemented baseline: whole-state row per user, session-scoped access,
+  initial local/remote merge, debounced cloud save, version polling.
+- Next hardening: visible sync status/errors, conflict timestamps per entry,
+  and browser smoke with two signed-in sessions.
 
 ### WS-2 · Sentry (monitoring)  — isolated, parallel-safe
 - `@sentry/nextjs`; init via env DSN, no-op without it. Capture in `app/error.tsx`
@@ -130,21 +132,13 @@ must not run concurrently with each other.
 
 ---
 
-## Supabase setup
+## Backend setup
 
-Run `supabase/migrations/20260607161931_create_anchor_user_states.sql` once in
-the Anchor Supabase project. Auth → Providers → Email must be enabled, with
-email confirmation on for public beta.
+The backend is a standalone service in `server/` (Better Auth + Postgres on
+the shared Hetzner apps server). Provisioning, env vars, Coolify deploy steps,
+and backup requirements live in `docs/backend.md`. The `anchor` database and
+restricted role are already provisioned; the schema migrates itself at boot.
 
-Auth → URL Configuration:
-
-- Site URL: `https://anchorapp.cc`
-- Redirect URLs: `https://anchorapp.cc/**`, `https://www.anchorapp.cc/**`,
-  `http://localhost:3088/**`, `http://localhost:3000/**`
-
-Google/Gmail sign-in is a separate provider setup. Create a Google Cloud OAuth
-web client, add `https://anchorapp.cc` as an authorized JavaScript origin, add
-`https://ndxivbhtkuwurzqxqmrm.supabase.co/auth/v1/callback` as an authorized
-redirect URI, then paste the Google Client ID/Secret into Auth → Providers →
-Google. The app checks Supabase's public auth settings and only shows the Google
-button once that provider is enabled.
+Google sign-in is deferred: Better Auth supports it via social config, but it
+needs a Google Cloud OAuth client plus a native callback design. The login UI
+already hides the Google button when the provider is absent.

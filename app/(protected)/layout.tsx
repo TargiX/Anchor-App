@@ -6,9 +6,9 @@ import { useAuth } from "@/components/auth-provider"
 import { AnchorMotif } from "@/components/anchor-motif"
 
 /**
- * Guard for the app routes. When Supabase is configured, an unauthenticated
+ * Guard for the app routes. When the backend is configured, an unauthenticated
  * visitor is redirected to /login. If local env is missing, the app remains
- * reachable for development while production should configure Supabase.
+ * reachable for development while production should configure the backend.
  */
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { status } = useAuth()

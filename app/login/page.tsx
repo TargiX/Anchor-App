@@ -9,7 +9,7 @@ import { useAuth } from "@/components/auth-provider"
 import { validateEmail, validatePassword } from "@/lib/auth/credentials"
 import { cn } from "@/lib/utils"
 
-type Mode = "signin" | "signup"
+type Mode = "signin" | "signup" | "reset"
 
 // `useSearchParams()` must be inside a Suspense boundary for the page to
 // prerender statically. The default export wraps the form accordingly.
@@ -31,6 +31,7 @@ function LoginForm() {
     signInWithGoogle,
     signUp,
     resendConfirmation,
+    requestPasswordReset,
   } = useAuth()
 
   // Allow deep-linking to sign-up vs sign-in (e.g. /login?mode=signup from the
@@ -53,7 +54,11 @@ function LoginForm() {
     password?: string
     form?: string
   }>({})
-  const [notice, setNotice] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(
+    searchParams.get("reset") === "1"
+      ? "Password updated. Sign in with the new one."
+      : null
+  )
   const [confirmationEmail, setConfirmationEmail] = useState<string | null>(
     null
   )
@@ -61,7 +66,7 @@ function LoginForm() {
   const [googleSubmitting, setGoogleSubmitting] = useState(false)
   const [resending, setResending] = useState(false)
 
-  // Already signed in, or local dev has no Supabase env yet.
+  // Already signed in, or local dev has no backend configured yet.
   useEffect(() => {
     if (status === "authed" || status === "unconfigured") router.replace("/app")
   }, [status, router])
@@ -70,7 +75,8 @@ function LoginForm() {
     e.preventDefault()
     const normalizedEmail = email.trim()
     const emailError = validateEmail(email)
-    const passwordError = validatePassword(password)
+    const passwordError =
+      mode === "reset" ? null : validatePassword(password)
     if (emailError || passwordError) {
       setErrors({
         email: emailError ?? undefined,
@@ -83,7 +89,14 @@ function LoginForm() {
     setSubmitting(true)
 
     try {
-      if (mode === "signin") {
+      if (mode === "reset") {
+        const { error } = await requestPasswordReset(normalizedEmail)
+        if (error) setErrors({ form: error })
+        else {
+          setNotice("If that email has an account, a reset link is on its way.")
+          setPassword("")
+        }
+      } else if (mode === "signin") {
         const { error } = await signIn(normalizedEmail, password)
         if (error) {
           if (isUnconfirmedEmailError(error))
@@ -176,16 +189,20 @@ function LoginForm() {
           <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold">
             {confirmationEmail
               ? "Check your email"
-              : mode === "signin"
-                ? "Welcome back"
-                : "Create your account"}
+              : mode === "reset"
+                ? "Reset your password"
+                : mode === "signin"
+                  ? "Welcome back"
+                  : "Create your account"}
           </h1>
           <p className="text-sm text-muted-foreground">
             {confirmationEmail
               ? "Confirm your account before signing in."
-              : mode === "signin"
-                ? "Sign in to sync your days."
-                : "Create an account to sync."}
+              : mode === "reset"
+                ? "We'll email you a reset link."
+                : mode === "signin"
+                  ? "Sign in to sync your days."
+                  : "Create an account to sync."}
           </p>
         </div>
 
@@ -251,19 +268,35 @@ function LoginForm() {
                 />
               </Field>
 
-              <Field label="Password" error={errors.password}>
-                <input
-                  type="password"
-                  autoComplete={
-                    mode === "signin" ? "current-password" : "new-password"
-                  }
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  aria-invalid={errors.password ? true : undefined}
-                  className={inputClass(!!errors.password)}
-                />
-              </Field>
+              {mode !== "reset" && (
+                <Field label="Password" error={errors.password}>
+                  <input
+                    type="password"
+                    autoComplete={
+                      mode === "signin" ? "current-password" : "new-password"
+                    }
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    aria-invalid={errors.password ? true : undefined}
+                    className={inputClass(!!errors.password)}
+                  />
+                </Field>
+              )}
+
+              {mode === "signin" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("reset")
+                    setErrors({})
+                    setNotice(null)
+                  }}
+                  className="-mt-1 self-end text-xs text-muted-foreground underline"
+                >
+                  Forgot password?
+                </button>
+              )}
 
               {errors.form && (
                 <p role="alert" className="text-sm text-destructive">
@@ -281,16 +314,18 @@ function LoginForm() {
               >
                 {submitting
                   ? "Please wait…"
-                  : mode === "signin"
-                    ? "Sign in"
-                    : "Create account"}
+                  : mode === "reset"
+                    ? "Send reset link"
+                    : mode === "signin"
+                      ? "Sign in"
+                      : "Create account"}
               </Button>
             </form>
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
               {mode === "signin"
                 ? "No account yet?"
-                : "Already have an account?"}{" "}
+                : "Back to"}{" "}
               <button
                 type="button"
                 onClick={() => {

@@ -2,7 +2,7 @@ import { z } from "zod"
 
 /**
  * Credential validation for the auth forms. Pure + tested; the login page
- * uses these for inline field errors before hitting Supabase.
+ * uses these for inline field errors before hitting the backend.
  */
 export const PASSWORD_MIN = 8
 

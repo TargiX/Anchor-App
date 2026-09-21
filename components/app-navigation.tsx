@@ -37,7 +37,7 @@ function AppNavigation({ pathname }: { pathname: string }) {
               pathname.replace(/\/$/, "") === href ? "page" : undefined
             }
             className={cn(
-              "flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl text-xs focus-visible:outline-2 focus-visible:outline-ring",
+              "flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl text-xs transition-colors focus-visible:outline-2 focus-visible:outline-ring active:opacity-60",
               pathname.replace(/\/$/, "") === href
                 ? "font-medium text-foreground"
                 : "text-muted-foreground hover:bg-muted"

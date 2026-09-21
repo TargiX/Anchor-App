@@ -9,8 +9,6 @@ const nativeRoutes = {
 const webRoutes = {
   ...nativeRoutes,
   "/api/anchor-checkins/route": "app/api/anchor-checkins/route.js",
-  "/api/cron/supabase-keepalive/route":
-    "app/api/cron/supabase-keepalive/route.js",
   "/(protected)/voice-checkin/page": "app/(protected)/voice-checkin/page.js",
 }
 
