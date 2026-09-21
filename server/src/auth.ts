@@ -39,7 +39,17 @@ export function createAuth(pool: pg.Pool): AnchorAuth {
     database: pool,
     secret,
     baseURL: process.env.BETTER_AUTH_URL,
-    trustedOrigins,
+    trustedOrigins: [
+      ...trustedOrigins,
+      "capacitor://localhost",
+      "ionic://localhost",
+      "http://localhost",
+      "https://localhost",
+    ],
+    advanced: {
+      cookiePrefix: "anchor",
+      useSecureCookies: process.env.NODE_ENV === "production",
+    },
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 8,

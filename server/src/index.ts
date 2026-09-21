@@ -62,15 +62,21 @@ await app.register(cors, {
   exposedHeaders: ["set-auth-token"],
 })
 
-app.get("/health", async () => {
+app.get("/health", async (_request, reply) => {
   try {
     await pool.query("select 1")
     return { ok: true, db: "up" }
   } catch {
-    return { ok: true, db: "down" }
+    return reply.status(503).send({ ok: false, db: "down" })
   }
 })
 
+// Account and journal responses must never be stored in browser/shared caches.
+app.addHook("onSend", async (request, reply, payload) => {
+  if (request.url.startsWith("/api/"))
+    reply.header("Cache-Control", "private, no-store")
+  return payload
+})
 // --- Better Auth mount -------------------------------------------------------
 
 function toFetchRequest(request: FastifyRequest): Request {
@@ -93,9 +99,11 @@ async function sendFetchResponse(reply: FastifyReply, response: Response) {
   reply.status(response.status)
   response.headers.forEach((value, key) => {
     // Fastify owns content-length; forwarding it can truncate streamed bodies.
-    if (key.toLowerCase() === "content-length") return
+    if (["content-length", "set-cookie"].includes(key.toLowerCase())) return
     reply.header(key, value)
   })
+  const cookies = response.headers.getSetCookie()
+  if (cookies.length) reply.header("set-cookie", cookies)
   const body = await response.text()
   return reply.send(body)
 }
@@ -183,37 +191,49 @@ app.put("/api/data/state", async (request, reply) => {
   }
   const { state, baseUpdatedAt } = parsed.data
 
-  if (baseUpdatedAt) {
-    const { rows } = await pool.query<{ updated_at: Date }>(
-      'select "updated_at" from "anchor_user_states" where "user_id" = $1',
+  const client = await pool.connect()
+  try {
+    await client.query("BEGIN")
+    // Lock the parent row, which exists even before the first state save.
+    // Concurrent first writes and updates must use the same version check.
+    await client.query('select "id" from "user" where "id" = $1 for update', [
+      user.id,
+    ])
+    const { rows: currentRows } = await client.query<StateRow>(
+      'select "state", "updated_at" from "anchor_user_states" where "user_id" = $1',
       [user.id]
     )
-    const current = rows[0]?.updated_at.toISOString()
-    if (current && current !== baseUpdatedAt) {
-      const { rows: stateRows } = await pool.query<StateRow>(
-        'select "state", "updated_at" from "anchor_user_states" where "user_id" = $1',
-        [user.id]
-      )
+    const current = currentRows[0]
+    if (
+      (current?.updated_at.toISOString() ?? null) !== (baseUpdatedAt ?? null)
+    ) {
+      await client.query("ROLLBACK")
       return reply.status(409).send({
-        state: stateRows[0]?.state ?? null,
-        updatedAt: stateRows[0]?.updated_at.toISOString() ?? null,
+        state: current?.state ?? null,
+        updatedAt: current?.updated_at.toISOString() ?? null,
       })
     }
+    // Millisecond precision matches JSON versions, and strictly increases even
+    // when two accepted writes happen within the same clock millisecond.
+    const { rows } = await client.query<{ updated_at: Date }>(
+      `insert into "anchor_user_states" ("user_id", "state", "updated_at")
+       values ($1, $2, date_trunc('milliseconds', clock_timestamp()))
+       on conflict ("user_id") do update set "state" = excluded."state",
+       "updated_at" = greatest(excluded."updated_at", "anchor_user_states"."updated_at" + interval '1 millisecond')
+       returning "updated_at"`,
+      [user.id, JSON.stringify(state)]
+    )
+    await client.query("COMMIT")
+    return { updatedAt: rows[0].updated_at.toISOString() }
+  } catch (error) {
+    await client.query("ROLLBACK")
+    throw error
+  } finally {
+    client.release()
   }
-
-  const { rows } = await pool.query<{ updated_at: Date }>(
-    `insert into "anchor_user_states" ("user_id", "state")
-     values ($1, $2)
-     on conflict ("user_id")
-     do update set "state" = excluded."state", "updated_at" = now()
-     returning "updated_at"`,
-    [user.id, JSON.stringify(state)]
-  )
-  return { updatedAt: rows[0]?.updated_at.toISOString() ?? null }
 })
 
 // --- Boot --------------------------------------------------------------------
-
 
 try {
   await app.listen({ port: PORT, host: HOST })

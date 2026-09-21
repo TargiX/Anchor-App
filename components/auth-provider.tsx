@@ -115,7 +115,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
         await captureTokenFromResponse(res)
-        const data = (await res.json().catch(() => null)) as SessionResponse | null
+        const data = (await res
+          .json()
+          .catch(() => null)) as SessionResponse | null
         if (cancelled) return
         const nextUser = data?.user ?? null
         setUser(nextUser)
@@ -147,7 +149,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     googleEnabled,
     async signIn(email, password) {
-      if (!isBackendConfigured) return { error: "Accounts are not configured yet." }
+      if (!isBackendConfigured)
+        return { error: "Accounts are not configured yet." }
       try {
         const res = await apiFetch("/api/auth/sign-in/email", {
           method: "POST",
@@ -159,6 +162,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!res.ok) return { error: readErrorMessage(data, "Sign-in failed.") }
         const nextUser = (data as SessionResponse | null)?.user ?? null
         if (nextUser?.id) {
+          setUser(nextUser)
+          setStatus("authed")
           identifyUser(nextUser.id)
           captureEvent("account_signed_in", { method: "email" })
         }
@@ -194,6 +199,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         const nextUser = (data as SessionResponse | null)?.user ?? null
         if (nextUser?.id) {
+          setUser(nextUser)
+          setStatus("authed")
           identifyUser(nextUser.id)
           captureEvent("account_signed_up", {
             method: "email",
@@ -228,7 +235,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         })
         const data = await res.json().catch(() => null)
         if (!res.ok)
-          return { error: readErrorMessage(data, "Could not send reset email.") }
+          return {
+            error: readErrorMessage(data, "Could not send reset email."),
+          }
         return { error: null }
       } catch {
         return { error: "Could not send reset email. Check your connection." }
