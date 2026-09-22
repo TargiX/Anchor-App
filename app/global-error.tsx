@@ -16,6 +16,12 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error(error)
+    // Same DSN-gated dynamic import as app/error.tsx.
+    if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+      void import("@sentry/nextjs").then((Sentry) =>
+        Sentry.captureException(error)
+      )
+    }
   }, [error])
 
   return (

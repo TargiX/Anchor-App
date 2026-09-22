@@ -1,3 +1,5 @@
+import { withSentryConfig } from "@sentry/nextjs"
+
 /** @type {import('next').NextConfig} */
 const isNativeBuild = process.env.BUILD_TARGET === "native"
 
@@ -45,4 +47,18 @@ const nextConfig = {
   }),
 }
 
-export default nextConfig
+
+// Sentry wraps the config only to instrument builds; without a DSN it is
+// inert. Source-map upload happens only when SENTRY_AUTH_TOKEN is present.
+const sentryEnabled = Boolean(
+  process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN
+)
+
+export default sentryEnabled
+  ? withSentryConfig(nextConfig, {
+      silent: true,
+      ...(process.env.SENTRY_AUTH_TOKEN
+        ? { authToken: process.env.SENTRY_AUTH_TOKEN }
+        : { sourcemaps: { disable: true } }),
+    })
+  : nextConfig

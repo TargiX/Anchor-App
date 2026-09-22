@@ -18,8 +18,14 @@ export default function Error({
   reset: () => void
 }) {
   useEffect(() => {
-    // Surface the error in dev; replace with Sentry capture once configured.
     console.error(error)
+    // Dynamic import: keeps the Sentry SDK out of the client bundle entirely
+    // when NEXT_PUBLIC_SENTRY_DSN is unset (incl. native static exports).
+    if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+      void import("@sentry/nextjs").then((Sentry) =>
+        Sentry.captureException(error)
+      )
+    }
   }, [error])
 
   return (
