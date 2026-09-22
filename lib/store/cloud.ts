@@ -42,6 +42,10 @@ interface CloudInboundSyncOptions {
   isActive: () => boolean
   pollIntervalMs?: number
   onError?: (error: unknown) => void
+  /** A cloud request succeeded — the backend is reachable. */
+  onContact?: () => void
+  /** Local entries that diverged from both baseline and remote on reconcile. */
+  onConflicts?: (dayKeys: readonly string[]) => void
   onStateApplied?: (state: AppState) => void
   onRecoverySaveNeeded?: (state: AppState) => void
 }
@@ -140,6 +144,8 @@ export function createCloudInboundSync({
   isActive,
   pollIntervalMs = DEFAULT_POLL_INTERVAL_MS,
   onError,
+  onContact,
+  onConflicts,
   onStateApplied,
   onRecoverySaveNeeded,
 }: CloudInboundSyncOptions) {
@@ -169,6 +175,7 @@ export function createCloudInboundSync({
           continue
         }
         if (disposed || !isActive()) continue
+        onContact?.()
 
         const currentLocalState = getLocalState()
         const previousBaseline = cloudBaseline
@@ -178,7 +185,8 @@ export function createCloudInboundSync({
           ? reconcileInboundCloudState(
               currentLocalState,
               previousBaseline,
-              observedRemoteState
+              observedRemoteState,
+              onConflicts
             )
           : mergeCloudState(currentLocalState, observedRemoteState)
         const recoverySaveNeeded = !structurallyEqual(
@@ -213,6 +221,7 @@ export function createCloudInboundSync({
     if (disposed || !isActive()) return
     try {
       const remoteVersion = await transport.version()
+      onContact?.()
       // lastVersion is bumped by our own loads and saves, so a mismatch
       // means another session wrote the row.
       if (remoteVersion !== transport.lastVersion) {
@@ -261,16 +270,21 @@ export function createCloudInboundSync({
 function reconcileInboundCloudState(
   local: AppState,
   baseline: AppState,
-  remote: AppState
+  remote: AppState,
+  onConflicts?: (dayKeys: readonly string[]) => void
 ): AppState {
   const mergedEntries = { ...remote.entries }
+  const conflicts: string[] = []
   for (const [dayKey, localEntry] of Object.entries(local.entries)) {
     const baselineEntry = baseline.entries[dayKey]
     const remoteEntry = remote.entries[dayKey]
     if (structurallyEqual(localEntry, baselineEntry)) continue
     if (structurallyEqual(localEntry, remoteEntry)) continue
+    // Local wins the merge; the day is still a divergence worth surfacing.
+    if (!structurallyEqual(remoteEntry, baselineEntry)) conflicts.push(dayKey)
     mergedEntries[dayKey] = localEntry
   }
+  if (conflicts.length > 0) onConflicts?.(conflicts)
 
   const habits = structurallyEqual(local.habits, baseline.habits)
     ? remote.habits

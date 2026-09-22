@@ -4,10 +4,24 @@ export type CloudSyncPhase =
   | "saving"
   | "saved"
   | "error"
+  | "offline"
+
+/** An entry that differed on device and cloud at reconciliation time. */
+export interface CloudSyncConflict {
+  /** Local calendar day of the diverging entry, `YYYY-MM-DD`. */
+  dayKey: string
+  /** ISO instant the divergence was observed. */
+  detectedAt: string
+}
 
 export interface CloudSyncSnapshot {
   phase: CloudSyncPhase
   userId: string | null
+  /** Local ISO instant of the last confirmed successful cloud round-trip. */
+  lastSyncedAt: string | null
+  /** Entries both sides changed since this signed-in session began. */
+  conflictCount: number
+  lastConflict: CloudSyncConflict | null
 }
 
 export interface CloudSyncSession {
@@ -18,15 +32,33 @@ export interface CloudSyncSession {
 const INACTIVE_SNAPSHOT: CloudSyncSnapshot = {
   phase: "inactive",
   userId: null,
+  lastSyncedAt: null,
+  conflictCount: 0,
+  lastConflict: null,
+}
+
+/**
+ * A fetch that never reached the server (airplane mode, DNS, TLS) rejects
+ * with TypeError across every runtime we ship (web + Capacitor). Server-side
+ * rejections (4xx/5xx) arrive as plain Errors, so this is the offline/error
+ * fork for the visible status.
+ */
+export function isNetworkFailure(error: unknown): boolean {
+  return error instanceof TypeError
 }
 
 export function createCloudSyncStatusController() {
   let snapshot = INACTIVE_SNAPSHOT
   let nextSessionId = 0
   let currentSession: CloudSyncSession | null = null
+  // "offline" after a failed WRITE means unsaved work may still exist, so a
+  // later successful read must not quiet the status; "offline" from a failed
+  // read means only freshness was lost, and any confirmed contact recovers.
+  let offlineFromFailedSave = false
   const listeners = new Set<() => void>()
 
   function publish(next: CloudSyncSnapshot) {
+    if (next.phase !== "offline") offlineFromFailedSave = false
     snapshot = next
     listeners.forEach((listener) => listener())
   }
@@ -45,7 +77,14 @@ export function createCloudSyncStatusController() {
     begin(userId: string): CloudSyncSession {
       const session = { id: ++nextSessionId, userId }
       currentSession = session
-      publish({ phase: "initial-sync", userId })
+      offlineFromFailedSave = false
+      publish({
+        phase: "initial-sync",
+        userId,
+        lastSyncedAt: null,
+        conflictCount: 0,
+        lastConflict: null,
+      })
       return session
     },
     isCurrent(session: CloudSyncSession) {
@@ -53,15 +92,76 @@ export function createCloudSyncStatusController() {
     },
     update(
       session: CloudSyncSession,
-      phase: Exclude<CloudSyncPhase, "inactive">
+      phase: Exclude<CloudSyncPhase, "inactive" | "offline">,
+      details: { lastSyncedAt?: string | null } = {}
     ) {
       if (currentSession?.id !== session.id) return false
-      publish({ phase, userId: session.userId })
+      // "saved" is only ever published from a confirmed write, so it always
+      // refreshes the freshness stamp; every other phase keeps the last one.
+      const lastSyncedAt =
+        details.lastSyncedAt ??
+        (phase === "saved" ? new Date().toISOString() : snapshot.lastSyncedAt)
+      publish({
+        phase,
+        userId: session.userId,
+        lastSyncedAt,
+        conflictCount: snapshot.conflictCount,
+        lastConflict: snapshot.lastConflict,
+      })
+      return true
+    },
+    /** A cloud request failed without reaching the server. */
+    markOffline(
+      session: CloudSyncSession,
+      reason: "save-failed" | "unreachable"
+    ) {
+      if (currentSession?.id !== session.id) return false
+      offlineFromFailedSave = reason === "save-failed"
+      publish({
+        phase: "offline",
+        userId: session.userId,
+        lastSyncedAt: snapshot.lastSyncedAt,
+        conflictCount: snapshot.conflictCount,
+        lastConflict: snapshot.lastConflict,
+      })
+      return true
+    },
+    /** A cloud read confirmed the backend is reachable again. */
+    noteCloudContact(session: CloudSyncSession) {
+      if (currentSession?.id !== session.id) return false
+      const lastSyncedAt = new Date().toISOString()
+      if (snapshot.phase === "offline" && !offlineFromFailedSave) {
+        publish({
+          phase: "saved",
+          userId: session.userId,
+          lastSyncedAt,
+          conflictCount: snapshot.conflictCount,
+          lastConflict: snapshot.lastConflict,
+        })
+        return true
+      }
+      publish({ ...snapshot, lastSyncedAt })
+      return true
+    },
+    /** Entries that diverged on device and cloud, from reconciliation. */
+    recordConflicts(
+      session: CloudSyncSession,
+      conflicts: readonly CloudSyncConflict[]
+    ) {
+      if (conflicts.length === 0 || currentSession?.id !== session.id) {
+        return false
+      }
+      publish({
+        ...snapshot,
+        conflictCount: snapshot.conflictCount + conflicts.length,
+        lastConflict: conflicts[conflicts.length - 1]!,
+      })
       return true
     },
     end(session?: CloudSyncSession) {
       if (session && currentSession?.id !== session.id) return false
       currentSession = null
+      offlineFromFailedSave = false
       publish(INACTIVE_SNAPSHOT)
       return true
     },
@@ -117,10 +217,16 @@ export function createCloudSaveCoordinator<State>({
       if (disposed || !status.isCurrent(session)) return
       onError?.(error)
 
-      if (pending !== undefined) {
-        await flush()
+      // A write that never reached the server is an offline condition, not
+      // a backend error; the message shown to the user differs accordingly.
+      if (isNetworkFailure(error)) {
+        status.markOffline(session, "save-failed")
       } else {
         status.update(session, "error")
+      }
+
+      if (pending !== undefined) {
+        await flush()
       }
     }
   }

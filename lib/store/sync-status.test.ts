@@ -22,6 +22,9 @@ describe("cloud sync lifecycle", () => {
     expect(status.getSnapshot()).toEqual({
       phase: "initial-sync",
       userId: "user-a",
+      lastSyncedAt: null,
+      conflictCount: 0,
+      lastConflict: null,
     })
 
     status.update(session, "saving")
@@ -32,25 +35,77 @@ describe("cloud sync lifecycle", () => {
     expect(status.getSnapshot().phase).toBe("error")
 
     status.end(session)
-    expect(status.getSnapshot()).toEqual({ phase: "inactive", userId: null })
+    expect(status.getSnapshot()).toEqual({
+      phase: "inactive",
+      userId: null,
+      lastSyncedAt: null,
+      conflictCount: 0,
+      lastConflict: null,
+    })
   })
 
   it("ignores stale completions after the authenticated user changes", () => {
     const status = createCloudSyncStatusController()
     const oldSession = status.begin("user-a")
     const currentSession = status.begin("user-b")
-
     expect(status.update(oldSession, "saved")).toBe(false)
     expect(status.getSnapshot()).toEqual({
       phase: "initial-sync",
       userId: "user-b",
+      lastSyncedAt: null,
+      conflictCount: 0,
+      lastConflict: null,
     })
-
     expect(status.update(currentSession, "saved")).toBe(true)
+
     expect(status.getSnapshot()).toEqual({
       phase: "saved",
       userId: "user-b",
+      lastSyncedAt: expect.any(String),
+      conflictCount: 0,
+      lastConflict: null,
     })
+  })
+
+  it("marks network failures offline and recovers on confirmed contact", () => {
+    const status = createCloudSyncStatusController()
+    const session = status.begin("user-a")
+
+    status.markOffline(session, "unreachable")
+    expect(status.getSnapshot().phase).toBe("offline")
+
+    // A successful read after a read-side outage restores freshness.
+    status.noteCloudContact(session)
+    expect(status.getSnapshot().phase).toBe("saved")
+    expect(status.getSnapshot().lastSyncedAt).toEqual(expect.any(String))
+  })
+
+  it("keeps offline after a failed save even when reads succeed", () => {
+    const status = createCloudSyncStatusController()
+    const session = status.begin("user-a")
+
+    status.markOffline(session, "save-failed")
+    status.noteCloudContact(session)
+    // Unsaved local work may still exist — a read must not quiet the status.
+    expect(status.getSnapshot().phase).toBe("offline")
+
+    status.update(session, "saved")
+    expect(status.getSnapshot().phase).toBe("saved")
+  })
+
+  it("accumulates reconciliation conflicts", () => {
+    const status = createCloudSyncStatusController()
+    const session = status.begin("user-a")
+
+    status.recordConflicts(session, [
+      { dayKey: "2026-09-20", detectedAt: "2026-09-21T10:00:00.000Z" },
+      { dayKey: "2026-09-21", detectedAt: "2026-09-21T10:00:00.000Z" },
+    ])
+    expect(status.getSnapshot().conflictCount).toBe(2)
+    expect(status.getSnapshot().lastConflict?.dayKey).toBe("2026-09-21")
+
+    status.recordConflicts(session, [])
+    expect(status.getSnapshot().conflictCount).toBe(2)
   })
 })
 
@@ -202,6 +257,9 @@ describe("cloud save coordinator", () => {
     expect(status.getSnapshot()).toEqual({
       phase: "initial-sync",
       userId: "user-b",
+      lastSyncedAt: null,
+      conflictCount: 0,
+      lastConflict: null,
     })
   })
 })

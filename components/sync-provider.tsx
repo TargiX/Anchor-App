@@ -10,6 +10,7 @@ import {
 import {
   cloudSyncStatus,
   createCloudSaveCoordinator,
+  isNetworkFailure,
 } from "@/lib/store/sync-status"
 import { applyInboundCloudState } from "@/lib/store/actions"
 import {
@@ -165,6 +166,21 @@ export function SyncProvider() {
           // Realtime is an optional freshness layer. Keep its failures out of
           // the visible save status; ordinary load/save continues to work.
           console.error("Anchor realtime sync failed", error)
+          if (isNetworkFailure(error)) {
+            cloudSyncStatus.markOffline(syncSession, "unreachable")
+          }
+        },
+        onContact: () => {
+          cloudSyncStatus.noteCloudContact(syncSession)
+        },
+        onConflicts: (dayKeys) => {
+          cloudSyncStatus.recordConflicts(
+            syncSession,
+            dayKeys.map((dayKey) => ({
+              dayKey,
+              detectedAt: new Date().toISOString(),
+            }))
+          )
         },
         onStateApplied: (reconciledState) => {
           saveCoordinator.rebasePending(reconciledState)
@@ -185,7 +201,11 @@ export function SyncProvider() {
       } catch (error) {
         if (!cancelled && cloudSyncStatus.isCurrent(syncSession)) {
           console.error("Anchor cloud sync failed", error)
-          cloudSyncStatus.update(syncSession, "error")
+          if (isNetworkFailure(error)) {
+            cloudSyncStatus.markOffline(syncSession, "unreachable")
+          } else {
+            cloudSyncStatus.update(syncSession, "error")
+          }
           installCloudPersistence()
           installInboundSync(null)
         }
@@ -221,7 +241,11 @@ export function SyncProvider() {
       } catch (error) {
         if (!cancelled && cloudSyncStatus.isCurrent(syncSession)) {
           console.error("Anchor initial cloud persistence failed", error)
-          cloudSyncStatus.update(syncSession, "error")
+          if (isNetworkFailure(error)) {
+            cloudSyncStatus.markOffline(syncSession, "save-failed")
+          } else {
+            cloudSyncStatus.update(syncSession, "error")
+          }
           installCloudPersistence()
           installInboundSync(remoteState)
           if (saveCoordinator.schedule(getSnapshot())) {
