@@ -12,6 +12,19 @@ export function LandingHeroVideo() {
     const video = videoRef.current
     if (!video) return
 
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)")
+    const pauseIfReduced = () => {
+      if (motionQuery.matches) video.pause()
+    }
+    pauseIfReduced()
+    // A runtime OS toggle pauses the loop without a remount.
+    motionQuery.addEventListener("change", pauseIfReduced)
+    if (motionQuery.matches) {
+      return () =>
+        motionQuery.removeEventListener("change", pauseIfReduced)
+    }
+
+
     video.defaultPlaybackRate = NATURAL_HERO_PLAYBACK_RATE
     video.playbackRate = NATURAL_HERO_PLAYBACK_RATE
 
@@ -27,6 +40,7 @@ export function LandingHeroVideo() {
     video.addEventListener("playing", markReady)
 
     return () => {
+      motionQuery.removeEventListener("change", pauseIfReduced)
       video.removeEventListener("loadeddata", markReady)
       video.removeEventListener("canplay", markReady)
       video.removeEventListener("playing", markReady)

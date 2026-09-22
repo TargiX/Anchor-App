@@ -117,7 +117,11 @@ export function BoxBreathing() {
       aria-label="Breathe."
     >
       <div className="mx-auto flex w-full max-w-xl flex-col items-center px-2 text-center sm:px-6">
-        <div className="mt-5 w-full" aria-label="Focus reset length">
+        <div
+          className="mt-5 w-full"
+          role="group"
+          aria-label="Focus reset length"
+        >
           <div className="grid grid-cols-3 gap-2">
             {RESET_LENGTHS.map((length) => {
               const isSelected = length.cycles === targetCycles

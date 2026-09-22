@@ -70,6 +70,7 @@ export function StepIntention({
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
+          aria-label="Today I want to"
           placeholder="Write your intention for today..."
           rows={3}
           className={cn(

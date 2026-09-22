@@ -51,7 +51,11 @@ export function StepSleep({ entryKey, onNext, onBack }: StepSleepProps) {
       </div>
 
       {/* Sleep quality picker */}
-      <div className="flex justify-between gap-2">
+      <div
+        role="group"
+        aria-label="Sleep quality"
+        className="flex justify-between gap-2"
+      >
         {SLEEP_OPTIONS.map((opt) => (
           <button
             key={opt.value}
@@ -83,6 +87,8 @@ export function StepSleep({ entryKey, onNext, onBack }: StepSleepProps) {
           step={0.5}
           value={[hours]}
           onValueChange={([v]) => setHours(v ?? 8)}
+          aria-label="Hours slept"
+          aria-valuetext={`${hours} hours`}
           className="py-1"
         />
         <div className="flex justify-between text-xs text-muted-foreground">

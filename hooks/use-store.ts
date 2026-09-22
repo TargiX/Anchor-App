@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useSyncExternalStore } from "react"
+import { useEffect, useState, useSyncExternalStore } from "react"
 import {
   subscribe,
   getSnapshot,
   getServerSnapshot,
   hydrateFromStorage,
+  isHydrated,
 } from "@/lib/store/store"
 import type { AppState } from "@/lib/store/state"
 import { emptyEntry, type DayEntry } from "@/lib/domain/entry"
@@ -19,6 +20,18 @@ export function useAppState(): AppState {
   }, [])
 
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+}
+
+/** True once the store has hydrated from device storage this page load. */
+export function useHydrated(): boolean {
+  const [hydrated, setHydrated] = useState(isHydrated)
+  /* eslint-disable react-hooks/set-state-in-effect -- sync from external store: hydration completes inside hydrateFromStorage() */
+  useEffect(() => {
+    hydrateFromStorage()
+    if (!hydrated) setHydrated(true)
+  }, [hydrated])
+  /* eslint-enable react-hooks/set-state-in-effect */
+  return hydrated
 }
 
 /** Today's entry (or an empty one for today if none exists yet). */

@@ -1,11 +1,16 @@
-const CACHE_VERSION = "anchor-release-v2"
+const CACHE_VERSION = "anchor-release-v3"
 const OFFLINE_URL = "/offline"
 const CORE_APP_SHELL = ["/", "/app", OFFLINE_URL]
 const OPTIONAL_APP_SHELL = [
   "/morning",
   "/evening",
+  "/review",
+  "/focus",
+  "/pulse",
   "/timeline",
   "/settings",
+  "/login",
+  "/reset-password",
   "/privacy",
   "/support",
   "/terms",

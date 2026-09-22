@@ -320,7 +320,9 @@ export function AnchorVoiceCheckInMvp() {
           </div>
 
           {error ? (
-            <p className="mt-4 text-sm text-destructive">{error}</p>
+            <p role="alert" className="mt-4 text-sm text-destructive">
+              {error}
+            </p>
           ) : null}
 
           {reflection ? (
