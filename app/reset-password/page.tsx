@@ -102,6 +102,7 @@ function ResetPasswordForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
+                aria-invalid={error ? true : undefined}
                 className={inputClass}
               />
             </div>
@@ -116,6 +117,7 @@ function ResetPasswordForm() {
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 placeholder="••••••••"
+                aria-invalid={error ? true : undefined}
                 className={inputClass}
               />
             </div>

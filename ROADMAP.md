@@ -39,7 +39,8 @@ lib/
   backend/     client.ts (self-hosted backend client; bearer on native).
   auth/        credentials.ts (zod validators, tested).
 components/    ui/ (shadcn primitives), feature components, providers.
-app/           / (landing), /login, (protected)/ group = gated app routes.
+app/           / (landing), /login, (app)/ group = main app routes,
+               (protected)/ = auth-gated voice prototype.
 ```
 
 Rules:
@@ -66,25 +67,38 @@ Quality gate (must pass before "done"): `typecheck` clean, `lint` 0 errors,
 - Capacitor + Electron wired; `BUILD_TARGET=native` → static export (`out/`).
 - Fixed systemic Radix `data-*` mismatch (slider, tabs, separator, dialog, sheet).
 - **Architecture refactor**: `lib/time`, `lib/domain`, `lib/store` layers.
-- **zod + vitest**; 39 tests (time, selectors, migrate, validation, schedule, credentials).
+- **zod + vitest** suites (time, selectors, migrate, validation, schedule,
+  credentials, sync-status); run `npm test` for the current count.
 - **Resilience**: `app/error.tsx`, `app/global-error.tsx`, `app/not-found.tsx`.
 - **Input validation** wired (intention/journal limits, habit dedupe/cap, real word count).
 - **Reminders** (honest): `lib/notifications` + `ReminderScheduler` + settings UI.
   Web fires while open; native (Capacitor) seam documented.
 - **Self-hosted backend + cloud sync**: `server/` (Better Auth + Postgres on the
   shared apps server), `AuthProvider`/`useAuth`, `/login` (email+password,
-  validated), `(protected)` route-group gate, sign-out in settings,
+  validated), `(protected)` gate on the voice prototype plus an anonymous
+  save-prompt in the ritual flow, sign-out in settings,
   `SyncProvider`, `anchor_user_states` table. See `docs/backend.md`.
+- **Backend deployed and verified** (2026-09-20): Coolify + `api.anchorapp.cc`,
+  DNS, Vercel env, nightly backups with a rehearsed R2 restore, protocol smoke
+  (concurrent writes → one 200 / one 409). Verification record and remaining
+  release work in `docs/backend.md`.
+- **Sentry wired, no-op without DSN**: `@sentry/nextjs`, `sentry.{server,edge}.config.ts`,
+  `instrumentation.ts`, `withSentryConfig` in `next.config.mjs`.
+- **PWA installability**: `app/manifest.ts`, `public/sw.js` +
+  `ServiceWorkerRegistrar`, theme-color in the viewport export.
+- **Timeline charts**: Recharts mood/sleep trend in `components/timeline-chart.tsx`,
+  lazy-loaded (dynamic import), reduced-motion aware, fed by real entries.
 
 ## Blocked / needs the human
 
-- **Backend deploy** → create the Coolify app from `server/Dockerfile`, attach
-  to the `coolify` network, set the runtime secrets (see `docs/backend.md`),
-  add the `api.anchorapp.cc` DNS record, set `NEXT_PUBLIC_BACKEND_URL` +
-  `BACKEND_URL` in Vercel, and add the `anchor` DB to the R2 backup schedule.
-  DB + role are already provisioned; credentials live in the owner's secret
-  manager (`~/.ssh/hetzner-apps/`).
-- **Decision**: Sentry DSN — wire now (no-op without DSN) or wait?
+- Backend deploy is **done** (verified 2026-09-20, see `docs/backend.md`).
+  Still open, per that doc's "Remaining product/release work": signed-in
+  browser + physical-device sync validation (conflicting edits, 30s polling),
+  password-reset email via `RESEND_API_KEY`, in-app account deletion against
+  the deployed backend.
+- **Decision**: Sentry is wired and no-ops without a DSN — create a Sentry
+  project and set `SENTRY_DSN` in production, or consciously stay without.
+- Credentials live in the owner's secret manager (`~/.ssh/hetzner-apps/`).
 
 ---
 
@@ -95,26 +109,28 @@ worktree/branch.** "Touches" lists the files; streams that touch `lib/store`
 must not run concurrently with each other.
 
 ### WS-1 · Backend cloud sync hardening
-- Implemented baseline: whole-state row per user, session-scoped access,
-  initial local/remote merge, debounced cloud save, version polling.
-- Next hardening: visible sync status/errors, conflict timestamps per entry,
-  and browser smoke with two signed-in sessions.
+- Largely done: deployed backend, whole-state row per user, session-scoped
+  access, initial local/remote merge, debounced cloud save, 30s version
+  polling, and visible sync status/offline/conflict reporting
+  (`lib/store/sync-status`, `SyncStatusIndicator`).
+- Remaining: browser smoke with two signed-in sessions and physical-device
+  validation (conflicting edits, convergence) before advertising sync.
 
-### WS-2 · Sentry (monitoring)  — isolated, parallel-safe
-- `@sentry/nextjs`; init via env DSN, no-op without it. Capture in `app/error.tsx`
-  + `app/global-error.tsx`. Touches: sentry config files, `next.config.mjs`,
-  the two error files (1 line each).
-- Done when: build green with and without DSN; a thrown error reports when DSN set.
+### WS-2 · Sentry (monitoring)  — done except the DSN decision
+- Wired: `@sentry/nextjs`, `sentry.{server,edge}.config.ts` via
+  `instrumentation.ts`, `withSentryConfig` in `next.config.mjs`. No-op without
+  `SENTRY_DSN`; no PII, no traces.
+- Done when: a DSN is set (or consciously skipped) and a thrown error reports.
 
-### WS-3 · PWA / installability  — isolated, parallel-safe
-- `app/manifest.ts`, icons in `public/`, theme-color (already in layout), optional
-  service worker for offline shell. Makes "install to home screen / desktop" real.
-- Done when: Lighthouse PWA installable; icon + manifest valid.
+### WS-3 · PWA / installability  — done
+- `app/manifest.ts`, icons via `/pwa-icon/<size>`, theme-color in the viewport
+  export, `public/sw.js` registered by `ServiceWorkerRegistrar`.
+- Remaining if touched again: re-run the Lighthouse installability check.
 
-### WS-4 · Timeline charts (Recharts)  — isolated, parallel-safe
-- The JD lists Recharts. Add a small mood/sleep trend chart to `components/timeline-view.tsx`
-  (only this file). Keep the warm palette + reduced-motion respect.
-- Done when: chart renders from real entries; empty state intact.
+### WS-4 · Timeline charts (Recharts)  — done
+- `components/timeline-chart.tsx` renders mood/sleep trends from real entries,
+  dynamically imported so Recharts stays out of the initial bundle;
+  reduced-motion aware; empty state intact.
 
 ### WS-5 · Accessibility pass  — HIGH collision risk, run solo
 - Keyboard support for the mood grid (`components/morning/step-mood.tsx`), focus
@@ -127,8 +143,7 @@ must not run concurrently with each other.
 - Produces the screenshots/video for LinkedIn + the portfolio case study.
 
 ### WS-7 · LinkedIn showcase  — no code
-- See `CLAUDE.md` is not the place; guidance lives in the chat handoff / a future
-  `docs/showcase.md`. Assets come from WS-6.
+- Guidance lives in `docs/showcase.md`. Assets come from WS-6.
 
 ---
 

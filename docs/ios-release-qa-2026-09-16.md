@@ -1,5 +1,8 @@
 # iOS prerelease QA — September 16, 2026
 
+> Status: dated audit snapshot. Accounts and sync have since moved from
+> Supabase to the self-hosted backend — see `backend.md`.
+
 ## Decision
 
 The local-first release candidate has been built and exercised in iOS Simulator. This is not approval for public release: the previously reported physical-iPhone startup stall still needs a successful run of the final signed build on that phone. Simulator evidence cannot close that issue.

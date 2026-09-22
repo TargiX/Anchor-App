@@ -2,6 +2,10 @@
 
 Date: 2026-06-07
 
+> Status: historical snapshot. Accounts and sync have since moved from Supabase
+> to the self-hosted backend — see `backend.md`; current scope in
+> `product-direction.md`.
+
 ## Release target
 
 - Public Web/PWA release first.

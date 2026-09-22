@@ -21,7 +21,7 @@ Everything you need to present Anchor without an App Store link.
 > as the source of truth) and unit tests on the logic.
 > • Offline-first local store with versioned, validated persistence (and a
 > storage seam so the same code runs native).
-> • Supabase auth + cross-device sync, graceful when offline.
+> • Self-hosted auth + cross-device sync, graceful when offline.
 > • Same UI on a phone and on the desktop — shipped from one repo.
 >
 > No "AI slop": every screen handles empty/loading/error, and I reviewed and
@@ -74,7 +74,7 @@ LinkedIn renders PDFs as carousels. Keep this to 5–7 slides:
 2. Daily loop: dashboard + ritual cards.
 3. Interaction proof: mood grid / sleep slider.
 4. Data proof: timeline + persistence.
-5. Architecture proof: typed domain layer, local-first cache, Supabase sync.
+5. Architecture proof: typed domain layer, local-first cache, self-hosted sync.
 6. Platform proof: Electron + Capacitor.
 7. CTA: live app + case study in first comment.
 

@@ -1,5 +1,8 @@
 # Anchor Hermes Check-in Experiment
 
+> Status: experiment proposal, not the current product plan — see
+> `product-direction.md`.
+
 Цель: за 14 дней проверить ADHD-клин Anchor без разработки iOS-фич: **приходит само → отвечаешь голосом/текстом за 10–30 секунд → Hermes структурирует → без стриков и стыда**.
 
 Это не финальный продукт. Это дешёвый Wizard-of-Oz прототип поверх Hermes cron + Telegram/gateway.

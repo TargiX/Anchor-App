@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import { AnchorMotif } from "@/components/anchor-motif"
 import { Button } from "@/components/ui/button"
@@ -17,7 +19,10 @@ export default function OfflinePage() {
         </p>
       </div>
       <div className="flex flex-wrap justify-center gap-3">
-        <Button asChild className="rounded-2xl">
+        <Button onClick={() => window.location.reload()} className="rounded-2xl">
+          Try again
+        </Button>
+        <Button asChild variant="outline" className="rounded-2xl">
           <Link href="/app">Open the journal</Link>
         </Button>
         <Button asChild variant="outline" className="rounded-2xl">

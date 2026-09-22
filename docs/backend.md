@@ -48,6 +48,7 @@ Backend (Coolify runtime secrets — never in the image or repo):
 | `BETTER_AUTH_URL`      | `https://api.anchorapp.cc`                                                       |
 | `AUTH_TRUSTED_ORIGINS` | `https://anchorapp.cc,https://www.anchorapp.cc,https://anchor.ilyamoskovkin.com` |
 | `PORT`                 | `3000`                                                                           |
+| `HOST`                 | Optional listen host; defaults to `0.0.0.0`                                      |
 | `RESEND_API_KEY`       | Resend sending key; without it emails are skipped (nothing is logged)        |
 | `AUTH_EMAIL_FROM`      | Verified sender, for example `Anchor <no-reply@phosphene.cc>`                    |
 
