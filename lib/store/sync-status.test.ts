@@ -22,6 +22,9 @@ describe("cloud sync lifecycle", () => {
     expect(status.getSnapshot()).toEqual({
       phase: "initial-sync",
       userId: "user-a",
+      lastSyncedAt: null,
+      conflictCount: 0,
+      lastConflict: null,
     })
 
     status.update(session, "saving")
@@ -32,25 +35,77 @@ describe("cloud sync lifecycle", () => {
     expect(status.getSnapshot().phase).toBe("error")
 
     status.end(session)
-    expect(status.getSnapshot()).toEqual({ phase: "inactive", userId: null })
+    expect(status.getSnapshot()).toEqual({
+      phase: "inactive",
+      userId: null,
+      lastSyncedAt: null,
+      conflictCount: 0,
+      lastConflict: null,
+    })
   })
 
   it("ignores stale completions after the authenticated user changes", () => {
     const status = createCloudSyncStatusController()
     const oldSession = status.begin("user-a")
     const currentSession = status.begin("user-b")
-
     expect(status.update(oldSession, "saved")).toBe(false)
     expect(status.getSnapshot()).toEqual({
       phase: "initial-sync",
       userId: "user-b",
+      lastSyncedAt: null,
+      conflictCount: 0,
+      lastConflict: null,
     })
-
     expect(status.update(currentSession, "saved")).toBe(true)
+
     expect(status.getSnapshot()).toEqual({
       phase: "saved",
       userId: "user-b",
+      lastSyncedAt: expect.any(String),
+      conflictCount: 0,
+      lastConflict: null,
     })
+  })
+
+  it("marks network failures offline and recovers on confirmed contact", () => {
+    const status = createCloudSyncStatusController()
+    const session = status.begin("user-a")
+
+    status.markOffline(session, "unreachable")
+    expect(status.getSnapshot().phase).toBe("offline")
+
+    // A successful read after a read-side outage restores freshness.
+    status.noteCloudContact(session)
+    expect(status.getSnapshot().phase).toBe("saved")
+    expect(status.getSnapshot().lastSyncedAt).toEqual(expect.any(String))
+  })
+
+  it("keeps offline after a failed save even when reads succeed", () => {
+    const status = createCloudSyncStatusController()
+    const session = status.begin("user-a")
+
+    status.markOffline(session, "save-failed")
+    status.noteCloudContact(session)
+    // Unsaved local work may still exist — a read must not quiet the status.
+    expect(status.getSnapshot().phase).toBe("offline")
+
+    status.update(session, "saved")
+    expect(status.getSnapshot().phase).toBe("saved")
+  })
+
+  it("accumulates reconciliation conflicts", () => {
+    const status = createCloudSyncStatusController()
+    const session = status.begin("user-a")
+
+    status.recordConflicts(session, [
+      { dayKey: "2026-09-20", detectedAt: "2026-09-21T10:00:00.000Z" },
+      { dayKey: "2026-09-21", detectedAt: "2026-09-21T10:00:00.000Z" },
+    ])
+    expect(status.getSnapshot().conflictCount).toBe(2)
+    expect(status.getSnapshot().lastConflict?.dayKey).toBe("2026-09-21")
+
+    status.recordConflicts(session, [])
+    expect(status.getSnapshot().conflictCount).toBe(2)
   })
 })
 
@@ -183,6 +238,41 @@ describe("cloud save coordinator", () => {
     expect(status.getSnapshot().phase).toBe("saved")
   })
 
+  it("retains a failed write and retries it on confirmed contact", async () => {
+    const status = createCloudSyncStatusController()
+    const session = status.begin("user-a")
+    const save = vi
+      .fn<(state: string) => Promise<void>>()
+      .mockRejectedValueOnce(new TypeError("fetch failed"))
+      .mockResolvedValueOnce()
+    const coordinator = createCloudSaveCoordinator({ session, status, save })
+
+    coordinator.schedule("last write before offline")
+    await coordinator.flush()
+    expect(status.getSnapshot().phase).toBe("offline")
+
+    // No further edit happens; a cloud read confirms reachability.
+    expect(coordinator.retryPending()).toBe(true)
+    await coordinator.flush()
+
+    expect(save).toHaveBeenNthCalledWith(2, "last write before offline")
+    expect(status.getSnapshot().phase).toBe("saved")
+  })
+
+  it("does not retain a failed write after a server-side error", async () => {
+    const status = createCloudSyncStatusController()
+    const session = status.begin("user-a")
+    const save = vi
+      .fn<(state: string) => Promise<void>>()
+      .mockRejectedValueOnce(new Error("HTTP 500"))
+    const coordinator = createCloudSaveCoordinator({ session, status, save })
+
+    coordinator.schedule("rejected write")
+    await coordinator.flush()
+    expect(status.getSnapshot().phase).toBe("error")
+    expect(coordinator.retryPending()).toBe(false)
+  })
+
   it("does not publish a stale save completion after an account switch", async () => {
     const status = createCloudSyncStatusController()
     const oldSession = status.begin("user-a")
@@ -202,6 +292,9 @@ describe("cloud save coordinator", () => {
     expect(status.getSnapshot()).toEqual({
       phase: "initial-sync",
       userId: "user-b",
+      lastSyncedAt: null,
+      conflictCount: 0,
+      lastConflict: null,
     })
   })
 })

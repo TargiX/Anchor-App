@@ -17,15 +17,20 @@ export function SyncStatusIndicator({ className }: { className?: string }) {
   if (authStatus !== "authed" || sync.phase === "inactive") return null
 
   const isError = sync.phase === "error"
+  const isOffline = sync.phase === "offline"
   const isBusy = sync.phase === "initial-sync" || sync.phase === "saving"
   const label =
     sync.phase === "initial-sync"
       ? "Syncing from cloud…"
       : sync.phase === "saving"
         ? "Saving to cloud…"
-        : sync.phase === "saved"
-          ? "Saved to cloud"
-          : "Cloud save failed — edit to retry"
+        : isOffline
+          ? "Offline — changes stay on this device"
+          : sync.phase === "saved"
+            ? sync.conflictCount > 0
+              ? `Saved to cloud · ${sync.conflictCount} conflict${sync.conflictCount === 1 ? "" : "s"} merged`
+              : "Saved to cloud"
+            : "Cloud save failed — edit to retry"
 
   return (
     <div
@@ -40,7 +45,7 @@ export function SyncStatusIndicator({ className }: { className?: string }) {
     >
       {isBusy ? (
         <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
-      ) : isError ? (
+      ) : isError || isOffline ? (
         <CloudOff className="size-3.5" aria-hidden="true" />
       ) : (
         <Check className="size-3.5" aria-hidden="true" />

@@ -28,3 +28,35 @@ if (token && host) {
     )
   }
 }
+
+/**
+ * Client-side Sentry init, gated on NEXT_PUBLIC_SENTRY_DSN. In native static
+ * exports and DSN-less deployments the env inlines to undefined and nothing
+ * initializes. The import is dynamic so the SDK stays out of the client
+ * bundle entirely when unconfigured. Journal app: no PII, no request bodies,
+ * no console breadcrumbs (they can carry journal text).
+ */
+if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+  void import("@sentry/nextjs").then((Sentry) =>
+    Sentry.init({
+      dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+      sendDefaultPii: false,
+      tracesSampleRate: 0,
+      replaysSessionSampleRate: 0,
+      replaysOnErrorSampleRate: 0,
+      beforeSend(event) {
+        if (event.request) {
+          delete event.request.data
+          delete event.request.cookies
+        }
+        if (event.user) event.user = {}
+        if (event.breadcrumbs) {
+          event.breadcrumbs = event.breadcrumbs.filter(
+            (crumb) => crumb.category !== "console"
+          )
+        }
+        return event
+      },
+    })
+  )
+}

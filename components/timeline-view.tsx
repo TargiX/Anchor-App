@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useAppState } from "@/hooks/use-store"
 import { JournalNote } from "@/components/journal-note"
@@ -27,6 +28,12 @@ import {
 } from "@/lib/domain/reflection"
 import { getTodayKey, parseEntryDate } from "@/lib/time/today"
 import { ChevronDown, ChevronUp, Star } from "lucide-react"
+
+/** Recharts stays out of the timeline's initial bundle. */
+const TimelineChart = dynamic(
+  () => import("@/components/timeline-chart").then((m) => m.TimelineChart),
+  { ssr: false }
+)
 
 const MOOD_DIRECTION_COPY: Record<MoodDirection, string> = {
   rising: "Lifting",
@@ -533,6 +540,7 @@ export function TimelineView() {
     .sort((a, b) => b.date.localeCompare(a.date))
   return (
     <div className="space-y-5 pb-8">
+      <TimelineChart entries={state.entries} todayKey={todayKey} />
       <div>
         <label htmlFor="journal-search" className="sr-only">
           Find something in your journal
