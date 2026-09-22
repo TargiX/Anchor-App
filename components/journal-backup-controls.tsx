@@ -35,6 +35,7 @@ export function JournalBackupControls({
   )
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState("")
+  const [messageFailed, setMessageFailed] = useState(false)
   const [preview, setPreview] = useState<ReturnType<
     typeof previewBackup
   > | null>(null)
@@ -48,9 +49,11 @@ export function JournalBackupControls({
     setBusy(true)
     onBusyChange?.(true)
     setMessage("")
+    setMessageFailed(false)
     try {
       await action()
     } catch (error) {
+      setMessageFailed(true)
       setMessage(
         error instanceof JournalRecoveryError
           ? error.reason === "newer-version"
@@ -80,6 +83,7 @@ export function JournalBackupControls({
         legacyValue: legacyArchive(legacy),
         previous,
       })
+      setMessageFailed(false)
       setMessage(result.cancelled ? "Export cancelled." : "Copy exported.")
     })
   }
@@ -202,7 +206,7 @@ export function JournalBackupControls({
         </p>
       )}
       {message && (
-        <p role="status" className="text-sm">
+        <p role={messageFailed ? "alert" : "status"} className="text-sm">
           {message}
         </p>
       )}

@@ -7,7 +7,7 @@ import { useAuth } from "@/components/auth-provider"
 import { AppScreenShell, RailStat } from "@/components/app-screen-shell"
 import { WeeklyReflection } from "@/components/timeline-view"
 import { JournalComposer } from "@/components/journal-composer"
-import { useAppState } from "@/hooks/use-store"
+import { useAppState, useHydrated } from "@/hooks/use-store"
 import { reviewExcerpts } from "@/lib/domain/journal"
 import { getTodayKey, parseEntryDate, shiftKey } from "@/lib/time/today"
 
@@ -38,6 +38,7 @@ function weekPeriod(start: string, end: string) {
 
 export default function ReviewPage() {
   const state = useAppState()
+  const hydrated = useHydrated()
   const { status, user } = useAuth()
   const [offset, setOffset] = useState(0)
   const end = shiftKey(getTodayKey(), offset * 7)
@@ -112,7 +113,7 @@ export default function ReviewPage() {
               ))}
             </div>
           </>
-        ) : (
+        ) : !hydrated ? null : (
           <p
             id="week-words"
             className="text-sm leading-6 text-muted-foreground"

@@ -8,7 +8,7 @@ import { JournalComposer } from "@/components/journal-composer"
 import { DailyPaths } from "@/components/daily-paths"
 import { SyncStatusIndicator } from "@/components/sync-status-indicator"
 import { WeeklyDirectionCard } from "@/components/weekly-direction-card"
-import { useAppState, useTodayEntry } from "@/hooks/use-store"
+import { useAppState, useHydrated, useTodayEntry } from "@/hooks/use-store"
 import { parseEntryDate } from "@/lib/time/today"
 export default function Home() {
   const { status, user } = useAuth()
@@ -25,10 +25,12 @@ export default function Home() {
 function Today({ ready, signedIn }: { ready: boolean; signedIn: boolean }) {
   const today = useTodayEntry()
   const state = useAppState()
+  const hydrated = useHydrated()
   // First run = nothing saved yet. The empty state is the onboarding:
   // date, one prompt, the composer. Everything else appears after the
-  // first entry exists.
-  const firstRun = Object.keys(state.entries).length === 0
+  // first entry exists. Gate on hydration so saved users never see the
+  // first-run copy for a frame.
+  const firstRun = hydrated && Object.keys(state.entries).length === 0
   const dateLabel = parseEntryDate(today.date).toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
@@ -60,7 +62,7 @@ function Today({ ready, signedIn }: { ready: boolean; signedIn: boolean }) {
         <h1 className="font-[family-name:var(--font-display)] text-3xl tracking-tight text-balance sm:text-4xl">
           {dateLabel}
         </h1>
-        {firstRun ? (
+        {!hydrated ? null : firstRun ? (
           <p className="mt-3 text-base leading-7 text-muted-foreground">
             Write one sentence about today. That&apos;s the whole ritual.
           </p>

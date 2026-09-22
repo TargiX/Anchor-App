@@ -4,10 +4,16 @@ import { useEffect } from "react"
 
 export function ServiceWorkerRegistrar() {
   useEffect(() => {
+    // Native builds run from a custom scheme / local WebView; a service
+    // worker there would cache stale exported assets.
+    const swDisabled =
+      process.env.NODE_ENV !== "production" ||
+      process.env.NEXT_PUBLIC_NATIVE_BUILD === "true"
+
     if (!("serviceWorker" in navigator)) return
     if (!["http:", "https:"].includes(window.location.protocol)) return
 
-    if (process.env.NODE_ENV !== "production") {
+    if (swDisabled) {
       void navigator.serviceWorker
         .getRegistrations()
         .then((registrations) =>

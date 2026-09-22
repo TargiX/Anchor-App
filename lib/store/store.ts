@@ -228,6 +228,11 @@ export function hydrateFromStorage(): void {
   }
 }
 
+/** True once the first hydrateFromStorage() has run on this page load. */
+export function isHydrated(): boolean {
+  return hydrated
+}
+
 /**
  * Clear the "already hydrated" guard so the next `hydrateFromStorage()` call
  * re-reads from storage. Used after `resetState()` on authed→anon transitions

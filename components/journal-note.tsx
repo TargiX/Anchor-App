@@ -94,9 +94,10 @@ function DeletionNotice({
     conflict:
       "The journal changed. This operation can no longer be applied here.",
   }
+  const failed = status === "error" || status === "restore-error"
   return (
     <aside
-      role="status"
+      role={failed ? "alert" : "status"}
       className="fixed inset-x-4 bottom-[max(7rem,calc(env(safe-area-inset-bottom,0px)+6rem))] z-50 mx-auto max-w-md rounded-2xl border bg-background p-4 shadow-lg"
     >
       <p>{messages[status]}</p>

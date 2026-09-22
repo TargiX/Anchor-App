@@ -68,7 +68,7 @@ export function StepSleepTarget({
       {/* Bedtime picker */}
       <div className="flex flex-col gap-3">
         <p className="text-sm font-medium text-foreground">Bedtime target</p>
-        <div className="flex flex-wrap gap-2">
+        <div role="group" aria-label="Bedtime target" className="flex flex-wrap gap-2">
           {BEDTIME_OPTIONS.map((t) => (
             <button
               key={t}
@@ -100,6 +100,8 @@ export function StepSleepTarget({
           step={0.5}
           value={[hours]}
           onValueChange={([v]) => setHours(v ?? 8)}
+          aria-label="Sleep goal"
+          aria-valuetext={`${hours} hours`}
         />
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>5h</span>

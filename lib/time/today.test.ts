@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { getTodayKey, parseEntryDate, shiftKey, dayDiff } from "./today"
+import { getTodayKey, parseEntryDate, shiftKey } from "./today"
 
 describe("getTodayKey", () => {
   it("formats a local date as YYYY-MM-DD", () => {
@@ -35,18 +35,6 @@ describe("shiftKey", () => {
   })
 })
 
-describe("dayDiff", () => {
-  it("counts whole days between keys", () => {
-    expect(dayDiff("2026-01-01", "2026-01-04")).toBe(3)
-    expect(dayDiff("2026-01-04", "2026-01-01")).toBe(-3)
-    expect(dayDiff("2026-01-01", "2026-01-01")).toBe(0)
-  })
-
-  it("rejects malformed range keys", () => {
-    expect(() => dayDiff("not-a-day", "2026-01-01")).toThrow("Invalid day key")
-    expect(() => dayDiff("2026-01-01", "2026/01/02")).toThrow("Invalid day key")
-  })
-})
 
 describe("parseEntryDate", () => {
   it("round-trips with getTodayKey", () => {

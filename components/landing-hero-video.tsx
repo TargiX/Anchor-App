@@ -12,6 +12,11 @@ export function LandingHeroVideo() {
     const video = videoRef.current
     if (!video) return
 
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      video.pause()
+      return
+    }
+
     video.defaultPlaybackRate = NATURAL_HERO_PLAYBACK_RATE
     video.playbackRate = NATURAL_HERO_PLAYBACK_RATE
 
