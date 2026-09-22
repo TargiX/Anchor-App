@@ -238,6 +238,41 @@ describe("cloud save coordinator", () => {
     expect(status.getSnapshot().phase).toBe("saved")
   })
 
+  it("retains a failed write and retries it on confirmed contact", async () => {
+    const status = createCloudSyncStatusController()
+    const session = status.begin("user-a")
+    const save = vi
+      .fn<(state: string) => Promise<void>>()
+      .mockRejectedValueOnce(new TypeError("fetch failed"))
+      .mockResolvedValueOnce()
+    const coordinator = createCloudSaveCoordinator({ session, status, save })
+
+    coordinator.schedule("last write before offline")
+    await coordinator.flush()
+    expect(status.getSnapshot().phase).toBe("offline")
+
+    // No further edit happens; a cloud read confirms reachability.
+    expect(coordinator.retryPending()).toBe(true)
+    await coordinator.flush()
+
+    expect(save).toHaveBeenNthCalledWith(2, "last write before offline")
+    expect(status.getSnapshot().phase).toBe("saved")
+  })
+
+  it("does not retain a failed write after a server-side error", async () => {
+    const status = createCloudSyncStatusController()
+    const session = status.begin("user-a")
+    const save = vi
+      .fn<(state: string) => Promise<void>>()
+      .mockRejectedValueOnce(new Error("HTTP 500"))
+    const coordinator = createCloudSaveCoordinator({ session, status, save })
+
+    coordinator.schedule("rejected write")
+    await coordinator.flush()
+    expect(status.getSnapshot().phase).toBe("error")
+    expect(coordinator.retryPending()).toBe(false)
+  })
+
   it("does not publish a stale save completion after an account switch", async () => {
     const status = createCloudSyncStatusController()
     const oldSession = status.begin("user-a")

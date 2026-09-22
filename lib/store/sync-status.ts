@@ -219,13 +219,18 @@ export function createCloudSaveCoordinator<State>({
 
       // A write that never reached the server is an offline condition, not
       // a backend error; the message shown to the user differs accordingly.
+      const newerPending = pending !== undefined
       if (isNetworkFailure(error)) {
         status.markOffline(session, "save-failed")
+        // Keep the failed state so a later confirmed contact can retry it —
+        // without this the last write before going offline is lost until the
+        // user happens to edit again. A newer edit already queued flushes now.
+        if (!newerPending) pending = state
       } else {
         status.update(session, "error")
       }
 
-      if (pending !== undefined) {
+      if (newerPending) {
         await flush()
       }
     }
@@ -251,6 +256,18 @@ export function createCloudSaveCoordinator<State>({
       return true
     },
     flush,
+    /**
+     * Retries a write retained after a network failure. Called when a cloud
+     * read confirms the backend is reachable again.
+     */
+    retryPending() {
+      if (disposed || !status.isCurrent(session) || pending === undefined) {
+        return false
+      }
+      status.update(session, "saving")
+      void flush()
+      return true
+    },
     dispose() {
       disposed = true
       pending = undefined

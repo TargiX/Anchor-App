@@ -284,6 +284,17 @@ function reconcileInboundCloudState(
     if (!structurallyEqual(remoteEntry, baselineEntry)) conflicts.push(dayKey)
     mergedEntries[dayKey] = localEntry
   }
+  // A locally deleted entry is absent from local.entries, so the loop above
+  // never sees it. When the baseline had the entry, local deletion is itself
+  // a local change and wins the merge the same way an edit does.
+  for (const dayKey of Object.keys(baseline.entries)) {
+    if (dayKey in local.entries) continue
+    const remoteEntry = remote.entries[dayKey]
+    if (!structurallyEqual(remoteEntry, baseline.entries[dayKey])) {
+      conflicts.push(dayKey)
+    }
+    delete mergedEntries[dayKey]
+  }
   if (conflicts.length > 0) onConflicts?.(conflicts)
 
   const habits = structurallyEqual(local.habits, baseline.habits)

@@ -172,6 +172,9 @@ export function SyncProvider() {
         },
         onContact: () => {
           cloudSyncStatus.noteCloudContact(syncSession)
+          // A write retained after a network failure retries on the first
+          // confirmed contact — the 30s version poll is the backoff.
+          saveCoordinator.retryPending()
         },
         onConflicts: (dayKeys) => {
           cloudSyncStatus.recordConflicts(

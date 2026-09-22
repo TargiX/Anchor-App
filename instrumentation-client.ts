@@ -1,4 +1,3 @@
-import * as Sentry from "@sentry/nextjs"
 import posthog from "posthog-js"
 
 const token = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN
@@ -33,28 +32,31 @@ if (token && host) {
 /**
  * Client-side Sentry init, gated on NEXT_PUBLIC_SENTRY_DSN. In native static
  * exports and DSN-less deployments the env inlines to undefined and nothing
- * initializes — zero overhead, zero network. Journal app: no PII, no request
- * bodies, no console breadcrumbs (they can carry journal text).
+ * initializes. The import is dynamic so the SDK stays out of the client
+ * bundle entirely when unconfigured. Journal app: no PII, no request bodies,
+ * no console breadcrumbs (they can carry journal text).
  */
 if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
-  Sentry.init({
-    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-    sendDefaultPii: false,
-    tracesSampleRate: 0,
-    replaysSessionSampleRate: 0,
-    replaysOnErrorSampleRate: 0,
-    beforeSend(event) {
-      if (event.request) {
-        delete event.request.data
-        delete event.request.cookies
-      }
-      if (event.user) event.user = {}
-      if (event.breadcrumbs) {
-        event.breadcrumbs = event.breadcrumbs.filter(
-          (crumb) => crumb.category !== "console"
-        )
-      }
-      return event
-    },
-  })
+  void import("@sentry/nextjs").then((Sentry) =>
+    Sentry.init({
+      dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+      sendDefaultPii: false,
+      tracesSampleRate: 0,
+      replaysSessionSampleRate: 0,
+      replaysOnErrorSampleRate: 0,
+      beforeSend(event) {
+        if (event.request) {
+          delete event.request.data
+          delete event.request.cookies
+        }
+        if (event.user) event.user = {}
+        if (event.breadcrumbs) {
+          event.breadcrumbs = event.breadcrumbs.filter(
+            (crumb) => crumb.category !== "console"
+          )
+        }
+        return event
+      },
+    })
+  )
 }
