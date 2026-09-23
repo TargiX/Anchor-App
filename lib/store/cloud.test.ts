@@ -352,6 +352,59 @@ describe("cloud inbound sync", () => {
     )
   })
 
+  it("lets offline deletions win and flags only remotely edited deleted days", async () => {
+    const { transport, respond } = createFakeTransport()
+    const baseline: AppState = {
+      ...INITIAL_STATE,
+      entries: {
+        "2026-07-14": { date: "2026-07-14", journal: "deleted offline" },
+        "2026-07-15": {
+          date: "2026-07-15",
+          journal: "deleted offline",
+        },
+      },
+    }
+    const local: AppState = { ...INITIAL_STATE, entries: {} }
+    const remote: AppState = {
+      ...INITIAL_STATE,
+      entries: {
+        "2026-07-14": { date: "2026-07-14", journal: "deleted offline" },
+        "2026-07-15": {
+          date: "2026-07-15",
+          journal: "edited on another device",
+        },
+        "2026-07-16": { date: "2026-07-16", intention: "new cloud entry" },
+      },
+    }
+    const replaceLocalState = vi.fn()
+    const onConflicts = vi.fn()
+    transport.load.mockResolvedValue(respond(remote))
+    const inbound = createCloudInboundSync({
+      transport,
+      initialBaselineState: baseline,
+      getLocalState: () => local,
+      replaceLocalState,
+      isActive: () => true,
+      onConflicts,
+    })
+
+    await inbound.refresh()
+
+    // The offline deletions win the merge — a deletion is a local change,
+    // the same way an edit is — while the cloud-only new day survives.
+    expect(replaceLocalState).toHaveBeenCalledWith(
+      {
+        ...INITIAL_STATE,
+        entries: { "2026-07-16": { date: "2026-07-16", intention: "new cloud entry" } },
+      },
+      { persistCloud: false }
+    )
+    // Only the day the cloud changed while this device deleted it counts as
+    // a conflict; deleting a day the cloud never touched stays silent.
+    expect(onConflicts).toHaveBeenCalledOnce()
+    expect(onConflicts).toHaveBeenCalledWith(["2026-07-15"])
+  })
+
   it("advances the baseline for a self echo without rerendering", async () => {
     const { transport, respond } = createFakeTransport()
     const baseline: AppState = {

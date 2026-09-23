@@ -290,7 +290,8 @@ function reconcileInboundCloudState(
   for (const dayKey of Object.keys(baseline.entries)) {
     if (dayKey in local.entries) continue
     const remoteEntry = remote.entries[dayKey]
-    if (!structurallyEqual(remoteEntry, baseline.entries[dayKey])) {
+    // Remote also deleted → both sides agree, no divergence to report.
+    if (remoteEntry !== undefined && !structurallyEqual(remoteEntry, baseline.entries[dayKey])) {
       conflicts.push(dayKey)
     }
     delete mergedEntries[dayKey]

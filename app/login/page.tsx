@@ -304,7 +304,9 @@ function LoginForm() {
                 </p>
               )}
               {notice && (
-                <p className="text-sm text-accent-foreground">{notice}</p>
+                <p role="status" className="text-sm text-primary">
+                  {notice}
+                </p>
               )}
 
               <Button
@@ -358,7 +360,11 @@ function Field({
     <label className="flex flex-col gap-1.5">
       <span className="text-sm font-medium text-foreground">{label}</span>
       {children}
-      {error && <span className="text-xs text-destructive">{error}</span>}
+      {error && (
+        <span role="alert" className="text-xs text-destructive">
+          {error}
+        </span>
+      )}
     </label>
   )
 }
@@ -400,7 +406,9 @@ function ConfirmationPanel({
         </p>
       )}
       {notice && (
-        <p className="mt-4 text-sm text-accent-foreground">{notice}</p>
+        <p role="status" className="mt-4 text-sm text-primary">
+          {notice}
+        </p>
       )}
 
       <div className="mt-5 flex flex-col gap-3">

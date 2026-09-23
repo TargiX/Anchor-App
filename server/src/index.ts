@@ -1,5 +1,9 @@
 import cors from "@fastify/cors"
-import Fastify, { type FastifyReply, type FastifyRequest } from "fastify"
+import Fastify, {
+  type FastifyError,
+  type FastifyReply,
+  type FastifyRequest,
+} from "fastify"
 import pg from "pg"
 import { z } from "zod"
 import { createAuth, type AnchorAuth } from "./auth.js"
@@ -28,9 +32,56 @@ const pool = new pg.Pool({
   max: 8,
   connectionTimeoutMillis: 5_000,
   idleTimeoutMillis: 30_000,
+  // Application-level deadline: requestTimeout only bounds inbound upload,
+  // not handler execution. These cap any single statement at 20s and abort
+  // transactions left open past 30s so a stalled query can't pin a worker.
+  statement_timeout: 20_000,
+  idle_in_transaction_session_timeout: 30_000,
 })
 
-const app = Fastify({ logger: true })
+// Reset-password URLs embed a one-time token in their path; that segment must
+// never reach the logs. Everything else in the URL stays debuggable.
+function redactTokenUrls(url: string | undefined): string | undefined {
+  return url?.replace(
+    /\/api\/auth\/reset-password\/[^/?#]+/i,
+    "/api/auth/reset-password/[redacted]"
+  )
+}
+
+const app = Fastify({
+  requestTimeout: 30_000,
+  logger: {
+    level: "info",
+    serializers: {
+      req: (raw) => {
+        const req = raw as {
+          method?: string
+          url?: string
+          headers?: { host?: string }
+          socket?: { remoteAddress?: string }
+        }
+        return {
+          method: req.method,
+          url: redactTokenUrls(req.url),
+          hostname: req.headers?.host,
+          remoteAddress: req.socket?.remoteAddress,
+        }
+      },
+    },
+  },
+})
+
+// Unhandled failures (pg errors, auth handler crashes) must answer with the
+// standard shape and no internals; 4xx keeps its specific message.
+app.setErrorHandler(
+  (error: FastifyError, request: FastifyRequest, reply: FastifyReply) => {
+    if (error.statusCode == null || error.statusCode >= 500) {
+      request.log.error({ err: error }, "request failed")
+      return reply.status(500).send({ error: "Internal server error" })
+    }
+    return reply.status(error.statusCode).send({ error: error.message })
+  }
+)
 
 // Migrations must land before createAuth: better-auth validates the schema at
 // construction and caches the mismatch on every subsequent request.
@@ -137,7 +188,7 @@ async function requireUser(
     session = await auth.api.getSession({ headers })
   } catch (error) {
     request.log.warn({ err: error }, "getSession failed")
-    await reply.status(401).send({ error: "Authentication required" })
+    await reply.status(500).send({ error: "Internal server error" })
     return null
   }
   if (!session?.user?.id) {
@@ -226,7 +277,8 @@ app.put("/api/data/state", async (request, reply) => {
     await client.query("COMMIT")
     return { updatedAt: rows[0].updated_at.toISOString() }
   } catch (error) {
-    await client.query("ROLLBACK")
+    // A failed rollback (e.g. dead connection) must not mask the real error.
+    await client.query("ROLLBACK").catch(() => {})
     throw error
   } finally {
     client.release()

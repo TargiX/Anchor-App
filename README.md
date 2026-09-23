@@ -1,7 +1,7 @@
 # Anchor
 
 **Live app:** [anchorapp.cc](https://anchorapp.cc)  
-**Source:** [github.com/TargiX/Next.js-Tether](https://github.com/TargiX/Next.js-Tether)
+**Source:** [github.com/TargiX/Anchor-App](https://github.com/TargiX/Anchor-App)
 
 A quiet daily ritual app — morning and evening check-ins, mood tracking, sleep,
 journaling, intention. One unified flow across **web, mobile, and desktop**.
@@ -26,7 +26,11 @@ Web: deployed on Vercel · Mobile: iOS/Android via Capacitor · Desktop: macOS/W
 - `/morning` — morning ritual flow (mood, sleep, intention, meditation, affirmation)
 - `/evening` — evening ritual flow (mood, journal, habits, tomorrow's sleep window)
 - `/timeline` — trends over time
+- `/review` — week in review
+- `/focus` — guided box breathing
+- `/pulse` — one-moment pause check-in
 - `/settings` — preferences
+- `/login` — sign in / sign up (shown when the backend is configured)
 
 ## Develop
 
