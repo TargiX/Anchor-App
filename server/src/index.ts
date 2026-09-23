@@ -32,6 +32,11 @@ const pool = new pg.Pool({
   max: 8,
   connectionTimeoutMillis: 5_000,
   idleTimeoutMillis: 30_000,
+  // Application-level deadline: requestTimeout only bounds inbound upload,
+  // not handler execution. These cap any single statement at 20s and abort
+  // transactions left open past 30s so a stalled query can't pin a worker.
+  statement_timeout: 20_000,
+  idle_in_transaction_session_timeout: 30_000,
 })
 
 // Reset-password URLs embed a one-time token in their path; that segment must

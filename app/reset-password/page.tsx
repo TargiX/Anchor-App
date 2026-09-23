@@ -33,6 +33,11 @@ function ResetPasswordForm() {
   const [error, setError] = useState<string | null>(
     linkError ? "This reset link is invalid or expired." : null
   )
+  // Which input the error belongs to — aria-invalid must not fire on both
+  // fields for link/server errors that indict neither.
+  const [errorField, setErrorField] = useState<"password" | "confirm" | null>(
+    null
+  )
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -44,13 +49,16 @@ function ResetPasswordForm() {
     const passwordError = validatePassword(password)
     if (passwordError) {
       setError(passwordError)
+      setErrorField("password")
       return
     }
     if (password !== confirm) {
       setError("Passwords don't match.")
+      setErrorField("confirm")
       return
     }
     setError(null)
+    setErrorField(null)
     setSubmitting(true)
     try {
       const { error: resetError } = await resetPassword(token, password)
@@ -102,7 +110,7 @@ function ResetPasswordForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                aria-invalid={error ? true : undefined}
+                aria-invalid={errorField === "password" ? true : undefined}
                 className={inputClass}
               />
             </div>
@@ -117,7 +125,7 @@ function ResetPasswordForm() {
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 placeholder="••••••••"
-                aria-invalid={error ? true : undefined}
+                aria-invalid={errorField === "confirm" ? true : undefined}
                 className={inputClass}
               />
             </div>
