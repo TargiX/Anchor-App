@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth"
 import { bearer } from "better-auth/plugins"
 import pg from "pg"
-import { sendEmail } from "./email.js"
+import { readSmtpConfig, sendEmail } from "./email.js"
 
 /**
  * The surface the HTTP layer consumes: the fetch-style handler mounted at
@@ -29,6 +29,7 @@ export function createAuth(pool: pg.Pool): AnchorAuth {
   if (!secret || secret.length < 32) {
     throw new Error("BETTER_AUTH_SECRET must be set to at least 32 characters")
   }
+  if (process.env.NODE_ENV === "production") readSmtpConfig()
 
   const trustedOrigins = (process.env.AUTH_TRUSTED_ORIGINS ?? "")
     .split(",")

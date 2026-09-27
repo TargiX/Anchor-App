@@ -79,11 +79,13 @@ mode (no login gate, no sync). Web auth/data requests go through same-origin
 rewrites; native builds use the configured URL directly.
 
 Password-reset mail uses authenticated SMTP submission on port 465 with TLS and
-certificate validation. If any SMTP setting is absent, sending fails instead of
-silently discarding the reset link. The password, reset link and SMTP error body
-must never appear in logs. Provision a dedicated Anchor mailbox and publish SPF,
-DKIM and DMARC for its domain before enabling this flow in production. Do not
-send a test message without an approved recipient.
+certificate validation. Production startup fails if any SMTP setting is absent.
+Better Auth deliberately gives a generic reset response even when delivery
+fails, to avoid exposing whether an account exists; its log receives only a
+sanitized error. The password, reset link and SMTP error body must never appear
+in logs. Provision a dedicated Anchor mailbox and publish SPF, DKIM and DMARC
+for its domain before enabling this flow in production. Do not send a test
+message without an approved recipient.
 
 ## Deploy (Coolify, manual)
 

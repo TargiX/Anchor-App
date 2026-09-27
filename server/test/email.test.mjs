@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import nodemailer from "nodemailer"
+import { createAuth } from "../dist/auth.js"
 import { readSmtpConfig, sendEmail } from "../dist/email.js"
 
 const message = {
@@ -29,6 +30,28 @@ test("missing SMTP settings fail instead of silently discarding reset mail", asy
     () => readSmtpConfig({ ANCHOR_SMTP_HOST: "mail.phosphene.cc", ANCHOR_SMTP_USER: "not-an-address", ANCHOR_SMTP_PASSWORD: "secret" }),
     /not configured/,
   )
+})
+
+test("production auth cannot start without SMTP settings", (t) => {
+  const previous = {
+    NODE_ENV: process.env.NODE_ENV,
+    BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+    ANCHOR_SMTP_HOST: process.env.ANCHOR_SMTP_HOST,
+    ANCHOR_SMTP_USER: process.env.ANCHOR_SMTP_USER,
+    ANCHOR_SMTP_PASSWORD: process.env.ANCHOR_SMTP_PASSWORD,
+  }
+  t.after(() => {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[key]
+      else process.env[key] = value
+    }
+  })
+  process.env.NODE_ENV = "production"
+  process.env.BETTER_AUTH_SECRET = "a".repeat(64)
+  delete process.env.ANCHOR_SMTP_HOST
+  delete process.env.ANCHOR_SMTP_USER
+  delete process.env.ANCHOR_SMTP_PASSWORD
+  assert.throws(() => createAuth({}), /Anchor SMTP is not configured/)
 })
 
 test("SMTP uses TLS, the dedicated sender, and accepts the reset message", async (t) => {
