@@ -94,7 +94,7 @@ Quality gate (must pass before "done"): `typecheck` clean, `lint` 0 errors,
 - Backend deploy is **done** (verified 2026-09-20, see `docs/backend.md`).
   SMTP source deployed 2026-09-28 with TLS and authentication verified from the
   live container. Still open, per that doc's "Remaining product/release work":
-  owner-approved inbox delivery and password-reset checks, signed-in browser +
+  Gmail Spam placement and password-reset checks, signed-in browser +
   physical-device sync validation (conflicting edits, 30s polling), and in-app
   account deletion against the deployed backend.
 - **Decision**: Sentry is wired and no-ops without a DSN — create a Sentry

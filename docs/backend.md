@@ -153,17 +153,23 @@ sync proof. Browser automation was unavailable during this deployment pass.
   that backup run, not a new restore rehearsal. The prior container image is
   retained for rollback.
 
-Inbox delivery, sender authentication results on a received message, the
-password-reset flow, and signed-in browser/device sync have not yet been
-verified. See the [infrastructure receipt](https://github.com/TargiX/apps-infrastructure/pull/5)
+At 04:48 UTC, one owner-approved message sent through the deployed `sendEmail`
+path reached the owner's Gmail account. Postfix queue `0BCF5BEE4F` received
+Gmail's `250 2.0.0` response. Gmail classified the message as **Spam**;
+its `Authentication-Results` showed SPF, DKIM (`anchorapp.cc`, selector `mail`)
+and DMARC PASS over TLS 1.3. The cause of Spam placement is not established.
+No second message was sent. See the [infrastructure receipt](https://github.com/TargiX/apps-infrastructure/pull/5)
 for the server and DNS checks.
+
+Inbox placement, the password-reset flow, and signed-in browser/device sync
+remain unverified.
 
 ## Remaining product/release work
 
 - Test actual signed-in browser sessions and physical devices, including
   conflicting edits and 30-second polling convergence, before advertising sync.
-- Verify delivery to an owner-approved recipient, then test the password-reset
-  flow. Email verification remains deferred.
+- Investigate Gmail Spam placement, then test the password-reset flow with an
+  approved account. Email verification remains deferred.
 - Verify in-app account deletion against the deployed backend before App Store
   submission.
 - Google sign-in is disabled and hidden.
