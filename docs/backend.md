@@ -49,8 +49,9 @@ Backend (Coolify runtime secrets — never in the image or repo):
 | `AUTH_TRUSTED_ORIGINS` | `https://anchorapp.cc,https://www.anchorapp.cc,https://anchor.ilyamoskovkin.com` |
 | `PORT`                 | `3000`                                                                           |
 | `HOST`                 | Optional listen host; defaults to `0.0.0.0`                                      |
-| `RESEND_API_KEY`       | Resend sending key; without it emails are skipped (nothing is logged)        |
-| `AUTH_EMAIL_FROM`      | Verified sender, for example `Anchor <no-reply@phosphene.cc>`                    |
+| `ANCHOR_SMTP_HOST`     | Authenticated SMTP host, `mail.phosphene.cc`                                   |
+| `ANCHOR_SMTP_USER`     | Dedicated Anchor mailbox; also the From address                              |
+| `ANCHOR_SMTP_PASSWORD` | Password for that mailbox, stored only in Coolify runtime secrets            |
 
 Frontend (Vercel env):
 
@@ -77,8 +78,14 @@ origin to `AUTH_TRUSTED_ORIGINS`. Do not assume a fixed localhost port.
 mode (no login gate, no sync). Web auth/data requests go through same-origin
 rewrites; native builds use the configured URL directly.
 
-Without `RESEND_API_KEY` and `AUTH_EMAIL_FROM`, email delivery is skipped and a
-token-free notice is logged — reset links never appear in logs.
+Password-reset mail uses authenticated SMTP submission on port 465 with TLS and
+certificate validation. Production startup fails if any SMTP setting is absent.
+Better Auth deliberately gives a generic reset response even when delivery
+fails, to avoid exposing whether an account exists; its log receives only a
+sanitized error. The password, reset link and SMTP error body must never appear
+in logs. Provision a dedicated Anchor mailbox and publish SPF, DKIM and DMARC
+for its domain before enabling this flow in production. Do not send a test
+message without an approved recipient.
 
 ## Deploy (Coolify, manual)
 
@@ -129,8 +136,9 @@ sync proof. Browser automation was unavailable during this deployment pass.
 
 - Test actual signed-in browser sessions and physical devices, including
   conflicting edits and 30-second polling convergence, before advertising sync.
-- Deploy and verify password-reset email delivery with `RESEND_API_KEY` and
-  `AUTH_EMAIL_FROM`; email verification remains deferred.
+- Provision the Anchor SMTP identity and sender DNS, deploy this code, then
+  verify password-reset delivery to an approved recipient. Email verification
+  remains deferred.
 - Verify in-app account deletion against the deployed backend before App Store
   submission.
 - Google sign-in is disabled and hidden.
