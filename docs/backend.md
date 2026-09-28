@@ -105,6 +105,9 @@ message without an approved recipient.
 
 ## Deployment verification — 2026-09-20
 
+This is the original backend deployment record. The current source and mail
+deployment are recorded below.
+
 - DNS `api.anchorapp.cc` resolves to `168.119.179.33`; HTTPS `/health` returns
   HTTP 200 with `{"ok":true,"db":"up"}` and a trusted certificate.
 - Coolify app UUID `4eh25ym21yikmlsgcgdo5lyn`, branch
@@ -132,13 +135,35 @@ message without an approved recipient.
 These are backend protocol and build checks, not browser or physical-device
 sync proof. Browser automation was unavailable during this deployment pass.
 
+## SMTP deployment verification — 2026-09-28
+
+- [PR #69](https://github.com/TargiX/Anchor-App/pull/69) merged as
+  `b04e6da7a24654b04654813db7539c15cc65e343`. Coolify now uses `main`,
+  pinned to that SHA; deployment `zrs4gyzisfluov6aur3ro6m2` finished at
+  02:51:48 UTC with a healthy new container. Auto deployment remains disabled.
+- The dedicated `no-reply@anchorapp.cc` mailbox and SPF, DKIM and DMARC sender
+  records are configured. The existing five inbound MX records were preserved.
+  The three SMTP settings are encrypted Coolify runtime variables and are not
+  copied into preview builds.
+- Public `https://api.anchorapp.cc/health` returned HTTP 200 with database up;
+  an unauthenticated `/api/data/state` request returned HTTP 401. From the
+  deployed container, Nodemailer's `verify()` completed TLS and SMTP AUTH
+  without submitting any message.
+- The 02:30 UTC database backup succeeded and uploaded to R2. This verifies
+  that backup run, not a new restore rehearsal. The prior container image is
+  retained for rollback.
+
+Inbox delivery, sender authentication results on a received message, the
+password-reset flow, and signed-in browser/device sync have not yet been
+verified. See the [infrastructure receipt](https://github.com/TargiX/apps-infrastructure/pull/5)
+for the server and DNS checks.
+
 ## Remaining product/release work
 
 - Test actual signed-in browser sessions and physical devices, including
   conflicting edits and 30-second polling convergence, before advertising sync.
-- Provision the Anchor SMTP identity and sender DNS, deploy this code, then
-  verify password-reset delivery to an approved recipient. Email verification
-  remains deferred.
+- Verify delivery to an owner-approved recipient, then test the password-reset
+  flow. Email verification remains deferred.
 - Verify in-app account deletion against the deployed backend before App Store
   submission.
 - Google sign-in is disabled and hidden.
@@ -146,6 +171,6 @@ sync proof. Browser automation was unavailable during this deployment pass.
 - Validate visible syncing/offline/conflict status in the actual product UI.
 
 The existing `ilya@targix.dev` smoke-test account was retained. Deployment-only
-synthetic accounts are removed after verification. Source review is tracked in
-[PR #61](https://github.com/TargiX/Anchor-App/pull/61); deployment does not mean
-that the PR is merged or the native release is ready.
+synthetic accounts were removed after the original backend verification. That
+source was reviewed in [PR #61](https://github.com/TargiX/Anchor-App/pull/61);
+the SMTP change was reviewed in PR #69. The native release needs its own check.
