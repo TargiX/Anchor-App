@@ -92,10 +92,11 @@ Quality gate (must pass before "done"): `typecheck` clean, `lint` 0 errors,
 ## Blocked / needs the human
 
 - Backend deploy is **done** (verified 2026-09-20, see `docs/backend.md`).
-  Still open, per that doc's "Remaining product/release work": signed-in
-  browser + physical-device sync validation (conflicting edits, 30s polling),
-  password-reset email via the dedicated Anchor SMTP identity, in-app account
-  deletion against the deployed backend.
+  SMTP source deployed 2026-09-28 with TLS and authentication verified from the
+  live container. Still open, per that doc's "Remaining product/release work":
+  Gmail Spam placement and password-reset checks, signed-in browser +
+  physical-device sync validation (conflicting edits, 30s polling), and in-app
+  account deletion against the deployed backend.
 - **Decision**: Sentry is wired and no-ops without a DSN — create a Sentry
   project and set `SENTRY_DSN` in production, or consciously stay without.
 - Credentials live in the owner's secret manager (`~/.ssh/hetzner-apps/`).
