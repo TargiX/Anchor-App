@@ -1,5 +1,10 @@
 import { z } from "zod"
-import { getLocalDayKey, getLocalHour, getLocalTimestamp } from "@/lib/time/today"
+import {
+  getLocalDayKey,
+  getLocalHour,
+  getLocalTimestamp,
+  shiftKey,
+} from "@/lib/time/today"
 
 export const CheckInKindSchema = z.enum(["morning", "evening", "spontaneous"])
 export type CheckInKind = z.infer<typeof CheckInKindSchema>
@@ -81,6 +86,22 @@ function inferKind(date: Date): CheckInKind {
   if (hour >= 5 && hour < 12) return "morning"
   if (hour >= 18 || hour < 3) return "evening"
   return "spontaneous"
+}
+
+/**
+ * An evening check-in recorded after midnight (00:00–02:59 local) still
+ * belongs to the day it reflects on. Keep the calendar dayKey only when the
+ * local hour is within the canonical evening window (hour >= 18); otherwise
+ * shift back one day so the evening loop matches that day's morning intention
+ * (the API route pairs them by `dayKey`) and the weekly digest groups them
+ * with the correct low-sleep morning.
+ */
+function dayKeyForCheckIn(date: Date, kind: CheckInKind): string {
+  const dayKey = dayKeyFor(date)
+  if (kind === "evening" && getLocalHour(date, LOCAL_TIME_ZONE) < 18) {
+    return shiftKey(dayKey, -1)
+  }
+  return dayKey
 }
 
 function stableId(dayKey: string, kind: CheckInKind): string {
@@ -246,7 +267,7 @@ export function createCheckInFromTranscript(input: CreateCheckInInput): AnchorCh
   const now = input.now ?? new Date()
   const transcript = input.transcript.trim()
   const kind = input.kind ?? inferKind(now)
-  const dayKey = dayKeyFor(now)
+  const dayKey = dayKeyForCheckIn(now, kind)
   const tasks = extractTasks(transcript)
   const mood = extractMood(transcript)
   const checkIn: AnchorCheckIn = {
