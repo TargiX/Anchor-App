@@ -97,8 +97,27 @@ describe("Anchor voice check-in MVP", () => {
     })
 
     expect(checkIn.kind).toBe("evening")
-    expect(checkIn.dayKey).toBe("2026-07-05")
+    // 01:30 local is past midnight: the evening reflects on the previous day,
+    // while ts keeps the real local timestamp.
+    expect(checkIn.dayKey).toBe("2026-07-04")
     expect(checkIn.ts).toBe("2026-07-05T01:30:00+07:00")
+  })
+
+  it("files a post-midnight evening check-in under the day it reflects on", () => {
+    const morning = createCheckInFromTranscript({
+      transcript: "сегодня надо добить PR",
+      now: new Date("2026-07-05T09:10:00+07:00"),
+      kind: "morning",
+    })
+    const lateNight = createCheckInFromTranscript({
+      transcript: "PR почти добил, но застрял на ревью",
+      now: new Date("2026-07-06T01:30:00+07:00"),
+    })
+
+    expect(lateNight.kind).toBe("evening")
+    expect(lateNight.dayKey).toBe("2026-07-05")
+    expect(lateNight.ts).toBe("2026-07-06T01:30:00+07:00")
+    expect(lateNight.dayKey).toBe(morning.dayKey)
   })
 
   it("flags broader Russian self-harm phrasing before normal reflection", () => {
