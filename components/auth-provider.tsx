@@ -12,12 +12,23 @@ import {
   identifyUser,
   resetAnalyticsUser,
 } from "@/lib/analytics/client"
+import {
+  classifySessionResponse,
+  forgetRememberedUser,
+  nextAuthSnapshot,
+  readRememberedUser,
+  rememberUser,
+  type SessionEnd,
+} from "@/lib/auth/session"
+import { localStorageAdapter } from "@/lib/store/persistence"
 
 /**
  * Auth state machine:
  *  - "unconfigured": no backend reachable → local development fallback.
  *  - "loading": resolving the initial session.
  *  - "authed" / "anon": signed in / not.
+ *
+ * An unreachable backend never signs anyone out: see lib/auth/session.
  */
 export type AuthStatus = "unconfigured" | "loading" | "authed" | "anon"
 
@@ -35,6 +46,8 @@ interface SessionResponse {
 interface AuthValue {
   status: AuthStatus
   user: User | null
+  /** Why the last session ended; only "sign-out" may delete local data. */
+  endedBy: SessionEnd | null
   googleEnabled: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signInWithGoogle: () => Promise<{ error: string | null }>
@@ -91,11 +104,29 @@ function readErrorMessage(payload: unknown, fallback: string): string {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [status, setStatus] = useState<AuthStatus>(
-    isBackendConfigured ? "loading" : "unconfigured"
-  )
-  const [user, setUser] = useState<User | null>(null)
+  const [auth, setAuth] = useState<{
+    status: AuthStatus
+    user: User | null
+    endedBy: SessionEnd | null
+  }>({
+    status: isBackendConfigured ? "loading" : "unconfigured",
+    user: null,
+    endedBy: null,
+  })
+  const { status, user, endedBy } = auth
   const [googleEnabled] = useState(false)
+
+  function enterAccount(nextUser: User) {
+    rememberUser(localStorageAdapter, nextUser)
+    setAuth({ status: "authed", user: nextUser, endedBy: null })
+    identifyUser(nextUser.id)
+  }
+
+  function leaveAccount() {
+    forgetRememberedUser(localStorageAdapter)
+    setAuth({ status: "anon", user: null, endedBy: "sign-out" })
+    resetAnalyticsUser()
+  }
 
   useEffect(() => {
     if (!isBackendConfigured) return
@@ -103,32 +134,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false
 
     async function loadSession() {
+      let res: Response | null = null
+      let body: unknown = undefined
       try {
-        const res = await apiFetch("/api/auth/get-session", {
+        res = await apiFetch("/api/auth/get-session", {
           method: "GET",
           cache: "no-store",
         })
-        if (cancelled) return
-        if (!res.ok) {
-          setStatus("anon")
-          setUser(null)
-          return
+        if (res.ok) {
+          await captureTokenFromResponse(res)
+          body = await res.json().catch(() => undefined)
         }
-        await captureTokenFromResponse(res)
-        const data = (await res
-          .json()
-          .catch(() => null)) as SessionResponse | null
-        if (cancelled) return
-        const nextUser = data?.user ?? null
-        setUser(nextUser)
-        setStatus(nextUser ? "authed" : "anon")
-        if (nextUser?.id) identifyUser(nextUser.id)
       } catch {
-        if (!cancelled) {
-          setStatus("anon")
-          setUser(null)
-        }
+        res = null
       }
+      if (cancelled) return
+
+      const check = classifySessionResponse(res, body)
+      if (check.kind === "authed") {
+        rememberUser(localStorageAdapter, check.user)
+        identifyUser(check.user.id)
+      } else if (check.kind === "signed-out") {
+        forgetRememberedUser(localStorageAdapter)
+      }
+      setAuth((current) =>
+        current.status === "unconfigured"
+          ? current
+          : nextAuthSnapshot(
+              { ...current, status: current.status },
+              check,
+              readRememberedUser(localStorageAdapter)
+            )
+      )
     }
 
     void loadSession()
@@ -147,6 +184,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value: AuthValue = {
     status,
     user,
+    endedBy,
     googleEnabled,
     async signIn(email, password) {
       if (!isBackendConfigured)
@@ -162,9 +200,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!res.ok) return { error: readErrorMessage(data, "Sign-in failed.") }
         const nextUser = (data as SessionResponse | null)?.user ?? null
         if (nextUser?.id) {
-          setUser(nextUser)
-          setStatus("authed")
-          identifyUser(nextUser.id)
+          enterAccount(nextUser)
           captureEvent("account_signed_in", { method: "email" })
         }
         return { error: null }
@@ -199,9 +235,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         const nextUser = (data as SessionResponse | null)?.user ?? null
         if (nextUser?.id) {
-          setUser(nextUser)
-          setStatus("authed")
-          identifyUser(nextUser.id)
+          enterAccount(nextUser)
           captureEvent("account_signed_up", {
             method: "email",
             needs_confirmation: false,
@@ -280,9 +314,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             error: readErrorMessage(data, "Could not delete the account."),
           }
         await setSessionToken(null)
-        setUser(null)
-        setStatus("anon")
-        resetAnalyticsUser()
+        leaveAccount()
         return { error: null }
       } catch {
         return { error: "Could not delete the account. Check your connection." }
@@ -300,9 +332,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Best effort: clear local state regardless.
       }
       await setSessionToken(null)
-      setUser(null)
-      setStatus("anon")
-      resetAnalyticsUser()
+      leaveAccount()
     },
   }
 

@@ -26,11 +26,12 @@ import {
 } from "@/lib/store/store"
 import { INITIAL_STATE, type AppState } from "@/lib/store/state"
 import { shouldResetGuestHistory } from "@/lib/store/guest-session"
+import { shouldWipeAuthedData } from "@/lib/auth/session"
 
 const SAVE_DELAY_MS = 650
 
 export function SyncProvider() {
-  const { status, user } = useAuth()
+  const { status, user, endedBy } = useAuth()
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const previousStatusRef = useRef<typeof status | null>(null)
   // Remember the previous authed user id so an authed → anon/unconfigured
@@ -71,11 +72,15 @@ export function SyncProvider() {
     }
 
     if (status === "anon") {
-      // Wipe the previous authed user's local slot on sign-out so private
-      // journal data does not survive a logout on a shared device.
-      const prevUserId = previousAuthedUserIdRef.current
-      if (prevUserId) clearAuthedSlot(prevUserId)
-      else clearAllAuthedSlots()
+      // Wipe the previous authed user's local slot on an explicit sign-out so
+      // private journal data does not survive a logout on a shared device.
+      // A lost or unverifiable session keeps the slot: it may hold edits the
+      // cloud never received, and it merges back when that account returns.
+      if (shouldWipeAuthedData(endedBy)) {
+        const prevUserId = previousAuthedUserIdRef.current
+        if (prevUserId) clearAuthedSlot(prevUserId)
+        else clearAllAuthedSlots()
+      }
       previousAuthedUserIdRef.current = null
       // Restore guest notes across launches. Clear them only after an explicit
       // account sign-out so private account transitions still start fresh.
@@ -293,7 +298,7 @@ export function SyncProvider() {
       clearCloudPersistence()
       cloudSyncStatus.end(syncSession)
     }
-  }, [status, userId])
+  }, [status, userId, endedBy])
 
   return null
 }
