@@ -90,15 +90,17 @@ function inferKind(date: Date): CheckInKind {
 
 /**
  * An evening check-in recorded after midnight (00:00–02:59 local) still
- * belongs to the day it reflects on. Keep the calendar dayKey only when the
- * local hour is within the canonical evening window (hour >= 18); otherwise
- * shift back one day so the evening loop matches that day's morning intention
- * (the API route pairs them by `dayKey`) and the weekly digest groups them
- * with the correct low-sleep morning.
+ * belongs to the day it reflects on. Keep the calendar dayKey for hours in
+ * the canonical evening window (hour >= 18) and for daytime hours (03–17),
+ * where an explicitly chosen evening check-in still reflects the same day;
+ * shift back one day only for post-midnight hours so the evening loop matches
+ * that day's morning intention (the API route pairs them by `dayKey`) and the
+ * weekly digest groups them with the correct low-sleep morning.
  */
 function dayKeyForCheckIn(date: Date, kind: CheckInKind): string {
   const dayKey = dayKeyFor(date)
-  if (kind === "evening" && getLocalHour(date, LOCAL_TIME_ZONE) < 18) {
+  const hour = getLocalHour(date, LOCAL_TIME_ZONE)
+  if (kind === "evening" && hour < 3) {
     return shiftKey(dayKey, -1)
   }
   return dayKey
