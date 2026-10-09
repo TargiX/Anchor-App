@@ -120,6 +120,41 @@ describe("Anchor voice check-in MVP", () => {
     expect(lateNight.dayKey).toBe(morning.dayKey)
   })
 
+  it("keeps an explicit daytime evening check-in on the same calendar day", () => {
+    const morning = createCheckInFromTranscript({
+      transcript: "сегодня надо добить PR",
+      now: new Date("2026-07-05T09:10:00+07:00"),
+      kind: "morning",
+    })
+    // Explicitly selected evening at 15:00 reflects on the same day, not
+    // yesterday — only post-midnight hours (00:00–02:59) shift back.
+    const afternoon = createCheckInFromTranscript({
+      transcript: "закрыл ревью до дедлайна",
+      now: new Date("2026-07-05T15:00:00+07:00"),
+      kind: "evening",
+    })
+
+    expect(afternoon.kind).toBe("evening")
+    expect(afternoon.dayKey).toBe("2026-07-05")
+    expect(afternoon.dayKey).toBe(morning.dayKey)
+  })
+
+  it("still shifts a post-midnight explicitly chosen evening check-in back one day", () => {
+    const morning = createCheckInFromTranscript({
+      transcript: "сегодня надо добить PR",
+      now: new Date("2026-07-05T09:10:00+07:00"),
+      kind: "morning",
+    })
+    const lateNight = createCheckInFromTranscript({
+      transcript: "финальный заход по ревью",
+      now: new Date("2026-07-06T02:15:00+07:00"),
+      kind: "evening",
+    })
+
+    expect(lateNight.dayKey).toBe("2026-07-05")
+    expect(lateNight.dayKey).toBe(morning.dayKey)
+  })
+
   it("flags broader Russian self-harm phrasing before normal reflection", () => {
     const riskyPhrases = [
       "я не хочу жить, всё давит",
