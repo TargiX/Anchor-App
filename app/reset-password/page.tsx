@@ -3,7 +3,7 @@
 import { Suspense, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 import { AnchorMotif } from "@/components/anchor-motif"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/components/auth-provider"
@@ -39,6 +39,7 @@ function ResetPasswordForm() {
     null
   )
   const [submitting, setSubmitting] = useState(false)
+  const shouldReduceMotion = useReducedMotion()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -74,7 +75,7 @@ function ResetPasswordForm() {
   return (
     <div className="flex min-h-app flex-col items-center justify-center px-6">
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-sm"
       >
