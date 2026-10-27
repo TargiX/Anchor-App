@@ -104,7 +104,7 @@ export function StepMeditation({
             <button
               key={d}
               onClick={() => startTimer(d)}
-              className="rounded-xl py-3 text-center transition-colors hover:bg-muted/60"
+              className="rounded-xl py-3 text-center transition-colors outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span className="block font-[family-name:var(--font-display)] text-2xl font-medium text-foreground">
                 {d}
@@ -158,6 +158,16 @@ export function StepMeditation({
               <span className="text-xs text-muted-foreground">remaining</span>
             </div>
           </div>
+
+          {/* Screen-reader announcement: only state changes (done/started),
+              never a per-second countdown. */}
+          <span role="status" aria-live="polite" className="sr-only">
+            {totalSeconds > 0 && elapsed >= totalSeconds
+              ? "Meditation timer complete."
+              : running
+                ? "Meditation timer started."
+                : ""}
+          </span>
 
           {/* Breathing guide */}
           {running && (
