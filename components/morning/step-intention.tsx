@@ -94,9 +94,11 @@ export function StepIntention({
         {suggestions.map((s) => (
           <button
             key={s}
+            type="button"
+            aria-pressed={text === s}
             onClick={() => setText(s)}
             className={cn(
-              "min-h-11 py-2 text-left text-sm transition-colors duration-200",
+              "min-h-11 py-2 text-left text-sm outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-ring",
               text === s
                 ? "font-medium text-foreground"
                 : "text-muted-foreground hover:text-foreground"
