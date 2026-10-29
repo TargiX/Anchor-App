@@ -62,7 +62,7 @@ export function StepSleep({ entryKey, onNext, onBack }: StepSleepProps) {
             onClick={() => setQuality(opt.value)}
             aria-pressed={quality === opt.value}
             className={cn(
-              "flex min-h-11 flex-1 items-center justify-center py-2 text-sm transition-colors duration-200",
+              "flex min-h-11 flex-1 items-center justify-center py-2 text-sm outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-ring",
               quality === opt.value
                 ? "font-medium text-foreground"
                 : "text-muted-foreground hover:text-foreground"
