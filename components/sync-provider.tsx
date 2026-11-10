@@ -227,7 +227,11 @@ export function SyncProvider() {
       // request was in flight are not overwritten by a stale pre-await snapshot.
       const currentLocalState = getSnapshot()
       let syncedState: AppState = remoteState
-        ? mergeCloudState(currentLocalState, remoteState)
+        ? mergeCloudState(
+            currentLocalState,
+            remoteState,
+            localHabitsFromInvalidRecovery()
+          )
         : currentLocalState
 
       // If the visitor had unsynced anon entries from this same tab/session,
