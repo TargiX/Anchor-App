@@ -4,7 +4,7 @@ import {
   TimeOfDaySchema,
   type DayEntry,
 } from "@/lib/domain/entry"
-import { HabitSchema, DEFAULT_HABITS } from "@/lib/domain/habit"
+import { HabitSchema, DEFAULT_HABITS, type Habit } from "@/lib/domain/habit"
 import { WeeklyDirectionSchema } from "@/lib/domain/weekly-direction"
 
 /**
@@ -98,14 +98,25 @@ function recover(candidate: unknown): AppState {
     }
   }
 
-  const habits = z.array(HabitSchema).safeParse(obj.habits)
   const morning = TimeOfDaySchema.safeParse(obj.notificationMorning)
   const evening = TimeOfDaySchema.safeParse(obj.notificationEvening)
   const weeklyDirection = WeeklyDirectionSchema.safeParse(obj.weeklyDirection)
 
+  // Habits follow the same best-effort contract as entries above: drop the
+  // individual malformed habit instead of discarding every custom habit the
+  // user configured. An array of `{ id, name, icon }` objects is parsed
+  // item-by-item; a non-array yields an empty list, matching how a
+  // non-object `entries` container recovers to an empty record.
+  const habits: Habit[] = Array.isArray(obj.habits)
+    ? obj.habits.flatMap((habit) => {
+        const parsed = HabitSchema.safeParse(habit)
+        return parsed.success ? [parsed.data] : []
+      })
+    : []
+
   return {
     entries,
-    habits: habits.success ? habits.data : INITIAL_STATE.habits,
+    habits,
     notificationMorning: morning.success
       ? morning.data
       : INITIAL_STATE.notificationMorning,

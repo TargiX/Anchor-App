@@ -142,3 +142,52 @@ describe("migrate", () => {
     expect(result.entries).toEqual({})
   })
 })
+
+describe("habit recovery", () => {
+  const good = { id: "h1", name: "Stretch", icon: "circle" }
+  const custom = { id: "h2", name: "Cold shower", icon: "droplets" }
+
+  it("keeps valid custom habits and drops only the malformed one", () => {
+    // One bad habit must not reset the whole list to defaults: users build up
+    // custom habits via settings and completions reference their ids.
+    const result = migrate({
+      version: STATE_VERSION,
+      data: {
+        entries: {},
+        habits: [good, { id: "bad", name: 42, icon: "circle" }],
+        notificationMorning: "07:30",
+        notificationEvening: "21:00",
+      },
+    })
+    expect(result.habits).toEqual([good])
+  })
+
+  it("drops every malformed habit but preserves the surviving order", () => {
+    const result = migrate({
+      version: STATE_VERSION,
+      data: {
+        entries: {},
+        habits: [{ id: "x" }, custom, null, good, "nope"],
+        notificationMorning: "07:30",
+        notificationEvening: "21:00",
+      },
+    })
+    expect(result.habits).toEqual([custom, good])
+  })
+
+  it("treats a non-array habits value as an empty list, matching entries recovery", () => {
+    // Consistent with the entries recovery above: an invalid container yields
+    // the empty collection (not defaults), so a corrupted field never
+    // resurrects habits the user explicitly deleted.
+    const result = migrate({
+      version: STATE_VERSION,
+      data: {
+        entries: {},
+        habits: "not-an-array",
+        notificationMorning: "07:30",
+        notificationEvening: "21:00",
+      },
+    })
+    expect(result.habits).toEqual([])
+  })
+})
