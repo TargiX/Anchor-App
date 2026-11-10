@@ -26,7 +26,9 @@ import {
 
 /** Apply a cloud refetch locally without echoing it back to cloud persistence. */
 export function applyInboundCloudState(state: AppState): void {
-  replaceState(state, { persistCloud: false })
+  // Reconciliation resolves recovered-"unknown" habits even when the merged
+  // habits list is reference- or value-identical to the local one.
+  replaceState(state, { persistCloud: false, habitsReconciled: true })
 }
 
 /** Merge a patch into one local-day entry, creating it if needed. */

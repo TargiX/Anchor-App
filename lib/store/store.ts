@@ -60,7 +60,7 @@ let cloudPersistence: ((state: AppState) => void) | null = null
  * sync lets remote habits win instead of saving the recovered list.
  *
  * The flag survives unrelated edits (only an explicit `habits` change or a
- * full state replacement clears it) and is persisted in the envelope
+ * cloud reconciliation clears it) and is persisted in the envelope
  * (`habitsRecoveredInvalid`) so a reload before cloud reconciliation keeps
  * treating the recovered list as unknown. `hydrate` re-derives it from the
  * container shape or the persisted marker.
@@ -311,18 +311,34 @@ export function commitLocalState(
   }
   state = next
   notify()
-  cloudPersistence?.(state)
+  // While habits remain "unknown" (invalid-container recovery), an early
+  // push would publish the recovered list against the pre-reconcile cloud
+  // version; defer to inbound reconciliation, which performs one clean save
+  // once the unknown habits are resolved.
+  if (!habitsRecoveredInvalid) cloudPersistence?.(state)
   return true
 }
 
 export function replaceState(
   nextState: AppState,
-  options: { persistCloud?: boolean } = {}
+  options: { persistCloud?: boolean; habitsReconciled?: boolean } = {}
 ): void {
+  // Mirror commitLocalState's distinction: an unrelated edit (habits
+  // untouched by reference) preserves the recovered-"unknown" marker, so a
+  // journal or notification edit routed through setState during the initial
+  // cloud load cannot turn recovered habits into a local intent. An explicit
+  // habits change — or a cloud reconciliation (options.habitsReconciled) —
+  // resolves the unknown.
+  const habitsChanged = nextState.habits !== state.habits
+  if (habitsChanged || options.habitsReconciled) habitsRecoveredInvalid = false
   state = nextState
-  habitsRecoveredInvalid = false
   persistLocal()
-  if (options.persistCloud !== false) cloudPersistence?.(state)
+  // While habits remain "unknown", pushing this state would publish the
+  // recovered list against the pre-reconcile cloud version. Inbound
+  // reconciliation resolves the unknown and then performs one clean save.
+  if (options.persistCloud !== false && !habitsRecoveredInvalid) {
+    cloudPersistence?.(state)
+  }
   notify()
 }
 

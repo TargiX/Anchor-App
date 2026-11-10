@@ -247,7 +247,7 @@ export function SyncProvider() {
         }
       }
 
-      replaceState(syncedState, { persistCloud: false })
+      replaceState(syncedState, { persistCloud: false, habitsReconciled: true })
       try {
         const result = await transport.save(syncedState)
         if (result.conflict)

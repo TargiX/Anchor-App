@@ -122,8 +122,76 @@ describe("recovered-habits flag lifecycle", () => {
     store.hydrateFromStorage()
     expect(store.localHabitsFromInvalidRecovery()).toBe(true)
 
-    // replaceState is the reconciliation/reset path: habits become known.
-    store.replaceState({ ...INITIAL_STATE }, { persistCloud: false })
+    // replaceState with habitsReconciled is the reconciliation path: habits
+    // become known even when the replacement list equals the recovered one.
+    store.replaceState({ ...INITIAL_STATE }, {
+      persistCloud: false,
+      habitsReconciled: true,
+    })
     expect(store.localHabitsFromInvalidRecovery()).toBe(false)
+  })
+
+  it("survives an unrelated setState edit routed through replaceState", () => {
+    disk.set(ANON_STORAGE_KEY, recoveredEnvelope("not-an-array"))
+    store.hydrateFromStorage()
+    expect(store.localHabitsFromInvalidRecovery()).toBe(true)
+
+    // updateEntry / setNotificationTime go through setState → replaceState;
+    // habits are untouched by reference, so the marker must survive.
+    store.setState((prev) => ({
+      ...prev,
+      notificationMorning: "07:00",
+      entries: {
+        ...prev.entries,
+        "2026-01-01": {
+          date: "2026-01-01",
+          journal: "Edited during the initial cloud load",
+        },
+      },
+    }))
+    expect(store.localHabitsFromInvalidRecovery()).toBe(true)
+    expect(
+      JSON.parse(disk.get(ANON_STORAGE_KEY) ?? "{}").habitsRecoveredInvalid
+    ).toBe(true)
+  })
+})
+
+describe("recovered-habits cloud-save deferral", () => {
+  it("defers cloud persistence while habits are unknown and resumes on an explicit habits change", () => {
+    disk.set(ANON_STORAGE_KEY, recoveredEnvelope("not-an-array"))
+    store.hydrateFromStorage()
+    expect(store.localHabitsFromInvalidRecovery()).toBe(true)
+
+    const pushed: unknown[] = []
+    store.setCloudPersistence((state) => pushed.push(state))
+
+    // Unrelated check-in edit: an early push would publish the recovered
+    // habits against the pre-reconcile cloud version, so nothing is queued.
+    store.commitLocalState((prev) => ({
+      ...prev,
+      entries: {
+        ...prev.entries,
+        "2026-01-01": {
+          date: "2026-01-01",
+          journal: "Written while the inbound load was pending",
+        },
+      },
+    }))
+    expect(pushed).toHaveLength(0)
+
+    // Reconciliation replaces the state (persistCloud disabled) and resolves
+    // the unknown habits.
+    store.replaceState(
+      (store.getSnapshot()),
+      { persistCloud: false, habitsReconciled: true }
+    )
+    expect(store.localHabitsFromInvalidRecovery()).toBe(false)
+
+    // With the unknown resolved, ordinary edits push to cloud persistence.
+    store.commitLocalState((prev) => ({
+      ...prev,
+      notificationEvening: "21:30",
+    }))
+    expect(pushed).toHaveLength(1)
   })
 })
