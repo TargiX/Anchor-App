@@ -48,6 +48,12 @@ interface CloudInboundSyncOptions {
   onConflicts?: (dayKeys: readonly string[]) => void
   onStateApplied?: (state: AppState) => void
   onRecoverySaveNeeded?: (state: AppState) => void
+  /**
+   * True while local habits came from invalid-container recovery (see
+   * `localHabitsFromInvalidRecovery`). Recovered habits are "unknown",
+   * not an intentional deletion, so remote habits win the merge.
+   */
+  localHabitsUnknown?: () => boolean
 }
 
 /**
@@ -111,11 +117,18 @@ export function createHttpTransport(
   }
 }
 
-export function mergeCloudState(local: AppState, remote: AppState): AppState {
+export function mergeCloudState(
+  local: AppState,
+  remote: AppState,
+  localHabitsUnknown = false
+): AppState {
   const weeklyDirection = local.weeklyDirection ?? remote.weeklyDirection
   return {
     entries: { ...remote.entries, ...local.entries },
-    habits: hasCustomHabits(local) ? local.habits : remote.habits,
+    habits:
+      localHabitsUnknown || !hasCustomHabits(local)
+        ? remote.habits
+        : local.habits,
     notificationMorning:
       local.notificationMorning === INITIAL_STATE.notificationMorning
         ? remote.notificationMorning
@@ -148,6 +161,7 @@ export function createCloudInboundSync({
   onConflicts,
   onStateApplied,
   onRecoverySaveNeeded,
+  localHabitsUnknown: localHabitsUnknownFn,
 }: CloudInboundSyncOptions) {
   let disposed = false
   let started = false
@@ -181,14 +195,22 @@ export function createCloudInboundSync({
         const previousBaseline = cloudBaseline
         const baselineWasUnknown = previousBaseline === null
         const observedRemoteState = remoteState ?? INITIAL_STATE
+        // Read once per refresh: recovered habits are "unknown", not an
+        // intentional deletion, so remote habits win this reconcile.
+        const localHabitsUnknown = localHabitsUnknownFn?.() ?? false
         const reconciledState = !baselineWasUnknown
           ? reconcileInboundCloudState(
               currentLocalState,
               previousBaseline,
               observedRemoteState,
-              onConflicts
+              onConflicts,
+              localHabitsUnknown
             )
-          : mergeCloudState(currentLocalState, observedRemoteState)
+          : mergeCloudState(
+              currentLocalState,
+              observedRemoteState,
+              localHabitsUnknown
+            )
         const recoverySaveNeeded = !structurallyEqual(
           observedRemoteState,
           reconciledState
@@ -271,7 +293,8 @@ function reconcileInboundCloudState(
   local: AppState,
   baseline: AppState,
   remote: AppState,
-  onConflicts?: (dayKeys: readonly string[]) => void
+  onConflicts?: (dayKeys: readonly string[]) => void,
+  localHabitsUnknown = false
 ): AppState {
   const mergedEntries = { ...remote.entries }
   const conflicts: string[] = []
@@ -298,9 +321,13 @@ function reconcileInboundCloudState(
   }
   if (conflicts.length > 0) onConflicts?.(conflicts)
 
-  const habits = structurallyEqual(local.habits, baseline.habits)
+  // Recovered-unknown local habits never win: remote habits stand until the
+  // user makes an explicit local change (which clears the recovery flag).
+  const habits = localHabitsUnknown
     ? remote.habits
-    : local.habits
+    : structurallyEqual(local.habits, baseline.habits)
+      ? remote.habits
+      : local.habits
   const notificationMorning = structurallyEqual(
     local.notificationMorning,
     baseline.notificationMorning

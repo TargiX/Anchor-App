@@ -19,6 +19,7 @@ import {
   clearCloudPersistence,
   getSnapshot,
   hydrateFromStorage,
+  localHabitsFromInvalidRecovery,
   replaceState,
   resetAnonSlot,
   setCloudPersistence,
@@ -167,6 +168,7 @@ export function SyncProvider() {
         getLocalState: getSnapshot,
         replaceLocalState: applyInboundCloudState,
         isActive: () => !cancelled && cloudSyncStatus.isCurrent(syncSession),
+        localHabitsUnknown: localHabitsFromInvalidRecovery,
         onError: (error) => {
           // Realtime is an optional freshness layer. Keep its failures out of
           // the visible save status; ordinary load/save continues to work.

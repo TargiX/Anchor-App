@@ -8,7 +8,7 @@ import {
   LEGACY_STORAGE_KEY,
   STATE_VERSION,
   authedStorageKey,
-  migrate,
+  migrateWithMeta,
 } from "./state"
 import { validateJournal } from "./native-storage"
 import { JournalDraftsSchema, type JournalDraft } from "./journal-draft"
@@ -52,6 +52,20 @@ let state: AppState = INITIAL_STATE
 const listeners = new Set<() => void>()
 let hydrated = false
 let cloudPersistence: ((state: AppState) => void) | null = null
+/**
+ * True while the in-memory `state.habits` came from recovering an invalid
+ * `habits` container (missing or not an array — see `migrateWithMeta`).
+ * Such habits are "unknown", not an intentional deletion, so inbound cloud
+ * sync lets remote habits win instead of saving the recovered list. Cleared
+ * by `hydrate` (which re-derives it) and by `replaceState`/`commitLocalState`
+ * (any explicit state change is valid local intent).
+ */
+let habitsRecoveredInvalid = false
+
+/** True when current local habits came from invalid-container recovery. */
+export function localHabitsFromInvalidRecovery(): boolean {
+  return habitsRecoveredInvalid
+}
 
 /**
  * Active storage slot. Anon and authed never share a slot, and every
@@ -160,7 +174,9 @@ function migrateLegacyIfPresent(): void {
   const raw = storage.read(LEGACY_STORAGE_KEY)
   if (!raw) return
   try {
-    state = migrate(JSON.parse(raw))
+    const migrated = migrateWithMeta(JSON.parse(raw))
+    state = migrated.state
+    habitsRecoveredInvalid = migrated.meta.habitsContainerInvalid
     if (persistLocal()) {
       storage.remove(LEGACY_STORAGE_KEY)
     }
@@ -172,6 +188,7 @@ function migrateLegacyIfPresent(): void {
 }
 
 function hydrate(): void {
+  habitsRecoveredInvalid = false
   const key = activeKey()
   if (!key) return
   const raw = storage.read(key)
@@ -184,7 +201,9 @@ function hydrate(): void {
     return
   }
   try {
-    state = migrate(JSON.parse(raw))
+    const migrated = migrateWithMeta(JSON.parse(raw))
+    state = migrated.state
+    habitsRecoveredInvalid = migrated.meta.habitsContainerInvalid
   } catch {
     state = INITIAL_STATE
   }
@@ -258,6 +277,7 @@ export function commitLocalState(
     return false
   }
   state = next
+  habitsRecoveredInvalid = false
   notify()
   cloudPersistence?.(state)
   return true
@@ -268,6 +288,7 @@ export function replaceState(
   options: { persistCloud?: boolean } = {}
 ): void {
   state = nextState
+  habitsRecoveredInvalid = false
   persistLocal()
   if (options.persistCloud !== false) cloudPersistence?.(state)
   notify()

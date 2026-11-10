@@ -74,18 +74,50 @@ const EnvelopeSchema = z.object({
  *     `INITIAL_STATE`. Bad data should never crash the app or wipe good data.
  */
 export function migrate(raw: unknown): AppState {
+  return migrateWithMeta(raw).state
+}
+
+/**
+ * Metadata about how `migrate` produced its result.
+ *
+ * `habitsContainerInvalid` marks the case where the persisted `habits`
+ * container was missing or not an array. The recovered value for such a
+ * container is NOT user intent — an explicit deletion stores a valid
+ * `habits: []`, which passes the strict parse and never reaches recovery.
+ * Sync must therefore treat recovered-empty habits as "unknown" (remote
+ * wins) instead of as a local deletion, otherwise a corrupt local slot
+ * could overwrite valid cloud habits.
+ */
+export interface MigrationMeta {
+  habitsContainerInvalid: boolean
+}
+
+export function migrateWithMeta(raw: unknown): {
+  state: AppState
+  meta: MigrationMeta
+} {
   const enveloped = EnvelopeSchema.safeParse(raw)
   const candidate = enveloped.success ? enveloped.data.data : raw
 
   const strict = AppStateSchema.safeParse(candidate)
-  if (strict.success) return strict.data
+  if (strict.success) {
+    return { state: strict.data, meta: { habitsContainerInvalid: false } }
+  }
 
   return recover(candidate)
 }
 
 /** Field-by-field best-effort recovery; invalid entries are dropped. */
-function recover(candidate: unknown): AppState {
-  if (typeof candidate !== "object" || candidate === null) return INITIAL_STATE
+function recover(candidate: unknown): {
+  state: AppState
+  meta: MigrationMeta
+} {
+  if (typeof candidate !== "object" || candidate === null) {
+    return {
+      state: INITIAL_STATE,
+      meta: { habitsContainerInvalid: true },
+    }
+  }
   const obj = candidate as Record<string, unknown>
 
   const entries: Record<string, DayEntry> = {}
@@ -106,7 +138,10 @@ function recover(candidate: unknown): AppState {
   // individual malformed habit instead of discarding every custom habit the
   // user configured. An array of `{ id, name, icon }` objects is parsed
   // item-by-item; a non-array yields an empty list, matching how a
-  // non-object `entries` container recovers to an empty record.
+  // non-object `entries` container recovers to an empty record. The empty
+  // list is flagged via meta so sync treats it as "unknown" — never as an
+  // intentional deletion that could overwrite valid cloud habits.
+  const habitsContainerInvalid = !Array.isArray(obj.habits)
   const habits: Habit[] = Array.isArray(obj.habits)
     ? obj.habits.flatMap((habit) => {
         const parsed = HabitSchema.safeParse(habit)
@@ -115,16 +150,19 @@ function recover(candidate: unknown): AppState {
     : []
 
   return {
-    entries,
-    habits,
-    notificationMorning: morning.success
-      ? morning.data
-      : INITIAL_STATE.notificationMorning,
-    notificationEvening: evening.success
-      ? evening.data
-      : INITIAL_STATE.notificationEvening,
-    ...(weeklyDirection.success
-      ? { weeklyDirection: weeklyDirection.data }
-      : {}),
+    state: {
+      entries,
+      habits,
+      notificationMorning: morning.success
+        ? morning.data
+        : INITIAL_STATE.notificationMorning,
+      notificationEvening: evening.success
+        ? evening.data
+        : INITIAL_STATE.notificationEvening,
+      ...(weeklyDirection.success
+        ? { weeklyDirection: weeklyDirection.data }
+        : {}),
+    },
+    meta: { habitsContainerInvalid },
   }
 }

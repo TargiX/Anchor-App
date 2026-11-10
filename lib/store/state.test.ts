@@ -1,7 +1,12 @@
 import { describe, it, expect } from "vitest"
 import { isEveningComplete, isMorningComplete } from "@/lib/domain/selectors"
 import { LIMITS } from "@/lib/domain/validation"
-import { migrate, INITIAL_STATE, STATE_VERSION } from "./state"
+import {
+  migrate,
+  migrateWithMeta,
+  INITIAL_STATE,
+  STATE_VERSION,
+} from "./state"
 
 describe("migrate", () => {
   it("returns INITIAL_STATE for null/garbage", () => {
@@ -189,5 +194,30 @@ describe("habit recovery", () => {
       },
     })
     expect(result.habits).toEqual([])
+  })
+
+  it("flags an invalid habits container as recovered-unknown", () => {
+    const { state, meta } = migrateWithMeta({
+      version: STATE_VERSION,
+      data: {
+        entries: {},
+        habits: "not-an-array",
+        notificationMorning: "07:30",
+        notificationEvening: "21:00",
+      },
+    })
+    expect(state.habits).toEqual([])
+    // Sync uses this to let remote habits win instead of treating the
+    // recovered empty list as an intentional deletion.
+    expect(meta.habitsContainerInvalid).toBe(true)
+  })
+
+  it("does not flag a valid state — an explicit empty list is intentional", () => {
+    const { state, meta } = migrateWithMeta({
+      version: STATE_VERSION,
+      data: { ...INITIAL_STATE, habits: [] },
+    })
+    expect(state.habits).toEqual([])
+    expect(meta.habitsContainerInvalid).toBe(false)
   })
 })
