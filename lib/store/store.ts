@@ -36,6 +36,7 @@ export function installDeviceStorage(
   flushDevice = flush
   retryDevice = retry
   state = INITIAL_STATE
+  habitsRecoveredInvalid = false
   hydrated = false
 }
 
@@ -56,9 +57,13 @@ let cloudPersistence: ((state: AppState) => void) | null = null
  * True while the in-memory `state.habits` came from recovering an invalid
  * `habits` container (missing or not an array — see `migrateWithMeta`).
  * Such habits are "unknown", not an intentional deletion, so inbound cloud
- * sync lets remote habits win instead of saving the recovered list. Cleared
- * by `hydrate` (which re-derives it) and by `replaceState`/`commitLocalState`
- * (any explicit state change is valid local intent).
+ * sync lets remote habits win instead of saving the recovered list.
+ *
+ * The flag survives unrelated edits (only an explicit `habits` change or a
+ * full state replacement clears it) and is persisted in the envelope
+ * (`habitsRecoveredInvalid`) so a reload before cloud reconciliation keeps
+ * treating the recovered list as unknown. `hydrate` re-derives it from the
+ * container shape or the persisted marker.
  */
 let habitsRecoveredInvalid = false
 
@@ -139,6 +144,7 @@ export function saveJournalDraft(
         version: STATE_VERSION,
         data: state,
         localDrafts: drafts,
+        ...(habitsRecoveredInvalid ? { habitsRecoveredInvalid: true } : {}),
       })
     )
   )
@@ -152,6 +158,10 @@ function serializedState(next: AppState): string {
     version: STATE_VERSION,
     data: next,
     localDrafts: getJournalDrafts(),
+    // Persist the recovery marker so a reload before cloud reconciliation
+    // keeps treating recovered habits as "unknown", not as an intentional
+    // deletion. See localHabitsFromInvalidRecovery.
+    ...(habitsRecoveredInvalid ? { habitsRecoveredInvalid: true } : {}),
   })
 }
 
@@ -174,9 +184,14 @@ function migrateLegacyIfPresent(): void {
   const raw = storage.read(LEGACY_STORAGE_KEY)
   if (!raw) return
   try {
-    const migrated = migrateWithMeta(JSON.parse(raw))
+    const parsed = JSON.parse(raw)
+    const migrated = migrateWithMeta(parsed)
     state = migrated.state
-    habitsRecoveredInvalid = migrated.meta.habitsContainerInvalid
+    habitsRecoveredInvalid =
+      migrated.meta.habitsContainerInvalid ||
+      (typeof parsed === "object" &&
+        parsed !== null &&
+        parsed.habitsRecoveredInvalid === true)
     if (persistLocal()) {
       storage.remove(LEGACY_STORAGE_KEY)
     }
@@ -201,11 +216,19 @@ function hydrate(): void {
     return
   }
   try {
-    const migrated = migrateWithMeta(JSON.parse(raw))
+    const parsed = JSON.parse(raw)
+    const migrated = migrateWithMeta(parsed)
     state = migrated.state
-    habitsRecoveredInvalid = migrated.meta.habitsContainerInvalid
+    // Re-derive from the container shape, or keep a previously persisted
+    // recovery marker so a reload before reconciliation preserves "unknown".
+    habitsRecoveredInvalid =
+      migrated.meta.habitsContainerInvalid ||
+      (typeof parsed === "object" &&
+        parsed !== null &&
+        parsed.habitsRecoveredInvalid === true)
   } catch {
     state = INITIAL_STATE
+    habitsRecoveredInvalid = false
   }
   // The active scope already had data — never touch state from a
   // legacy key in this branch; that would clobber the user's current
@@ -273,11 +296,20 @@ export function commitLocalState(
   const key = activeKey()
   if (!key) return false
   const next = updater(state)
+  // Only an explicit habits change turns recovered "unknown" habits into a
+  // local intent; an unrelated edit (e.g. a journal entry during the initial
+  // cloud load) must preserve the recovery flag so sync still lets remote
+  // habits win.
+  const habitsChanged = next.habits !== state.habits
+  if (habitsChanged) habitsRecoveredInvalid = false
   if (!storage.write(key, serializedState(next))) {
+    // Keep the safe side of the distinction on a failed write: a just-made
+    // explicit change re-arms "unknown" (remote wins) rather than risking a
+    // recovered empty list overwriting cloud habits.
+    if (habitsChanged) habitsRecoveredInvalid = true
     return false
   }
   state = next
-  habitsRecoveredInvalid = false
   notify()
   cloudPersistence?.(state)
   return true
@@ -324,6 +356,7 @@ export function setStorageScope(
     authedUserId = null
   }
   state = INITIAL_STATE
+  habitsRecoveredInvalid = false
   hydrated = false
   notify()
 }
@@ -383,6 +416,7 @@ export function clearAllAuthedSlots(): void {
 
 export function resetState(): void {
   state = INITIAL_STATE
+  habitsRecoveredInvalid = false
   const key = activeKey()
   if (key) storage.remove(key)
   notify()
