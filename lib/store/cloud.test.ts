@@ -141,6 +141,35 @@ describe("cloud inbound sync", () => {
     inbound.dispose()
   })
 
+  it("applies reconciliation when habits are unknown even if the merged state is structurally equal", async () => {
+    // Remote row is structurally identical to the recovered local state, so
+    // the equality shortcut would skip replaceLocalState and leave the
+    // recovery marker set — normal persistence would stay deferred forever.
+    const remote: AppState = { ...INITIAL_STATE, habits: [] }
+    const { transport, respond } = createFakeTransport()
+    transport.load.mockResolvedValue(respond(remote))
+    const replaced: AppState[] = []
+    let appliedCount = 0
+    const inbound = createCloudInboundSync({
+      transport,
+      initialBaselineState: { ...INITIAL_STATE, habits: [] },
+      getLocalState: () => ({ ...INITIAL_STATE, habits: [] }),
+      replaceLocalState: (state) => replaced.push(state),
+      onStateApplied: () => {
+        appliedCount += 1
+      },
+      isActive: () => true,
+      localHabitsUnknown: () => true,
+    })
+
+    inbound.start()
+    await vi.waitFor(() => expect(appliedCount).toBe(1))
+
+    expect(replaced[0]).toEqual(remote)
+
+    inbound.dispose()
+  })
+
   it("reconciles on start and polls only when the server version differs", async () => {
     const { transport, load, version, respond } = createFakeTransport()
     load.mockResolvedValue(respond(INITIAL_STATE))

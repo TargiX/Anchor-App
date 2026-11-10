@@ -220,7 +220,15 @@ export function createCloudInboundSync({
         // would make a later remote update look like another first recovery and
         // allow inherited local values to overwrite it.
         cloudBaseline = observedRemoteState
-        if (!structurallyEqual(currentLocalState, reconciledState)) {
+        // Apply also when the merged state is structurally equal but local
+        // habits are still recovered-unknown: replaceLocalState routes through
+        // the reconciliation path that clears the recovery marker, so normal
+        // cloud persistence resumes for later edits instead of every push
+        // being deferred through the recovery-save lane.
+        if (
+          !structurallyEqual(currentLocalState, reconciledState) ||
+          localHabitsUnknown
+        ) {
           replaceLocalState(reconciledState, { persistCloud: false })
           onStateApplied?.(reconciledState)
         }
