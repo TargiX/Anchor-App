@@ -133,7 +133,7 @@ must not run concurrently with each other.
   dynamically imported so Recharts stays out of the initial bundle;
   reduced-motion aware; empty state intact.
 
-### WS-5 · Accessibility pass  — done except a color-contrast check
+### WS-5 · Accessibility pass  — step transitions and color contrast remain
 - Done: mood grid keyboard support (`lib/mood/a11y` + `a11y.test.ts`;
   `components/morning/step-mood.tsx` exposes the grid as a `role="slider"` with
   arrow / PageUp / PageDown / Home / End steps, `aria-valuetext`, and an
@@ -141,8 +141,9 @@ must not run concurrently with each other.
   and the morning/evening steps (#75, #76), and `prefers-reduced-motion`
   guards on every framer-motion surface (ritual shell, meditation,
   affirmation, anchor motif, complete screens, login, reset password).
-- Remaining: a color-contrast pass over the themed surfaces before calling the
-  whole pass closed.
+- Remaining: step-transition announcements in `RitualShell` (step changes are
+  not announced to screen readers yet) and a color-contrast pass over the
+  themed surfaces before calling the whole pass closed.
 
 ### WS-6 · Native build + showcase assets  — parallel-safe (no app-code edits)
 - `npm run mobile:add:ios` / `:android` (needs Xcode/Android Studio), run in
