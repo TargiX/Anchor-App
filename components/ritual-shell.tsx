@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { AnchorMotif } from "@/components/anchor-motif"
+import { ritualStepAnnouncement } from "@/lib/ritual/a11y"
 import { cn } from "@/lib/utils"
 
 interface RitualShellProps {
@@ -37,6 +38,14 @@ const reducedVariants = {
   exit: { opacity: 0 },
 }
 
+/**
+ * Two-panel layout shell for the daily ritual flow.
+ *
+ * Renders the step progress dots and an `AnimatePresence`-driven step
+ * transition (fade-only under `useReducedMotion`), and exposes a visually
+ * hidden `role="status"` live region announcing the current step — the
+ * animated content swap itself is invisible to screen readers (WS-5 pass).
+ */
 export function RitualShell({
   children,
   step,
@@ -79,8 +88,17 @@ export function RitualShell({
         </aside>
 
         <main className="flex min-h-app flex-col lg:min-h-0">
+          {/* Screen readers: announce step changes, since the animated
+              content swap below is invisible to assistive technology. */}
+          <p role="status" aria-live="polite" className="sr-only">
+            {ritualStepAnnouncement(step, totalSteps, title)}
+          </p>
+
           {/* Progress dots */}
-          <div className="flex items-center justify-center gap-2 pt-8 pb-6 lg:pt-3 lg:pb-7">
+          <div
+            aria-hidden="true"
+            className="flex items-center justify-center gap-2 pt-8 pb-6 lg:pt-3 lg:pb-7"
+          >
             {Array.from({ length: totalSteps }).map((_, i) => (
               <div
                 key={i}
