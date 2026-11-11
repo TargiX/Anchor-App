@@ -133,10 +133,17 @@ must not run concurrently with each other.
   dynamically imported so Recharts stays out of the initial bundle;
   reduced-motion aware; empty state intact.
 
-### WS-5 · Accessibility pass  — HIGH collision risk, run solo
-- Keyboard support for the mood grid (`components/morning/step-mood.tsx`), focus
-  rings, aria labels, color-contrast check, `prefers-reduced-motion` for framer.
-- Touches many components → schedule when other UI streams are merged.
+### WS-5 · Accessibility pass  — step transitions and color contrast remain
+- Done: mood grid keyboard support (`lib/mood/a11y` + `a11y.test.ts`;
+  `components/morning/step-mood.tsx` exposes the grid as a `role="slider"` with
+  arrow / PageUp / PageDown / Home / End steps, `aria-valuetext`, and an
+  sr-only key hint), visible keyboard focus and announcements for ritual chips
+  and the morning/evening steps (#75, #76), and `prefers-reduced-motion`
+  guards on every framer-motion surface (ritual shell, meditation,
+  affirmation, anchor motif, complete screens, login, reset password).
+- Remaining: step-transition announcements in `RitualShell` (step changes are
+  not announced to screen readers yet) and a color-contrast pass over the
+  themed surfaces before calling the whole pass closed.
 
 ### WS-6 · Native build + showcase assets  — parallel-safe (no app-code edits)
 - `npm run mobile:add:ios` / `:android` (needs Xcode/Android Studio), run in
