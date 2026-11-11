@@ -6,6 +6,12 @@
  * `role="status"` live region whose text changes with the step.
  */
 
+/**
+ * Build the text announced by the ritual shell's screen-reader live region.
+ * Clamps the step into `[1, totalSteps]` so an out-of-range step never
+ * reads as "Step 0" or past the last step, and falls back to "Daily
+ * ritual" when the title is blank.
+ */
 export function ritualStepAnnouncement(
   step: number,
   totalSteps: number,

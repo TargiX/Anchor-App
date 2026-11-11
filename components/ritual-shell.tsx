@@ -38,6 +38,14 @@ const reducedVariants = {
   exit: { opacity: 0 },
 }
 
+/**
+ * Two-panel layout shell for the daily ritual flow.
+ *
+ * Renders the step progress dots and an `AnimatePresence`-driven step
+ * transition (fade-only under `useReducedMotion`), and exposes a visually
+ * hidden `role="status"` live region announcing the current step — the
+ * animated content swap itself is invisible to screen readers (WS-5 pass).
+ */
 export function RitualShell({
   children,
   step,
