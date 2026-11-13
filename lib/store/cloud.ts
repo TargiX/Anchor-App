@@ -72,6 +72,10 @@ export function createHttpTransport(
       return lastVersion
     },
 
+    /**
+     * Fetch the cloud row and migrate its payload to the current state
+     * shape; remember the row version for self-echo filtering.
+     */
     async load() {
       const res = await fetcher("/api/data/state")
       if (!res.ok) throw new Error(`Cloud load failed (${res.status})`)
@@ -86,6 +90,10 @@ export function createHttpTransport(
       }
     },
 
+    /**
+     * Write the state to the cloud row; a 409 reports a conflict without
+     * adopting the server version, so inbound reconciliation pulls it.
+     */
     async save(state) {
       const safeState = AppStateSchema.parse(state)
       const res = await fetcher("/api/data/state", {
@@ -108,6 +116,9 @@ export function createHttpTransport(
       return { updatedAt: lastVersion, conflict: false }
     },
 
+    /**
+     * Probe the row's updatedAt without downloading the payload.
+     */
     async version() {
       const res = await fetcher("/api/data/state/version")
       if (!res.ok) throw new Error(`Cloud version check failed (${res.status})`)
@@ -117,6 +128,11 @@ export function createHttpTransport(
   }
 }
 
+/**
+ * Three-way-lite merge for the first contact with the cloud (no
+ * baseline yet): local entries win per key, unknown/recovered habits
+ * defer to remote, defaults-only notification settings adopt remote.
+ */
 export function mergeCloudState(
   local: AppState,
   remote: AppState,
@@ -170,6 +186,10 @@ export function createCloudInboundSync({
   let cloudBaseline = initialBaselineState
   let pollTimer: ReturnType<typeof setInterval> | null = null
 
+  /**
+   * Drain pending refresh requests serially, reconciling each fresh
+   * remote load against the post-await local snapshot.
+   */
   function refresh(): Promise<void> {
     if (disposed || !isActive()) return Promise.resolve()
 
@@ -247,6 +267,10 @@ export function createCloudInboundSync({
     return refreshPromise
   }
 
+  /**
+   * Version poll: trigger a refresh only when the remote row was
+   * written by another session (version differs from lastVersion).
+   */
   async function checkForRemoteChanges() {
     if (disposed || !isActive()) return
     try {
@@ -262,6 +286,9 @@ export function createCloudInboundSync({
     }
   }
 
+  /**
+   * Catch up on tab focus so a backgrounded session syncs promptly.
+   */
   function onVisibilityChange() {
     if (typeof document !== "undefined" && document.visibilityState === "visible") {
       void checkForRemoteChanges()
@@ -269,6 +296,10 @@ export function createCloudInboundSync({
   }
 
   return {
+    /**
+     * Begin version polling, focus checks and the initial reconcile.
+     * Idempotent; a second start is ignored.
+     */
     start() {
       if (started || disposed || !isActive()) return
       started = true
@@ -283,6 +314,10 @@ export function createCloudInboundSync({
       void refresh()
     },
     refresh,
+    /**
+     * Stop polling and detach listeners; in-flight refresh loops exit on
+     * their next guard check.
+     */
     dispose() {
       disposed = true
       refreshRequested = false
@@ -297,6 +332,12 @@ export function createCloudInboundSync({
   }
 }
 
+/**
+ * Three-way reconcile against the last observed cloud baseline: local
+ * wins divergences, remote wins fields local left untouched, local
+ * deletions are honoured, and diverging days are reported via
+ * onConflicts. Recovered-unknown local habits never win.
+ */
 function reconcileInboundCloudState(
   local: AppState,
   baseline: AppState,
@@ -368,6 +409,10 @@ function hasCustomHabits(state: AppState): boolean {
   return JSON.stringify(state.habits) !== JSON.stringify(INITIAL_STATE.habits)
 }
 
+/**
+ * Deep structural equality used to distinguish real edits from
+ * reference-identical re-renders.
+ */
 function structurallyEqual(left: unknown, right: unknown): boolean {
   if (Object.is(left, right)) return true
   if (

@@ -45,6 +45,9 @@ export async function flushDeviceStorage(): Promise<boolean> {
   return flushDevice ? flushDevice() : true
 }
 
+/**
+ * Retry a failed native write; outside native, persist locally instead.
+ */
 export async function retryDeviceStorage(): Promise<boolean> {
   return retryDevice ? retryDevice() : persistLocal()
 }
@@ -81,6 +84,10 @@ export function localHabitsFromInvalidRecovery(): boolean {
 let storageScope: "authed" | "anon" | "local" = "authed"
 let authedUserId: string | null = null
 
+/**
+ * Resolve the storage slot for the active scope, or null while the
+ * authed scope has no user id yet (callers must not read/write).
+ */
 function activeKey(): string | null {
   if (storageScope === "anon" || storageScope === "local")
     return ANON_STORAGE_KEY
@@ -101,6 +108,10 @@ let draftKey: string | null = null
 let draftCache: Record<string, JournalDraft> = {}
 const EMPTY_DRAFTS: Record<string, JournalDraft> = {}
 
+/**
+ * Parse and cache the active slot's journal drafts; corrupt or missing
+ * data reads as empty. Re-parses only when the slot or raw text changes.
+ */
 export function getJournalDrafts(): Record<string, JournalDraft> {
   const key = activeKey()
   const raw = key ? storage.read(key) : null
@@ -120,6 +131,12 @@ export function getServerDrafts() {
   return EMPTY_DRAFTS
 }
 
+/**
+ * Write one journal draft (or delete it with null) into the active
+ * slot's envelope, validating the stored state first. Returns false
+ * when no slot is active, the stored state is invalid, or the write
+ * fails.
+ */
 export function saveJournalDraft(
   context: string,
   draft: JournalDraft | null
@@ -165,6 +182,11 @@ function serializedState(next: AppState): string {
   })
 }
 
+/**
+ * One-time migration of the pre-scope-split anchor-state key into the
+ * local-only slot; every other scope treats the legacy key as unowned
+ * and drops it (privacy boundary — see LEGACY_STORAGE_KEY).
+ */
 function migrateLegacyIfPresent(): void {
   // One-time migration from the pre-scope-split single `anchor-state`
   // key into the local-only slot. The legacy envelope had
@@ -202,6 +224,11 @@ function migrateLegacyIfPresent(): void {
   }
 }
 
+/**
+ * Load the active slot's envelope into memory, re-deriving the
+ * recovered-unknown habits flag from the container shape or the
+ * persisted marker.
+ */
 function hydrate(): void {
   habitsRecoveredInvalid = false
   const key = activeKey()
@@ -237,6 +264,10 @@ function hydrate(): void {
   storage.remove(LEGACY_STORAGE_KEY)
 }
 
+/**
+ * Serialize the current state into the active slot; false when no
+ * slot is active.
+ */
 function persistLocal(): boolean {
   const key = activeKey()
   if (!key) return false
@@ -260,6 +291,10 @@ export function getServerSnapshot(): AppState {
   return INITIAL_STATE
 }
 
+/**
+ * Read storage once per page load (first call wins) and notify
+ * listeners only when hydration changed the state.
+ */
 export function hydrateFromStorage(): void {
   if (hydrated) return
   hydrated = true
@@ -319,6 +354,12 @@ export function commitLocalState(
   return true
 }
 
+/**
+ * Swap the whole state and persist locally. Cloud echo is optional
+ * and suppressed while recovered habits remain "unknown" — an
+ * explicit habits change or a cloud reconciliation resolves it
+ * (mirrors commitLocalState).
+ */
 export function replaceState(
   nextState: AppState,
   options: { persistCloud?: boolean; habitsReconciled?: boolean } = {}
@@ -430,6 +471,10 @@ export function clearAllAuthedSlots(): void {
   }
 }
 
+/**
+ * Reset in-memory state to INITIAL_STATE and wipe the active slot's
+ * stored data.
+ */
 export function resetState(): void {
   state = INITIAL_STATE
   habitsRecoveredInvalid = false

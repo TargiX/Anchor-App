@@ -92,6 +92,11 @@ export interface MigrationMeta {
   habitsContainerInvalid: boolean
 }
 
+/**
+ * Like `migrate`, but also reports whether the habits container was
+ * recovered from an invalid shape — the signal sync needs to treat
+ * local habits as "unknown" instead of as a deliberate deletion.
+ */
 export function migrateWithMeta(raw: unknown): {
   state: AppState
   meta: MigrationMeta

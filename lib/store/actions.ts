@@ -114,6 +114,10 @@ export function saveQuickCheckIn(
       }
 }
 
+/**
+ * Apply an updater to the open weekly direction and persist it; an
+ * invalid result is a no-op. Returns false when no direction is open.
+ */
 function commitOpenWeeklyDirection(
   updater: (
     direction: NonNullable<AppState["weeklyDirection"]>
@@ -145,6 +149,10 @@ export function releaseWeeklyDirection(): boolean {
   }))
 }
 
+/**
+ * Replace the open weekly direction's text after trimming and length
+ * validation; false when empty, too long, or nothing is open.
+ */
 export function changeWeeklyDirection(text: string): boolean {
   const next = text.trim()
   if (!next || next.length > LIMITS.intentionMax) return false
@@ -161,6 +169,9 @@ const cursorFieldByKind = {
   evening: "eveningRitualStep",
 } as const
 
+/**
+ * True when the step is an integer inside the ritual's step range.
+ */
 function isValidRitualStep(kind: RitualKind, step: number): boolean {
   const totalSteps =
     kind === "morning" ? LIMITS.morningRitualSteps : LIMITS.eveningRitualSteps
@@ -196,6 +207,10 @@ export function clearRitualCursor(
   })
 }
 
+/**
+ * Prefer a random UUID; fall back to a timestamp where crypto is
+ * unavailable.
+ */
 function newHabitId(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -218,6 +233,10 @@ export function removeHabit(id: string): void {
   }))
 }
 
+/**
+ * Store a schema-valid time into the morning or evening notification
+ * slot; invalid values are ignored.
+ */
 export function setNotificationTime(
   which: "morning" | "evening",
   time: string
