@@ -8,7 +8,7 @@ import {
   LEGACY_STORAGE_KEY,
   STATE_VERSION,
   authedStorageKey,
-  migrate,
+  migrateWithMeta,
 } from "./state"
 import { validateJournal } from "./native-storage"
 import { JournalDraftsSchema, type JournalDraft } from "./journal-draft"
@@ -36,6 +36,7 @@ export function installDeviceStorage(
   flushDevice = flush
   retryDevice = retry
   state = INITIAL_STATE
+  habitsRecoveredInvalid = false
   hydrated = false
 }
 
@@ -44,6 +45,9 @@ export async function flushDeviceStorage(): Promise<boolean> {
   return flushDevice ? flushDevice() : true
 }
 
+/**
+ * Retry a failed native write; outside native, persist locally instead.
+ */
 export async function retryDeviceStorage(): Promise<boolean> {
   return retryDevice ? retryDevice() : persistLocal()
 }
@@ -52,6 +56,24 @@ let state: AppState = INITIAL_STATE
 const listeners = new Set<() => void>()
 let hydrated = false
 let cloudPersistence: ((state: AppState) => void) | null = null
+/**
+ * True while the in-memory `state.habits` came from recovering an invalid
+ * `habits` container (missing or not an array — see `migrateWithMeta`).
+ * Such habits are "unknown", not an intentional deletion, so inbound cloud
+ * sync lets remote habits win instead of saving the recovered list.
+ *
+ * The flag survives unrelated edits (only an explicit `habits` change or a
+ * cloud reconciliation clears it) and is persisted in the envelope
+ * (`habitsRecoveredInvalid`) so a reload before cloud reconciliation keeps
+ * treating the recovered list as unknown. `hydrate` re-derives it from the
+ * container shape or the persisted marker.
+ */
+let habitsRecoveredInvalid = false
+
+/** True when current local habits came from invalid-container recovery. */
+export function localHabitsFromInvalidRecovery(): boolean {
+  return habitsRecoveredInvalid
+}
 
 /**
  * Active storage slot. Anon and authed never share a slot, and every
@@ -62,6 +84,10 @@ let cloudPersistence: ((state: AppState) => void) | null = null
 let storageScope: "authed" | "anon" | "local" = "authed"
 let authedUserId: string | null = null
 
+/**
+ * Resolve the storage slot for the active scope, or null while the
+ * authed scope has no user id yet (callers must not read/write).
+ */
 function activeKey(): string | null {
   if (storageScope === "anon" || storageScope === "local")
     return ANON_STORAGE_KEY
@@ -82,6 +108,10 @@ let draftKey: string | null = null
 let draftCache: Record<string, JournalDraft> = {}
 const EMPTY_DRAFTS: Record<string, JournalDraft> = {}
 
+/**
+ * Parse and cache the active slot's journal drafts; corrupt or missing
+ * data reads as empty. Re-parses only when the slot or raw text changes.
+ */
 export function getJournalDrafts(): Record<string, JournalDraft> {
   const key = activeKey()
   const raw = key ? storage.read(key) : null
@@ -101,6 +131,12 @@ export function getServerDrafts() {
   return EMPTY_DRAFTS
 }
 
+/**
+ * Write one journal draft (or delete it with null) into the active
+ * slot's envelope, validating the stored state first. Returns false
+ * when no slot is active, the stored state is invalid, or the write
+ * fails.
+ */
 export function saveJournalDraft(
   context: string,
   draft: JournalDraft | null
@@ -125,6 +161,7 @@ export function saveJournalDraft(
         version: STATE_VERSION,
         data: state,
         localDrafts: drafts,
+        ...(habitsRecoveredInvalid ? { habitsRecoveredInvalid: true } : {}),
       })
     )
   )
@@ -138,9 +175,18 @@ function serializedState(next: AppState): string {
     version: STATE_VERSION,
     data: next,
     localDrafts: getJournalDrafts(),
+    // Persist the recovery marker so a reload before cloud reconciliation
+    // keeps treating recovered habits as "unknown", not as an intentional
+    // deletion. See localHabitsFromInvalidRecovery.
+    ...(habitsRecoveredInvalid ? { habitsRecoveredInvalid: true } : {}),
   })
 }
 
+/**
+ * One-time migration of the pre-scope-split anchor-state key into the
+ * local-only slot; every other scope treats the legacy key as unowned
+ * and drops it (privacy boundary — see LEGACY_STORAGE_KEY).
+ */
 function migrateLegacyIfPresent(): void {
   // One-time migration from the pre-scope-split single `anchor-state`
   // key into the local-only slot. The legacy envelope had
@@ -160,7 +206,14 @@ function migrateLegacyIfPresent(): void {
   const raw = storage.read(LEGACY_STORAGE_KEY)
   if (!raw) return
   try {
-    state = migrate(JSON.parse(raw))
+    const parsed = JSON.parse(raw)
+    const migrated = migrateWithMeta(parsed)
+    state = migrated.state
+    habitsRecoveredInvalid =
+      migrated.meta.habitsContainerInvalid ||
+      (typeof parsed === "object" &&
+        parsed !== null &&
+        parsed.habitsRecoveredInvalid === true)
     if (persistLocal()) {
       storage.remove(LEGACY_STORAGE_KEY)
     }
@@ -171,7 +224,13 @@ function migrateLegacyIfPresent(): void {
   }
 }
 
+/**
+ * Load the active slot's envelope into memory, re-deriving the
+ * recovered-unknown habits flag from the container shape or the
+ * persisted marker.
+ */
 function hydrate(): void {
+  habitsRecoveredInvalid = false
   const key = activeKey()
   if (!key) return
   const raw = storage.read(key)
@@ -184,9 +243,19 @@ function hydrate(): void {
     return
   }
   try {
-    state = migrate(JSON.parse(raw))
+    const parsed = JSON.parse(raw)
+    const migrated = migrateWithMeta(parsed)
+    state = migrated.state
+    // Re-derive from the container shape, or keep a previously persisted
+    // recovery marker so a reload before reconciliation preserves "unknown".
+    habitsRecoveredInvalid =
+      migrated.meta.habitsContainerInvalid ||
+      (typeof parsed === "object" &&
+        parsed !== null &&
+        parsed.habitsRecoveredInvalid === true)
   } catch {
     state = INITIAL_STATE
+    habitsRecoveredInvalid = false
   }
   // The active scope already had data — never touch state from a
   // legacy key in this branch; that would clobber the user's current
@@ -195,6 +264,10 @@ function hydrate(): void {
   storage.remove(LEGACY_STORAGE_KEY)
 }
 
+/**
+ * Serialize the current state into the active slot; false when no
+ * slot is active.
+ */
 function persistLocal(): boolean {
   const key = activeKey()
   if (!key) return false
@@ -218,6 +291,10 @@ export function getServerSnapshot(): AppState {
   return INITIAL_STATE
 }
 
+/**
+ * Read storage once per page load (first call wins) and notify
+ * listeners only when hydration changed the state.
+ */
 export function hydrateFromStorage(): void {
   if (hydrated) return
   hydrated = true
@@ -254,22 +331,55 @@ export function commitLocalState(
   const key = activeKey()
   if (!key) return false
   const next = updater(state)
+  // Only an explicit habits change turns recovered "unknown" habits into a
+  // local intent; an unrelated edit (e.g. a journal entry during the initial
+  // cloud load) must preserve the recovery flag so sync still lets remote
+  // habits win.
+  const habitsChanged = next.habits !== state.habits
+  if (habitsChanged) habitsRecoveredInvalid = false
   if (!storage.write(key, serializedState(next))) {
+    // Keep the safe side of the distinction on a failed write: a just-made
+    // explicit change re-arms "unknown" (remote wins) rather than risking a
+    // recovered empty list overwriting cloud habits.
+    if (habitsChanged) habitsRecoveredInvalid = true
     return false
   }
   state = next
   notify()
-  cloudPersistence?.(state)
+  // While habits remain "unknown" (invalid-container recovery), an early
+  // push would publish the recovered list against the pre-reconcile cloud
+  // version; defer to inbound reconciliation, which performs one clean save
+  // once the unknown habits are resolved.
+  if (!habitsRecoveredInvalid) cloudPersistence?.(state)
   return true
 }
 
+/**
+ * Swap the whole state and persist locally. Cloud echo is optional
+ * and suppressed while recovered habits remain "unknown" — an
+ * explicit habits change or a cloud reconciliation resolves it
+ * (mirrors commitLocalState).
+ */
 export function replaceState(
   nextState: AppState,
-  options: { persistCloud?: boolean } = {}
+  options: { persistCloud?: boolean; habitsReconciled?: boolean } = {}
 ): void {
+  // Mirror commitLocalState's distinction: an unrelated edit (habits
+  // untouched by reference) preserves the recovered-"unknown" marker, so a
+  // journal or notification edit routed through setState during the initial
+  // cloud load cannot turn recovered habits into a local intent. An explicit
+  // habits change — or a cloud reconciliation (options.habitsReconciled) —
+  // resolves the unknown.
+  const habitsChanged = nextState.habits !== state.habits
+  if (habitsChanged || options.habitsReconciled) habitsRecoveredInvalid = false
   state = nextState
   persistLocal()
-  if (options.persistCloud !== false) cloudPersistence?.(state)
+  // While habits remain "unknown", pushing this state would publish the
+  // recovered list against the pre-reconcile cloud version. Inbound
+  // reconciliation resolves the unknown and then performs one clean save.
+  if (options.persistCloud !== false && !habitsRecoveredInvalid) {
+    cloudPersistence?.(state)
+  }
   notify()
 }
 
@@ -303,6 +413,7 @@ export function setStorageScope(
     authedUserId = null
   }
   state = INITIAL_STATE
+  habitsRecoveredInvalid = false
   hydrated = false
   notify()
 }
@@ -360,8 +471,13 @@ export function clearAllAuthedSlots(): void {
   }
 }
 
+/**
+ * Reset in-memory state to INITIAL_STATE and wipe the active slot's
+ * stored data.
+ */
 export function resetState(): void {
   state = INITIAL_STATE
+  habitsRecoveredInvalid = false
   const key = activeKey()
   if (key) storage.remove(key)
   notify()

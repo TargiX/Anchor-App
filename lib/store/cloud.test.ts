@@ -88,6 +88,19 @@ describe("mergeCloudState", () => {
       }).weeklyDirection
     ).toEqual(direction)
   })
+
+  it("lets remote habits win when local habits came from invalid-container recovery", () => {
+    const remoteHabits = [{ id: "r1", name: "Run", icon: "zap" }]
+    const remote: AppState = { ...INITIAL_STATE, habits: remoteHabits }
+    // A recovered empty list is not user intent; the flag marks it unknown.
+    const recovered: AppState = { ...INITIAL_STATE, habits: [] }
+
+    expect(mergeCloudState(recovered, remote, true).habits).toEqual(
+      remoteHabits
+    )
+    // Without the recovery flag an explicit empty list still wins.
+    expect(mergeCloudState(recovered, remote).habits).toEqual([])
+  })
 })
 
 describe("cloud inbound sync", () => {
@@ -96,6 +109,65 @@ describe("cloud inbound sync", () => {
   })
   afterEach(() => {
     vi.useRealTimers()
+  })
+
+  it("does not overwrite remote habits with habits recovered from an invalid container", async () => {
+    const remoteHabits = [{ id: "r1", name: "Run", icon: "zap" }]
+    const remote: AppState = {
+      ...INITIAL_STATE,
+      habits: remoteHabits,
+      notificationMorning: "07:00",
+    }
+    const { transport, respond } = createFakeTransport()
+    transport.load.mockResolvedValue(respond(remote))
+    const replaced: AppState[] = []
+    const inbound = createCloudInboundSync({
+      transport,
+      initialBaselineState: { ...INITIAL_STATE, habits: remoteHabits },
+      getLocalState: () => ({ ...INITIAL_STATE, habits: [] }),
+      replaceLocalState: (state) => replaced.push(state),
+      isActive: () => true,
+      localHabitsUnknown: () => true,
+    })
+
+    inbound.start()
+    await vi.waitFor(() => expect(replaced).toHaveLength(1))
+    const reconciled = replaced[0]!
+
+    // Remote habits stand; the recovered empty list never wins the merge.
+    expect(reconciled.habits).toEqual(remoteHabits)
+    expect(reconciled.notificationMorning).toBe("07:00")
+
+    inbound.dispose()
+  })
+
+  it("applies reconciliation when habits are unknown even if the merged state is structurally equal", async () => {
+    // Remote row is structurally identical to the recovered local state, so
+    // the equality shortcut would skip replaceLocalState and leave the
+    // recovery marker set — normal persistence would stay deferred forever.
+    const remote: AppState = { ...INITIAL_STATE, habits: [] }
+    const { transport, respond } = createFakeTransport()
+    transport.load.mockResolvedValue(respond(remote))
+    const replaced: AppState[] = []
+    let appliedCount = 0
+    const inbound = createCloudInboundSync({
+      transport,
+      initialBaselineState: { ...INITIAL_STATE, habits: [] },
+      getLocalState: () => ({ ...INITIAL_STATE, habits: [] }),
+      replaceLocalState: (state) => replaced.push(state),
+      onStateApplied: () => {
+        appliedCount += 1
+      },
+      isActive: () => true,
+      localHabitsUnknown: () => true,
+    })
+
+    inbound.start()
+    await vi.waitFor(() => expect(appliedCount).toBe(1))
+
+    expect(replaced[0]).toEqual(remote)
+
+    inbound.dispose()
   })
 
   it("reconciles on start and polls only when the server version differs", async () => {

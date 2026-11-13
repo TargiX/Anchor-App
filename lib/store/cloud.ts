@@ -48,6 +48,12 @@ interface CloudInboundSyncOptions {
   onConflicts?: (dayKeys: readonly string[]) => void
   onStateApplied?: (state: AppState) => void
   onRecoverySaveNeeded?: (state: AppState) => void
+  /**
+   * True while local habits came from invalid-container recovery (see
+   * `localHabitsFromInvalidRecovery`). Recovered habits are "unknown",
+   * not an intentional deletion, so remote habits win the merge.
+   */
+  localHabitsUnknown?: () => boolean
 }
 
 /**
@@ -66,6 +72,10 @@ export function createHttpTransport(
       return lastVersion
     },
 
+    /**
+     * Fetch the cloud row and migrate its payload to the current state
+     * shape; remember the row version for self-echo filtering.
+     */
     async load() {
       const res = await fetcher("/api/data/state")
       if (!res.ok) throw new Error(`Cloud load failed (${res.status})`)
@@ -80,6 +90,10 @@ export function createHttpTransport(
       }
     },
 
+    /**
+     * Write the state to the cloud row; a 409 reports a conflict without
+     * adopting the server version, so inbound reconciliation pulls it.
+     */
     async save(state) {
       const safeState = AppStateSchema.parse(state)
       const res = await fetcher("/api/data/state", {
@@ -102,6 +116,9 @@ export function createHttpTransport(
       return { updatedAt: lastVersion, conflict: false }
     },
 
+    /**
+     * Probe the row's updatedAt without downloading the payload.
+     */
     async version() {
       const res = await fetcher("/api/data/state/version")
       if (!res.ok) throw new Error(`Cloud version check failed (${res.status})`)
@@ -111,11 +128,23 @@ export function createHttpTransport(
   }
 }
 
-export function mergeCloudState(local: AppState, remote: AppState): AppState {
+/**
+ * Three-way-lite merge for the first contact with the cloud (no
+ * baseline yet): local entries win per key, unknown/recovered habits
+ * defer to remote, defaults-only notification settings adopt remote.
+ */
+export function mergeCloudState(
+  local: AppState,
+  remote: AppState,
+  localHabitsUnknown = false
+): AppState {
   const weeklyDirection = local.weeklyDirection ?? remote.weeklyDirection
   return {
     entries: { ...remote.entries, ...local.entries },
-    habits: hasCustomHabits(local) ? local.habits : remote.habits,
+    habits:
+      localHabitsUnknown || !hasCustomHabits(local)
+        ? remote.habits
+        : local.habits,
     notificationMorning:
       local.notificationMorning === INITIAL_STATE.notificationMorning
         ? remote.notificationMorning
@@ -148,6 +177,7 @@ export function createCloudInboundSync({
   onConflicts,
   onStateApplied,
   onRecoverySaveNeeded,
+  localHabitsUnknown: localHabitsUnknownFn,
 }: CloudInboundSyncOptions) {
   let disposed = false
   let started = false
@@ -156,6 +186,10 @@ export function createCloudInboundSync({
   let cloudBaseline = initialBaselineState
   let pollTimer: ReturnType<typeof setInterval> | null = null
 
+  /**
+   * Drain pending refresh requests serially, reconciling each fresh
+   * remote load against the post-await local snapshot.
+   */
   function refresh(): Promise<void> {
     if (disposed || !isActive()) return Promise.resolve()
 
@@ -181,14 +215,22 @@ export function createCloudInboundSync({
         const previousBaseline = cloudBaseline
         const baselineWasUnknown = previousBaseline === null
         const observedRemoteState = remoteState ?? INITIAL_STATE
+        // Read once per refresh: recovered habits are "unknown", not an
+        // intentional deletion, so remote habits win this reconcile.
+        const localHabitsUnknown = localHabitsUnknownFn?.() ?? false
         const reconciledState = !baselineWasUnknown
           ? reconcileInboundCloudState(
               currentLocalState,
               previousBaseline,
               observedRemoteState,
-              onConflicts
+              onConflicts,
+              localHabitsUnknown
             )
-          : mergeCloudState(currentLocalState, observedRemoteState)
+          : mergeCloudState(
+              currentLocalState,
+              observedRemoteState,
+              localHabitsUnknown
+            )
         const recoverySaveNeeded = !structurallyEqual(
           observedRemoteState,
           reconciledState
@@ -198,7 +240,15 @@ export function createCloudInboundSync({
         // would make a later remote update look like another first recovery and
         // allow inherited local values to overwrite it.
         cloudBaseline = observedRemoteState
-        if (!structurallyEqual(currentLocalState, reconciledState)) {
+        // Apply also when the merged state is structurally equal but local
+        // habits are still recovered-unknown: replaceLocalState routes through
+        // the reconciliation path that clears the recovery marker, so normal
+        // cloud persistence resumes for later edits instead of every push
+        // being deferred through the recovery-save lane.
+        if (
+          !structurallyEqual(currentLocalState, reconciledState) ||
+          localHabitsUnknown
+        ) {
           replaceLocalState(reconciledState, { persistCloud: false })
           onStateApplied?.(reconciledState)
         }
@@ -217,6 +267,10 @@ export function createCloudInboundSync({
     return refreshPromise
   }
 
+  /**
+   * Version poll: trigger a refresh only when the remote row was
+   * written by another session (version differs from lastVersion).
+   */
   async function checkForRemoteChanges() {
     if (disposed || !isActive()) return
     try {
@@ -232,6 +286,9 @@ export function createCloudInboundSync({
     }
   }
 
+  /**
+   * Catch up on tab focus so a backgrounded session syncs promptly.
+   */
   function onVisibilityChange() {
     if (typeof document !== "undefined" && document.visibilityState === "visible") {
       void checkForRemoteChanges()
@@ -239,6 +296,10 @@ export function createCloudInboundSync({
   }
 
   return {
+    /**
+     * Begin version polling, focus checks and the initial reconcile.
+     * Idempotent; a second start is ignored.
+     */
     start() {
       if (started || disposed || !isActive()) return
       started = true
@@ -253,6 +314,10 @@ export function createCloudInboundSync({
       void refresh()
     },
     refresh,
+    /**
+     * Stop polling and detach listeners; in-flight refresh loops exit on
+     * their next guard check.
+     */
     dispose() {
       disposed = true
       refreshRequested = false
@@ -267,11 +332,18 @@ export function createCloudInboundSync({
   }
 }
 
+/**
+ * Three-way reconcile against the last observed cloud baseline: local
+ * wins divergences, remote wins fields local left untouched, local
+ * deletions are honoured, and diverging days are reported via
+ * onConflicts. Recovered-unknown local habits never win.
+ */
 function reconcileInboundCloudState(
   local: AppState,
   baseline: AppState,
   remote: AppState,
-  onConflicts?: (dayKeys: readonly string[]) => void
+  onConflicts?: (dayKeys: readonly string[]) => void,
+  localHabitsUnknown = false
 ): AppState {
   const mergedEntries = { ...remote.entries }
   const conflicts: string[] = []
@@ -298,9 +370,13 @@ function reconcileInboundCloudState(
   }
   if (conflicts.length > 0) onConflicts?.(conflicts)
 
-  const habits = structurallyEqual(local.habits, baseline.habits)
+  // Recovered-unknown local habits never win: remote habits stand until the
+  // user makes an explicit local change (which clears the recovery flag).
+  const habits = localHabitsUnknown
     ? remote.habits
-    : local.habits
+    : structurallyEqual(local.habits, baseline.habits)
+      ? remote.habits
+      : local.habits
   const notificationMorning = structurallyEqual(
     local.notificationMorning,
     baseline.notificationMorning
@@ -333,6 +409,10 @@ function hasCustomHabits(state: AppState): boolean {
   return JSON.stringify(state.habits) !== JSON.stringify(INITIAL_STATE.habits)
 }
 
+/**
+ * Deep structural equality used to distinguish real edits from
+ * reference-identical re-renders.
+ */
 function structurallyEqual(left: unknown, right: unknown): boolean {
   if (Object.is(left, right)) return true
   if (

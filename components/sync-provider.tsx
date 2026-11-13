@@ -19,6 +19,7 @@ import {
   clearCloudPersistence,
   getSnapshot,
   hydrateFromStorage,
+  localHabitsFromInvalidRecovery,
   replaceState,
   resetAnonSlot,
   setCloudPersistence,
@@ -30,6 +31,12 @@ import { shouldWipeAuthedData } from "@/lib/auth/session"
 
 const SAVE_DELAY_MS = 650
 
+/**
+ * Side-effect hub for auth transitions: owns storage-scope switching,
+ * local slot wipes on sign-out and cross-account changes, the
+ * debounced cloud save pipeline, and inbound sync wiring for the
+ * current session.
+ */
 export function SyncProvider() {
   const { status, user, endedBy } = useAuth()
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -41,6 +48,12 @@ export function SyncProvider() {
   const previousAuthedUserIdRef = useRef<string | null>(null)
   const userId = user?.id ?? null
 
+  /**
+   * React to auth status changes: tear down the previous session's
+   * cloud persistence, switch storage scope (local/anon/authed), wipe
+   * the outgoing authed slot when privacy requires it, and run the
+   * authed sync session while signed in.
+   */
   useEffect(() => {
     const previousStatus = previousStatusRef.current
     previousStatusRef.current = status
@@ -143,6 +156,10 @@ export function SyncProvider() {
       },
     })
 
+    /**
+     * Install the debounced cloud-save sink; a no-op once the session is
+     * stale or cancelled.
+     */
     function installCloudPersistence() {
       if (cancelled || !cloudSyncStatus.isCurrent(syncSession)) return
 
@@ -156,6 +173,10 @@ export function SyncProvider() {
       })
     }
 
+    /**
+     * Create and start inbound reconciliation against the given cloud
+     * baseline; a no-op when one already exists or the session is stale.
+     */
     function installInboundSync(initialBaselineState: AppState | null) {
       if (inboundSync || cancelled || !cloudSyncStatus.isCurrent(syncSession)) {
         return
@@ -167,6 +188,7 @@ export function SyncProvider() {
         getLocalState: getSnapshot,
         replaceLocalState: applyInboundCloudState,
         isActive: () => !cancelled && cloudSyncStatus.isCurrent(syncSession),
+        localHabitsUnknown: localHabitsFromInvalidRecovery,
         onError: (error) => {
           // Realtime is an optional freshness layer. Keep its failures out of
           // the visible save status; ordinary load/save continues to work.
@@ -202,6 +224,12 @@ export function SyncProvider() {
       inboundSync.start()
     }
 
+    /**
+     * First sign-in sync: load the cloud row, merge same-tab anon
+     * progress, save the merged state once, then install cloud
+     * persistence and inbound sync. Failures degrade to offline/error
+     * status with the pending save retained for retry.
+     */
     async function syncInitialState() {
       let remoteState: AppState | null
       try {
@@ -225,7 +253,11 @@ export function SyncProvider() {
       // request was in flight are not overwritten by a stale pre-await snapshot.
       const currentLocalState = getSnapshot()
       let syncedState: AppState = remoteState
-        ? mergeCloudState(currentLocalState, remoteState)
+        ? mergeCloudState(
+            currentLocalState,
+            remoteState,
+            localHabitsFromInvalidRecovery()
+          )
         : currentLocalState
 
       // If the visitor had unsynced anon entries from this same tab/session,
@@ -241,7 +273,7 @@ export function SyncProvider() {
         }
       }
 
-      replaceState(syncedState, { persistCloud: false })
+      replaceState(syncedState, { persistCloud: false, habitsReconciled: true })
       try {
         const result = await transport.save(syncedState)
         if (result.conflict)
