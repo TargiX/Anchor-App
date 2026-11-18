@@ -38,6 +38,7 @@ function postRequest(body: unknown, headers: Record<string, string> = {}) {
 }
 
 beforeEach(() => {
+  vi.stubEnv("BACKEND_URL", "")
   appendCheckInMock.mockReset().mockResolvedValue(undefined)
   listCheckInsMock.mockReset().mockResolvedValue([])
   captureImmediateMock.mockReset().mockResolvedValue(undefined)
