@@ -3,13 +3,18 @@ import {
   createCheckInFromTranscript,
   createImmediateReflection,
   createWeeklyDigest,
-  type CheckInKind,
 } from "@/lib/anchor-checkin/checkin"
 import { appendCheckIn, listCheckIns } from "@/lib/anchor-checkin/storage"
 import {
   getPostHogServerClient,
   postHogRequestContext,
 } from "@/lib/analytics/server"
+import {
+  latestMorningIntention,
+  parseKind,
+  resolveBackendUrl,
+  storageOptionsForUser,
+} from "@/lib/anchor-checkin/route-contract"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -22,22 +27,10 @@ type CheckInRequest = {
   durationSec?: unknown
 }
 
-function getBackendUrl(): string | undefined {
-  const url = process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL
-  if (!url) return undefined
-  try {
-    return new URL(url).protocol === "https:" || new URL(url).hostname === "localhost" || new URL(url).hostname === "127.0.0.1"
-      ? url.replace(/\/+$/, "")
-      : undefined
-  } catch {
-    return undefined
-  }
-}
-
 type SessionAccess = { error: NextResponse } | { userId: string | null }
 
 async function requireSession(request: Request): Promise<SessionAccess> {
-  const backendUrl = getBackendUrl()
+  const backendUrl = resolveBackendUrl()
 
   // Keep the documented local-only fallback working when no backend exists.
   if (!backendUrl) return { userId: null }
@@ -84,30 +77,6 @@ async function requireSession(request: Request): Promise<SessionAccess> {
   }
 
   return { userId: session.user.id }
-}
-
-function storageOptionsForUser(userId: string | null) {
-  if (!userId) return undefined
-
-  const safeUserId = userId.replace(/[^a-zA-Z0-9_-]/g, "_")
-  return { dir: `data/anchor-checkins/${safeUserId}` }
-}
-
-function parseKind(kind: unknown): CheckInKind | undefined {
-  if (kind === "morning" || kind === "evening" || kind === "spontaneous")
-    return kind
-  return undefined
-}
-
-function latestMorningIntention(
-  records: Awaited<ReturnType<typeof listCheckIns>>
-): string | null {
-  return (
-    [...records]
-      .reverse()
-      .find((record) => record.kind === "morning" && record.intention.main)
-      ?.intention.main ?? null
-  )
 }
 
 export async function GET(request: Request) {
